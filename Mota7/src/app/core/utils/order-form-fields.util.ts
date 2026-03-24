@@ -1,9 +1,16 @@
 /**
  * قراءة نص من حدث ionInput على ion-input / ion-textarea.
- * على WebView (أندرويد) مع IME عربي قد يبقى `event.detail.value` فارغاً أو متأخراً
- * بينما `event.target.value` على عنصر Ionic يعكس النص الفعلي — ندمج المصدرين.
+ * على WebView (أندرويد) مع IME عربي: `detail.value` قد يتأخر أو يبقى قديماً أثناء الحذف،
+ * بينما الـ native input داخل shadow DOM يعكس القيمة الحقيقية — نقرأه أولاً عبر composedPath.
  */
 export function readIonTextInputValueFromEvent(ev: Event): string {
+  const path = typeof ev.composedPath === 'function' ? ev.composedPath() : [];
+  for (const n of path) {
+    if (n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement) {
+      return n.value;
+    }
+  }
+
   const detailVal = (ev as CustomEvent<{ value?: string | null }>).detail?.value;
   const detailStr = detailVal != null ? String(detailVal) : '';
 

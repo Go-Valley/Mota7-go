@@ -18,11 +18,11 @@ export class ImageService {
    */
   async uploadToCloudinary(file: File, folderName: 'products' | 'stores'): Promise<CloudinaryUploadResult> {
     const options = {
-      maxWidthOrHeight: 1600,
-      maxSizeMB: 0.45,
+      maxWidthOrHeight: 1400,
+      maxSizeMB: 0.34,
       fileType: 'image/webp' as const,
       useWebWorker: true,
-      initialQuality: 0.82,
+      initialQuality: 0.78,
     };
 
     const compressedFile = await imageCompression(file, options);

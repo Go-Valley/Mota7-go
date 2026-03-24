@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
+import { Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { IonicModule, IonInput, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from '@angular/fire/firestore';
@@ -8,6 +8,10 @@ import { STORES_CATEGORIES_DATA } from '../../../../core/constants/stores-data';
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
+import {
+  normalizeUserFreeText,
+  readIonTextInputValueFromEvent,
+} from '../../../../core/utils/order-form-fields.util';
 
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
@@ -21,6 +25,7 @@ import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOu
 })
 export class StoreFormComponent implements OnInit {
   @Input() editAdData: any; 
+  @ViewChild('inputStoreName', { read: IonInput }) private inputStoreName?: IonInput;
   isEditMode = false;
 
   storeCategories = STORES_CATEGORIES_DATA.items;
@@ -66,7 +71,6 @@ export class StoreFormComponent implements OnInit {
       this.fillFormForEdit();
     } else {
       await this.loadUserProfile();
-      this.requestLocation();
     }
   }
 
@@ -114,15 +118,6 @@ export class StoreFormComponent implements OnInit {
     }
   }
 
-  requestLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        this.storeData.lat = pos.coords.latitude;
-        this.storeData.lng = pos.coords.longitude;
-      });
-    }
-  }
-
   async onLogoUpload(event: any) {
     const file = event.target.files[0];
     if (!file) return;
@@ -149,7 +144,28 @@ export class StoreFormComponent implements OnInit {
     }
   }
 
+  onStoreNameInput(ev: Event): void {
+    this.storeData.storeName = readIonTextInputValueFromEvent(ev);
+  }
+
+  private async syncStoreNameFromNativeInput(): Promise<void> {
+    if (!this.inputStoreName) {
+      return;
+    }
+    try {
+      const el = await this.inputStoreName.getInputElement();
+      const v = el?.value;
+      if (typeof v === 'string') {
+        this.storeData.storeName = v;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
 async saveStore() {
+  await this.syncStoreNameFromNativeInput();
+  this.storeData.storeName = normalizeUserFreeText(this.storeData.storeName);
   if (!this.storeData.storeName || !this.storeData.category_id) {
     this.presentToast('يرجى إكمال البيانات الأساسية');
     return;

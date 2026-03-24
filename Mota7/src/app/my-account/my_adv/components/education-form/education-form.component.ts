@@ -6,6 +6,8 @@ import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, ge
 import { Auth } from '@angular/fire/auth';
 import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
+import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import { addIcons } from 'ionicons';
 import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -60,9 +62,7 @@ export class EducationFormComponent implements OnInit {
     if (this.editAdData) {
       this.setupEditData(this.editAdData);
     } else {
-      this.loadUserProfile().then(() => {
-        this.requestLocation();
-      });
+      void this.loadUserProfile();
     }
   }
 
@@ -118,16 +118,10 @@ export class EducationFormComponent implements OnInit {
     }
   }
 
-  requestLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        this.eduData.lat = pos.coords.latitude;
-        this.eduData.lng = pos.coords.longitude;
-      });
-    }
+  onWhatsappPhoneInput(ev: Event): void {
+    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.eduData.whatsappPhone = st.cleaned;
   }
-
-
 
   async saveEduAd() {
     if (!this.eduData.category_id || !this.eduData.subjectName) {

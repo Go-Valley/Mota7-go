@@ -55,7 +55,8 @@
         <ion-label class="bold-label">رقم الواتساب للتواصل:</ion-label>
         <ion-item lines="none" class="input-item">
           <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
-          <ion-input [(ngModel)]="serviceData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx" class="center-input"></ion-input>
+          <ion-input [(ngModel)]="serviceData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx" class="center-input"
+                     (ionInput)="onWhatsappPhoneInput($event)"></ion-input>
         </ion-item>
       </div>
     </div>

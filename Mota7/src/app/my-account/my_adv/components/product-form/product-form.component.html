@@ -50,14 +50,22 @@
     <div class="input-group">
       <ion-label class="main-label">وصف مختصر*</ion-label>
       <ion-item lines="none" class="styled-item">
-        <ion-input [(ngModel)]="productData.short_desc" maxlength="50" placeholder="اكتب الوصف الذي سيظهر للمشتري"></ion-input>
+        <ion-input #inputShortDesc
+                   [(ngModel)]="productData.short_desc"
+                   (ionInput)="onShortDescInput($event)"
+                   maxlength="50"
+                   placeholder="اكتب الوصف الذي سيظهر للمشتري"></ion-input>
       </ion-item>
     </div>
 
     <div class="input-group">
       <ion-label class="main-label">تفاصيل المنتج</ion-label>
       <ion-item lines="none" class="styled-item">
-        <ion-textarea [(ngModel)]="productData.full_details" rows="4" placeholder="اكتب تفاصيل المنتج هنا..."></ion-textarea>
+        <ion-textarea #inputFullDetails
+                      [(ngModel)]="productData.full_details"
+                      (ionInput)="onFullDetailsInput($event)"
+                      rows="4"
+                      placeholder="اكتب تفاصيل المنتج هنا..."></ion-textarea>
       </ion-item>
     </div>
 
@@ -99,7 +107,8 @@
       <ion-label class="main-label">رقم الواتساب للتواصل</ion-label>
       <ion-item lines="none" class="styled-item whatsapp-field">
         <ion-icon name="logo-whatsapp" slot="start" color="success" class="whatsapp-icon-item"></ion-icon>
-        <ion-input [(ngModel)]="productData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        <ion-input [(ngModel)]="productData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx"
+                   (ionInput)="onWhatsappPhoneInput($event)"></ion-input>
       </ion-item>
     </div>
 

@@ -108,8 +108,8 @@ export class EducationalServiceComponent implements OnInit {
   }
 
   onCustomerPhoneInput(ev: Event): void {
-    const detail = (ev as CustomEvent<{ value?: string }>).detail;
-    const st = applyOrderPhoneInputState(detail?.value);
+    const raw = readIonTextInputValueFromEvent(ev);
+    const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
     this.cdr.detectChanges();
@@ -188,13 +188,6 @@ export class EducationalServiceComponent implements OnInit {
     this.modalCtrl.dismiss(null, 'cancel');
   }
 
-  private toEnglishDigits(value: any): string {
-    return (value ?? '')
-      .toString()
-      .replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 1632))
-      .replace(/[۰-۹]/g, (d: string) => String(d.charCodeAt(0) - 1776));
-  }
-
   async submitOrder() {
     await this.syncFreeTextFieldsFromNativeInputs();
     this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
@@ -204,9 +197,7 @@ export class EducationalServiceComponent implements OnInit {
     this.orderData.stage = (this.orderData.stage || '').trim();
     this.orderData.stageId = (this.orderData.stageId || '').trim();
     this.orderData.subject = (this.orderData.subject || '').trim();
-    this.orderData.shortNote = normalizeUserFreeText(
-      this.toEnglishDigits(this.orderData.shortNote)
-    );
+    this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
 
     const customerName = this.orderData.customerName;

@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { addIcons } from 'ionicons';
 import { searchOutline, personCircleOutline, logoWhatsapp, trashOutline } from 'ionicons/icons';
 
@@ -99,7 +100,7 @@ export class TotalOrderUserPage implements OnInit {
   }
 
   contactUser(phone: string) {
-    window.open(`https://wa.me/2${phone}`, '_system');
+    openWhatsappNative(phone, '');
   }
 
   async confirmDeleteUserOrders(user: any, sliding?: IonItemSliding) {

@@ -16,7 +16,7 @@
       <div class="mota7-input-group">
         <label>اسم السائق</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.driver_name" placeholder="أدخل اسم السائق"></ion-input>
+          <ion-input [(ngModel)]="editData.details.driver_name" (ionInput)="onEditIonInput($event, 'details.driver_name')" placeholder="أدخل اسم السائق"></ion-input>
         </ion-item>
       </div>
 
@@ -41,21 +41,21 @@
       <div class="mota7-input-group">
         <label>رقم هاتف التواصل</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.owner_phone" (ionInput)="onEditIonInput($event, 'owner_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>رقم واتساب</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" (ionInput)="onEditIonInput($event, 'details.whatsapp_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+          <ion-input [(ngModel)]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
         </ion-item>
       </div>
 
@@ -85,14 +85,14 @@
       <div class="mota7-input-group">
         <label>اسم المعلم / المركز</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.teacher_name" placeholder="أدخل اسم المعلم"></ion-input>
+          <ion-input [(ngModel)]="editData.details.teacher_name" (ionInput)="onEditIonInput($event, 'details.teacher_name')" placeholder="أدخل اسم المعلم"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المادة العلمية</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.subject" placeholder="مثال: لغة عربية، رياضيات"></ion-input>
+          <ion-input [(ngModel)]="editData.details.subject" (ionInput)="onEditIonInput($event, 'details.subject')" placeholder="مثال: لغة عربية، رياضيات"></ion-input>
         </ion-item>
       </div>
 
@@ -111,14 +111,14 @@
       <div class="mota7-input-group">
         <label>رقم واتساب التواصل</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" (ionInput)="onEditIonInput($event, 'details.whatsapp_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+          <ion-input [(ngModel)]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
         </ion-item>
       </div>
 
@@ -138,14 +138,14 @@
       <div class="mota7-input-group">
         <label>اسم المتجر</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.store_name" placeholder="أدخل اسم المتجر"></ion-input>
+          <ion-input [(ngModel)]="editData.store_name" (ionInput)="onEditIonInput($event, 'store_name')" placeholder="أدخل اسم المتجر"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>اسم صاحب المتجر</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.owner_name" placeholder="أدخل اسم صاحب المتجر"></ion-input>
+          <ion-input [(ngModel)]="editData.owner_name" (ionInput)="onEditIonInput($event, 'owner_name')" placeholder="أدخل اسم صاحب المتجر"></ion-input>
         </ion-item>
       </div>
 
@@ -167,21 +167,21 @@
       <div class="mota7-input-group">
         <label>رقم هاتف التواصل</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.owner_phone" (ionInput)="onEditIonInput($event, 'owner_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>رقم واتساب المتجر</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" (ionInput)="onEditIonInput($event, 'details.whatsapp_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+          <ion-input [(ngModel)]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
         </ion-item>
       </div>
     </ng-container>
@@ -208,28 +208,28 @@
       <div class="mota7-input-group">
         <label>اسم المنتج</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.title" placeholder="أدخل اسم المنتج"></ion-input>
+          <ion-input [(ngModel)]="editData.details.title" (ionInput)="onEditIonInput($event, 'details.title')" placeholder="أدخل اسم المنتج"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>وصف مختصر</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.short_desc" placeholder="وصف سريع للمنتج"></ion-input>
+          <ion-input [(ngModel)]="editData.details.short_desc" (ionInput)="onEditIonInput($event, 'details.short_desc')" placeholder="وصف سريع للمنتج"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>الوصف التفصيلي</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-textarea [(ngModel)]="editData.details.full_details" rows="3" placeholder="أدخل تفاصيل المنتج الكاملة"></ion-textarea>
+          <ion-textarea [(ngModel)]="editData.details.full_details" (ionInput)="onEditIonInput($event, 'details.full_details')" rows="3" placeholder="أدخل تفاصيل المنتج الكاملة"></ion-textarea>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>السعر</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.price" type="number" placeholder="أدخل السعر"></ion-input>
+          <ion-input [(ngModel)]="editData.details.price" (ionInput)="onEditIonInput($event, 'details.price')" type="number" placeholder="أدخل السعر"></ion-input>
         </ion-item>
       </div>
 
@@ -263,21 +263,21 @@
       <div class="mota7-input-group">
         <label>القسم الفرعي</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.sub_category_name" placeholder="مثال: موبايلات، أثاث"></ion-input>
+          <ion-input [(ngModel)]="editData.sub_category_name" (ionInput)="onEditIonInput($event, 'sub_category_name')" placeholder="مثال: موبايلات، أثاث"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>رقم واتساب للتواصل</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" (ionInput)="onEditIonInput($event, 'details.whatsapp_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+          <ion-input [(ngModel)]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
         </ion-item>
       </div>
     </ng-container>
@@ -288,7 +288,7 @@
       <div class="mota7-input-group">
         <label>اسم الفني / مقدم الخدمة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.provider_name" placeholder="أدخل اسم مقدم الخدمة"></ion-input>
+          <ion-input [(ngModel)]="editData.details.provider_name" (ionInput)="onEditIonInput($event, 'details.provider_name')" placeholder="أدخل اسم مقدم الخدمة"></ion-input>
         </ion-item>
       </div>
 
@@ -327,21 +327,21 @@
       <div class="mota7-input-group">
         <label>رقم هاتف التواصل</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.owner_phone" (ionInput)="onEditIonInput($event, 'owner_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>رقم واتساب</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" (ionInput)="onEditIonInput($event, 'details.whatsapp_phone')" type="tel" placeholder="01xxxxxxxxx"></ion-input>
         </ion-item>
       </div>
 
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+          <ion-input [(ngModel)]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
         </ion-item>
       </div>
 

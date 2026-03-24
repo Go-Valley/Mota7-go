@@ -1,5 +1,5 @@
-import { ChangeDetectorRef, Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController, ActionSheetController } from '@ionic/angular';
+import { ChangeDetectorRef, Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { IonicModule, IonInput, IonTextarea, LoadingController, ToastController, NavController, ModalController, AlertController, ActionSheetController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, limit, getDocs } from '@angular/fire/firestore';
@@ -13,6 +13,11 @@ import {
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
+import {
+  normalizeUserFreeText,
+  readIonTextInputValueFromEvent,
+} from '../../../../core/utils/order-form-fields.util';
+import { applyOrderPhoneInputState } from '../../../../core/utils/egyptian-phone-order.util';
 
 @Component({
   selector: 'app-product-form',
@@ -23,6 +28,8 @@ import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-clean
 })
 export class ProductFormComponent implements OnInit {
   @Input() editAdData: any; 
+  @ViewChild('inputShortDesc', { read: IonInput }) private inputShortDesc?: IonInput;
+  @ViewChild('inputFullDetails', { read: IonTextarea }) private inputFullDetails?: IonTextarea;
 
   mainCategories = PRODUCTS_CATEGORY.items;
   subCategories: string[] = [];
@@ -87,7 +94,6 @@ export class ProductFormComponent implements OnInit {
       this.fillFormForEdit();
     } else {
       await this.loadUserProfile();
-      this.requestLocation();
     }
   }
 
@@ -152,15 +158,6 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
-  requestLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        this.productData.lat = pos.coords.latitude;
-        this.productData.lng = pos.coords.longitude;
-      });
-    }
-  }
-
   private toEnglishDigits(value: unknown): string {
     return String(value ?? '')
       .replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 1632))
@@ -210,7 +207,7 @@ export class ProductFormComponent implements OnInit {
    * السعر: أرقام فقط؛ عند أول حرف غير رقم تظهر رسالة فوراً ولا يُحتفظ بالحروف؛ لا يبدأ بـ 0.
    */
   onProductPriceInput(ev: Event): void {
-    const raw = String((ev as CustomEvent<{ value?: string }>).detail?.value ?? '');
+    const raw = readIonTextInputValueFromEvent(ev);
     const english = this.toEnglishDigits(raw);
     const hasNonDigit = /\D/.test(english);
     const digitsOnly = english.replace(/\D/g, '');
@@ -235,6 +232,44 @@ export class ProductFormComponent implements OnInit {
     const selected = this.mainCategories.find(c => c.id === this.productData.main_cat_id);
     this.subCategories = selected ? selected.subcategories : [];
     if (resetSub) this.productData.sub_cat_name = '';
+  }
+
+  onShortDescInput(ev: Event): void {
+    this.productData.short_desc = readIonTextInputValueFromEvent(ev);
+  }
+
+  onFullDetailsInput(ev: Event): void {
+    this.productData.full_details = readIonTextInputValueFromEvent(ev);
+  }
+
+  onWhatsappPhoneInput(ev: Event): void {
+    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.productData.whatsappPhone = st.cleaned;
+  }
+
+  private async syncFreeTextFieldsFromNativeInputs(): Promise<void> {
+    if (this.inputShortDesc) {
+      try {
+        const el = await this.inputShortDesc.getInputElement();
+        const v = el?.value;
+        if (typeof v === 'string') {
+          this.productData.short_desc = v;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (this.inputFullDetails) {
+      try {
+        const el = await this.inputFullDetails.getInputElement();
+        const v = el?.value;
+        if (typeof v === 'string') {
+          this.productData.full_details = v;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   async onImagesSelected(event: any) {
@@ -321,6 +356,9 @@ export class ProductFormComponent implements OnInit {
 
 // 2. تحديث دالة الحفظ لتشمل حقل reject_reason وتوحيد الهيكلية
 async saveProduct(isStoreProduct: boolean = false) {
+  await this.syncFreeTextFieldsFromNativeInputs();
+  this.productData.short_desc = normalizeUserFreeText(this.productData.short_desc);
+  this.productData.full_details = normalizeUserFreeText(this.productData.full_details);
   if (!this.productData.main_cat_id || !this.productData.short_desc) {
     this.presentToast('يرجى إكمال الحقول الإجبارية');
     return;

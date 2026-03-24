@@ -10,6 +10,7 @@ import {
 } from 'ionicons/icons';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
   selector: 'app-delivery-card',
@@ -65,8 +66,8 @@ export class DeliveryCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const message = encodeURIComponent(`السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${this.getCategoryName(this.ad.category_id)})`);
-      window.open(`https://wa.me/+2${phone}?text=${message}`, '_system');
+      const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${this.getCategoryName(this.ad.category_id)})`;
+      openWhatsappNative(phone, msg);
     }
   }
 

@@ -14,6 +14,7 @@ import {
   writeBatch,
 } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { addIcons } from 'ionicons';
 import { searchOutline, personCircleOutline, logoWhatsapp, trashOutline } from 'ionicons/icons';
 
@@ -106,8 +107,7 @@ export class TotalOrderSubscriberPage implements OnInit {
   contactProvider(phone: string) {
     if (phone) {
       const msg = `السلام عليكم.. استفسار بخصوص سجل طلباتك كمشترك في تطبيق متاح.`;
-      const url = `https://wa.me/2${phone}?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_system');
+      openWhatsappNative(phone, msg);
     }
   }
 

@@ -4,6 +4,7 @@ import { IonicModule, ModalController, ToastController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, updateDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { normalizeUserFreeText, readIonTextInputValueFromEvent } from '../../core/utils/ion-text-input.util';
 
 @Component({
   selector: 'app-edit-ad-modal',
@@ -32,6 +33,42 @@ export class EditAdModal implements OnInit {
     }
   }
 
+  /** مزامنة ion-input/textarea مع IME العربي وحذف سلس على أندرويد */
+  onEditIonInput(ev: Event, path: string): void {
+    const v = readIonTextInputValueFromEvent(ev);
+    const parts = path.split('.');
+    let o: any = this.editData;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const key = parts[i];
+      if (o[key] == null || typeof o[key] !== 'object') {
+        o[key] = {};
+      }
+      o = o[key];
+    }
+    o[parts[parts.length - 1]] = v;
+  }
+
+  private sanitizeEditStringsBeforeSave(): void {
+    const e = this.editData;
+    e.city = normalizeUserFreeText(e.city ?? '');
+    e.owner_phone = normalizeUserFreeText(e.owner_phone ?? '');
+    e.store_name = normalizeUserFreeText(e.store_name ?? '');
+    e.owner_name = normalizeUserFreeText(e.owner_name ?? '');
+    e.sub_category_name = normalizeUserFreeText(e.sub_category_name ?? '');
+    if (!e.details) {
+      return;
+    }
+    const d = e.details;
+    d.driver_name = normalizeUserFreeText(d.driver_name ?? '');
+    d.teacher_name = normalizeUserFreeText(d.teacher_name ?? '');
+    d.subject = normalizeUserFreeText(d.subject ?? '');
+    d.whatsapp_phone = normalizeUserFreeText(d.whatsapp_phone ?? '');
+    d.provider_name = normalizeUserFreeText(d.provider_name ?? '');
+    d.title = normalizeUserFreeText(d.title ?? '');
+    d.short_desc = normalizeUserFreeText(d.short_desc ?? '');
+    d.full_details = normalizeUserFreeText(d.full_details ?? '');
+  }
+
   // حذف صورة من المصفوفة
   removeImage(index: number) {
     this.editData.details.images.splice(index, 1);
@@ -51,6 +88,8 @@ export class EditAdModal implements OnInit {
         this.showToast('عذراً، لم يتم العثور على معرف الإعلان', 'danger');
         return;
       }
+
+      this.sanitizeEditStringsBeforeSave();
 
       const adRef = doc(this.firestore, 'ads', docId);
 

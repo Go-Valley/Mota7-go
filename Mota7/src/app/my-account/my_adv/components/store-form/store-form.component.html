@@ -55,7 +55,9 @@
           اسم المتجر <span class="required-star">*</span>
         </ion-label>
         <ion-item lines="none" class="input-item">
-          <ion-input [(ngModel)]="storeData.storeName" 
+          <ion-input #inputStoreName
+                      [(ngModel)]="storeData.storeName"
+                      (ionInput)="onStoreNameInput($event)"
                       placeholder="أدخل اسم متجرك" 
                       class="center-input"></ion-input>
         </ion-item>

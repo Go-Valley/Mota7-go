@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Firestore, collection, collectionData, query, where, deleteDoc, doc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkDoneCircle, logoWhatsapp, 
@@ -95,8 +96,7 @@ export class CompletingOrderPage implements OnInit {
     const providerName = order.providerName || 'مزود الخدمة';
     if (phone) {
       const msg = `السلام عليكم أ/${order.customerName || ''} .. بتواصل معاك بخصوص طلبك لخدمة (${serviceLabel}) - تم استقبال الطلب بواسطة (${providerName}) - هل الخدمة تمت بشكل مُرضي مع حضرتك ؟`;
-      const url = `https://wa.me/2${phone}?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_system');
+      openWhatsappNative(phone, msg);
     }
   }
 
@@ -107,8 +107,7 @@ export class CompletingOrderPage implements OnInit {
     const providerName = order.providerName || 'كابتن';
     if (phone) {
       const msg = `السلام عليكم أ/${providerName} .. بتواصل معاك بخصوص الطلب الي استقبلته لخدمة (${serviceLabel}) - الطلب كان متقدم من أ/ (${customerName}) - هل الخدمة تمت بشكل مُرضي مع حضرتك ؟`;
-      const url = `https://wa.me/2${phone}?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_system');
+      openWhatsappNative(phone, msg);
     }
   }
 

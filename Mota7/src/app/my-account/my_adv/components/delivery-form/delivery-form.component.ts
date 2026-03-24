@@ -6,6 +6,8 @@ import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, ge
 import { Auth } from '@angular/fire/auth';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
+import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline } from 'ionicons/icons';
 
@@ -59,7 +61,6 @@ export class DeliveryFormComponent implements OnInit {
       this.initEditData(this.editAdData);
     } else {
       await this.loadUserProfile();
-      this.requestLocation(); // طلب الموقع عند الفتح
     }
   }
 
@@ -110,6 +111,11 @@ export class DeliveryFormComponent implements OnInit {
         console.log('Location Updated:', coords);
       }
     }
+  }
+
+  onWhatsappPhoneInput(ev: Event): void {
+    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.deliveryData.whatsappPhone = st.cleaned;
   }
 
   async saveDeliveryAd() {

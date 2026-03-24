@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { Capacitor } from '@capacitor/core';
 import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 import { FingerprintAIO } from '@awesome-cordova-plugins/fingerprint-aio/ngx';
+import { readIonTextInputValueFromEvent } from '../core/utils/ion-text-input.util';
 
 @Component({
   selector: 'app-login',
@@ -28,6 +29,14 @@ export class LoginPage implements OnInit {
   private alertCtrl = inject(AlertController);
 
   constructor(private router: Router) {}
+
+  onAdminEmailInput(ev: Event): void {
+    this.email = readIonTextInputValueFromEvent(ev);
+  }
+
+  onAdminPassInput(ev: Event): void {
+    this.pass = readIonTextInputValueFromEvent(ev);
+  }
 
   async ngOnInit() {
     await this.platform.ready();

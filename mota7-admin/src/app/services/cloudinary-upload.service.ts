@@ -12,12 +12,13 @@ export class CloudinaryUploadService {
   private readonly uploadPreset = 'Mota7-App';
 
   async uploadImage(file: File, folder: 'banners' | 'products' | 'stores'): Promise<CloudinaryUploadResult> {
+    /** ضغط أقوى مع الحفاظ على وضوح مقبول (WebP) — دون رفع جودة تُفرغ التفاصيل */
     const options = {
-      maxWidthOrHeight: 1600,
-      maxSizeMB: 0.45,
+      maxWidthOrHeight: 1400,
+      maxSizeMB: 0.34,
       fileType: 'image/webp' as const,
       useWebWorker: true,
-      initialQuality: 0.82,
+      initialQuality: 0.78,
     };
     const compressedFile = await imageCompression(file, options);
 

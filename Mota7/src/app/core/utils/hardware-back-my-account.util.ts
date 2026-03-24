@@ -1,12 +1,19 @@
 import type { ModalController, NavController, Platform } from '@ionic/angular';
 import type { Subscription } from 'rxjs';
 
-/** أعلى من home.page (10) حتى يُعالج الرجوع من صفحات الحساب قبل حوار الخروج */
-export const HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY = 9999;
+/**
+ * يجب أن تكون أولوية الرجوع هنا **أقل** من معالج الطبقات في Ionic (`OVERLAY_BACK_BUTTON_PRIORITY` = 100)
+ * ومن القائمة الجانبية (99). Ionic يختار معالجاً واحداً ذا أعلى أولوية لكل ضغطة؛
+ * إذا كانت الأولوية أعلى من 100 كان زر الرجوع يغلق مودال النموذج مباشرة ويتجاهل
+ * ion-action-sheet / ion-popover / التنبيهات فوقه.
+ * نضع 50: فوق home.page (10) وتحت القائمة والطبقات حتى يُغلق الاختيار أولاً ثم المودال.
+ */
+export const HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY = 50;
 
 /**
  * زر الرجوع بالجهاز (أندرويد):
- * - إن وُجد `modalCtrl` وفُتح مودال (مثل تفاصيل المنتج)، يُغلق أعلى مودال فقط.
+ * - طبقات Ionic (قوائم اختيار، تنبيهات، أعلى مودال) تُغلق أولاً تلقائياً لأن أولويتها أعلى.
+ * - إن وُجد `modalCtrl` ولم تبقَ طبقة، يُغلق أعلى مودال (مثل نموذج الإعلان).
  * - وإلا الانتقال إلى تبويب «حسابي».
  * لا يستدعي processNextHandler عند التعامل هنا — يستهلك الحدث.
  */

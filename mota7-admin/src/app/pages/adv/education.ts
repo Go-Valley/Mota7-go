@@ -9,6 +9,7 @@ import {
 } from 'ionicons/icons';
 import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
   selector: 'app-education-card',
@@ -45,8 +46,8 @@ export class EducationCard implements OnInit {
       window.open(`tel:${phone}`, '_system');
     } else {
       const adTitle = this.ad.details?.subject || this.getStageName(this.ad.category_id);
-      const message = encodeURIComponent(`السلام عليكم.. بتواصل مع حضرتك بخصوص إعلانك على تطبيق متاح (${adTitle})`);
-      window.open(`https://wa.me/+2${phone}?text=${message}`, '_system');
+      const msg = `السلام عليكم.. بتواصل مع حضرتك بخصوص إعلانك على تطبيق متاح (${adTitle})`;
+      openWhatsappNative(phone, msg);
     }
   }
 

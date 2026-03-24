@@ -6,6 +6,8 @@ import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, ge
 import { Auth } from '@angular/fire/auth';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
+import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -57,7 +59,6 @@ export class OtherServicesFormComponent implements OnInit {
     } else {
       // تحميل بيانات البروفايل فور فتح الصفحة
       await this.loadUserProfile();
-      this.requestLocation();
     }
   }
 
@@ -99,13 +100,9 @@ export class OtherServicesFormComponent implements OnInit {
     return null;
   }
 
-  requestLocation() {
-    if (navigator.geolocation && !this.isEditMode) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        this.serviceData.lat = pos.coords.latitude;
-        this.serviceData.lng = pos.coords.longitude;
-      });
-    }
+  onWhatsappPhoneInput(ev: Event): void {
+    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.serviceData.whatsappPhone = st.cleaned;
   }
 
 // دالة الحفظ المعدلة اللي هتحل المشكلة

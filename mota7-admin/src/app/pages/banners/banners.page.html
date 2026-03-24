@@ -20,8 +20,11 @@
 
     <div class="input-group">
       <ion-item lines="none" class="mota7-input">
-        <ion-label position="stacked">عنوان البانر</ion-label>
-        <ion-input [(ngModel)]="bannerData.title" placeholder="مثلاً: عروض رمضان"></ion-input>
+        <ion-label position="stacked">عنوان البانر <span class="optional-hint">(اختياري)</span></ion-label>
+        <ion-input #inputBannerTitle
+                   [(ngModel)]="bannerData.title"
+                   (ionInput)="onBannerTitleInput($event)"
+                   placeholder="مثلاً: عروض رمضان"></ion-input>
       </ion-item>
 
       <div class="date-row">
@@ -54,7 +57,7 @@
       
       <ion-card-content>
         <div class="banner-info">
-          <h3>{{ banner.title }}</h3>
+          <h3>{{ banner.title || '—' }}</h3>
           <div class="date-info">
             <ion-icon name="calendar-outline"></ion-icon>
             <span>من: {{ banner.startDate || 'بدون' }} - إلى: {{ banner.endDate || 'بدون' }}</span>

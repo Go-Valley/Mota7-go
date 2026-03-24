@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Firestore, collection, collectionData, query, where, deleteDoc, doc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkCircle, logoWhatsapp, createOutline, 
@@ -114,8 +115,7 @@ filterOrders() {
       message = `السلام عليكم.. بخصوص الطلب الذي قبلته لخدمة (${serviceLabel}) للعميل (${order.customerName}).`;
     }
 
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    openWhatsappNative(phone, message);
   }
 
   async deleteOrder(order: any) {

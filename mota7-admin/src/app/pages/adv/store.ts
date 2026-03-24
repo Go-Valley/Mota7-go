@@ -8,6 +8,7 @@ import {
   calendarOutline
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
   selector: 'app-store-card',
@@ -46,8 +47,8 @@ export class StoreCard implements OnInit {
       window.open(`tel:${phone}`, '_system');
     } else {
       const adName = this.ad.details?.store_name || 'المتجر';
-      const message = encodeURIComponent(`السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`);
-      window.open(`https://wa.me/+2${phone}?text=${message}`, '_system');
+      const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`;
+      openWhatsappNative(phone, msg);
     }
   }
 

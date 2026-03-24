@@ -96,6 +96,39 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+    await this.primeLocationPermissionOnFirstOpen();
+  }
+
+  /**
+   * أول فتح لطلب التوصيل: طلب سماح الموقع مبكراً.
+   * عند الرفض لا نمنع استخدام النموذج؛ زر «تحديد موقعي» يعيد طلب الصلاحية.
+   */
+  private async primeLocationPermissionOnFirstOpen(): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      return;
+    }
+    try {
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await Mota7Location.requestLocationAccess();
+        } catch (nativePermErr: unknown) {
+          const m = String(
+            (nativePermErr as { message?: string })?.message ?? nativePermErr ?? ''
+          ).toLowerCase();
+          const userDenied =
+            m.includes('denied') || m.includes('location permission denied');
+          if (userDenied) {
+            return;
+          }
+        }
+      }
+      let p = await Geolocation.checkPermissions();
+      if (p.location !== 'granted') {
+        await Geolocation.requestPermissions();
+      }
+    } catch {
+      /* التفاصيل والتنبيهات عند الضغط على زر التحديد */
+    }
   }
 
   /** منع الحرف/الرمز فور الضغط — رسالة فورية مثل حقل المبلغ */
@@ -138,8 +171,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   }
 
   onCustomerPhoneInput(ev: Event): void {
-    const detail = (ev as CustomEvent<{ value?: string }>).detail;
-    const st = applyOrderPhoneInputState(detail?.value);
+    const raw = readIonTextInputValueFromEvent(ev);
+    const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
     this.cdr.detectChanges();
@@ -224,7 +257,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
    * المبلغ: أرقام فقط؛ لا حروف؛ لا يبدأ بـ 0 (الرقم ٠ العربي يُحوَّل ثم يُطبَّق نفس الشرط).
    */
   onPriceInput(ev: Event): void {
-    const raw = String((ev as CustomEvent<{ value?: string }>).detail?.value ?? '');
+    const raw = readIonTextInputValueFromEvent(ev);
     const english = this.toEnglishDigits(raw);
     const hasNonDigit = /\D/.test(english);
     const digitsOnly = english.replace(/\D/g, '');
@@ -282,6 +315,27 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       if (this.afterLocationSettingsReturn) {
         this.afterLocationSettingsReturn = false;
         await new Promise((r) => setTimeout(r, 1200));
+      }
+
+      let geoAlreadyGranted = false;
+      try {
+        const pre = await Geolocation.checkPermissions();
+        geoAlreadyGranted = pre.location === 'granted';
+      } catch {
+        geoAlreadyGranted = false;
+      }
+
+      /** صلاحية ممنوحة مسبقاً: لا نعيد Mota7 ولا حوارات الطلب — قراءة الموقع مباشرة */
+      if (geoAlreadyGranted) {
+        try {
+          const coordinates = await this.tryGetPositionWithFallback();
+          await this.applyLocationSuccess(coordinates, loader);
+          return;
+        } catch (e: any) {
+          await loader.dismiss();
+          await this.presentGeolocationFailureAlerts(e, isNative);
+          return;
+        }
       }
 
       /**
@@ -359,44 +413,48 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       await this.applyLocationSuccess(coordinates, loader);
     } catch (e: any) {
       await loader.dismiss();
-      const msg = String(e?.message || e?.code || '').toLowerCase();
-      const isGpsOff =
-        msg.includes('location disabled') ||
-        msg.includes('location services') ||
-        (msg.includes('gps') && msg.includes('off')) ||
-        msg.includes('unavailable');
-
-      let permGranted = false;
-      if (isNative) {
-        try {
-          const p = await Geolocation.checkPermissions();
-          permGranted = p.location === 'granted';
-        } catch {
-          permGranted = false;
-        }
-      }
-
-      if (permGranted && !isGpsOff) {
-        await this.showLocationAlert(
-          'تعذر تحديد الموقع حالياً. تأكد أنك في مكان مكشوف للأقمار، ثم اضغط «إعادة المحاولة».',
-          false
-        );
-        return;
-      }
-
-      if (isGpsOff) {
-        await this.showLocationAlert(
-          'خدمة الموقع (GPS) غير مفعلة. اضغط «موافق» لفتح إعدادات الموقع، فعّلها ثم عد للتطبيق.',
-          'location'
-        );
-        return;
-      }
-
-      await this.showLocationAlert(
-        'تعذر تحديد الموقع. اضغط «موافق» لفتح إعدادات التطبيق ومنح صلاحية الموقع.',
-        'app'
-      );
+      await this.presentGeolocationFailureAlerts(e, isNative);
     }
+  }
+
+  private async presentGeolocationFailureAlerts(e: any, isNative: boolean): Promise<void> {
+    const msg = String(e?.message || e?.code || '').toLowerCase();
+    const isGpsOff =
+      msg.includes('location disabled') ||
+      msg.includes('location services') ||
+      (msg.includes('gps') && msg.includes('off')) ||
+      msg.includes('unavailable');
+
+    let permGranted = false;
+    if (isNative) {
+      try {
+        const p = await Geolocation.checkPermissions();
+        permGranted = p.location === 'granted';
+      } catch {
+        permGranted = false;
+      }
+    }
+
+    if (permGranted && !isGpsOff) {
+      await this.showLocationAlert(
+        'تعذر تحديد الموقع حالياً. تأكد أنك في مكان مكشوف للأقمار، ثم اضغط «إعادة المحاولة».',
+        false
+      );
+      return;
+    }
+
+    if (isGpsOff) {
+      await this.showLocationAlert(
+        'خدمة الموقع (GPS) غير مفعلة. اضغط «موافق» لفتح إعدادات الموقع، فعّلها ثم عد للتطبيق.',
+        'location'
+      );
+      return;
+    }
+
+    await this.showLocationAlert(
+      'تعذر تحديد الموقع. اضغط «موافق» لفتح إعدادات التطبيق ومنح صلاحية الموقع.',
+      'app'
+    );
   }
 
   private async applyLocationSuccess(

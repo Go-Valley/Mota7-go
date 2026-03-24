@@ -31,6 +31,7 @@ import { DeliveryFormComponent } from './components/delivery-form/delivery-form.
 import { EducationFormComponent } from './components/education-form/education-form.component';
 import { OtherServicesFormComponent } from './components/other-services-form/other-services-form.component';
 import { UserAccountStatusService } from '../user-account-status.service';
+import { getDeliveryAdCurrentLocation } from '../../core/utils/delivery-ad-geolocation.util';
 
 @Component({
   selector: 'app-my-ads',
@@ -161,8 +162,7 @@ export class MyAdsPage implements OnInit, OnDestroy {
       return;
     }
     let componentToOpen: any;
-    // تم توحيد الـ Property لتكون editAdData كما في مكوناتك
-    let props: any = { editAdData: ad }; 
+    let props: any = { editAdData: ad };
 
     switch (ad.ad_type) {
       case 'product': componentToOpen = ProductFormComponent; break;
@@ -175,6 +175,13 @@ export class MyAdsPage implements OnInit, OnDestroy {
         componentToOpen = OtherServicesFormComponent; 
         break;
       default: componentToOpen = StoreFormComponent;
+    }
+
+    if (ad.ad_type === 'delivery') {
+      props = {
+        ...props,
+        locationFunc: () => getDeliveryAdCurrentLocation(),
+      };
     }
 
     const modal = await this.modalCtrl.create({

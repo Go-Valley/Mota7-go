@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
-import { IonicModule, AlertController, ToastController, LoadingController, NavController } from '@ionic/angular';
+import { Component, OnInit, ViewChild, inject, Injector, runInInjectionContext } from '@angular/core';
+import { IonicModule, IonInput, AlertController, ToastController, LoadingController, NavController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, collection, collectionData, doc, setDoc, updateDoc, deleteDoc, query, orderBy, Timestamp } from '@angular/fire/firestore';
@@ -19,6 +19,7 @@ import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { CloudinaryUploadService } from '../../services/cloudinary-upload.service';
 import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
 import { tryParseCloudinaryPublicIdFromUrl } from '../../core/utils/cloudinary-public-id.util';
+import { normalizeUserFreeText, readIonTextInputValueFromEvent } from '../../core/utils/ion-text-input.util';
 
 @Component({
   selector: 'app-banners',
@@ -28,6 +29,7 @@ import { tryParseCloudinaryPublicIdFromUrl } from '../../core/utils/cloudinary-p
   imports: [IonicModule, CommonModule, FormsModule, Mota7HeaderComponent],
 })
 export class BannersPage implements OnInit {
+  @ViewChild('inputBannerTitle', { read: IonInput }) private inputBannerTitle?: IonInput;
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private uploadSvc = inject(CloudinaryUploadService);
@@ -86,9 +88,30 @@ export class BannersPage implements OnInit {
     }
   }
 
+  onBannerTitleInput(ev: Event): void {
+    this.bannerData.title = readIonTextInputValueFromEvent(ev);
+  }
+
+  private async syncBannerTitleFromNativeInput(): Promise<void> {
+    if (!this.inputBannerTitle) {
+      return;
+    }
+    try {
+      const el = await this.inputBannerTitle.getInputElement();
+      const v = el?.value;
+      if (typeof v === 'string') {
+        this.bannerData.title = v;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   async uploadBanner() {
-    if (!this.selectedFile || !this.bannerData.title) {
-      this.showToast('يرجى اختيار صورة وكتابة عنوان للبانر');
+    await this.syncBannerTitleFromNativeInput();
+    this.bannerData.title = normalizeUserFreeText(this.bannerData.title);
+    if (!this.selectedFile) {
+      this.showToast('يرجى اختيار صورة للبانر');
       return;
     }
 
@@ -104,7 +127,7 @@ export class BannersPage implements OnInit {
       const bannerId = Date.now().toString();
       await runInInjectionContext(this.injector, () =>
         setDoc(doc(this.firestore, 'banners', bannerId), {
-          title: this.bannerData.title,
+          title: this.bannerData.title || '',
           imageUrl,
           cloudinary_public_id: publicId,
           startDate: this.bannerData.startDate,

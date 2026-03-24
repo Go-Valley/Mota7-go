@@ -36,6 +36,7 @@
                 inputmode="email"
                 autocomplete="username"
                 placeholder="name@organization.com"
+                (ionInput)="onAdminEmailInput($event)"
               ></ion-input>
             </ion-item>
           </div>
@@ -49,6 +50,7 @@
                 type="password"
                 autocomplete="current-password"
                 placeholder="••••••••"
+                (ionInput)="onAdminPassInput($event)"
               ></ion-input>
             </ion-item>
           </div>

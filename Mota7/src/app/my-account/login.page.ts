@@ -14,6 +14,7 @@ import {
   ORDER_PHONE_INVALID_MSG,
   orderPhoneToEnglishDigits,
 } from '../core/utils/egyptian-phone-order.util';
+import { readIonTextInputValueFromEvent } from '../core/utils/order-form-fields.util';
 import { 
   fingerPrintOutline, 
   phonePortraitOutline, 
@@ -103,8 +104,8 @@ export class LoginPage {
   }
 
   onLoginPhoneInput(ev: Event): void {
-    const detail = (ev as CustomEvent<{ value?: string }>).detail;
-    const st = applyOrderPhoneInputState(detail?.value);
+    const raw = readIonTextInputValueFromEvent(ev);
+    const st = applyOrderPhoneInputState(raw);
     this.loginData.phone = st.cleaned;
     this.phoneLiveWarning = st.warning;
     this.cdr.detectChanges();

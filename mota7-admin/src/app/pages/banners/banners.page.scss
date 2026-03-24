@@ -44,6 +44,11 @@ ion-content { --background: #f8f9fb; }
     --border-radius: 12px;
     margin-bottom: 12px;
     font-weight: 700;
+    .optional-hint {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #64748b;
+    }
   }
 
   .date-row {

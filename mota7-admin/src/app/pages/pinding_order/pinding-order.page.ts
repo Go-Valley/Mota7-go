@@ -17,7 +17,8 @@ import {
   callOutline,
   chevronBackOutline
 } from 'ionicons/icons';
-import { Mota7HeaderComponent } from '../../mota7-header/header'; // use relative path for the header component
+import { Mota7HeaderComponent } from '../../mota7-header/header';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
   selector: 'app-pinding-order',
@@ -60,8 +61,7 @@ export class PindingOrderPage implements OnInit {
   openWhatsApp(order: any) {
     const service = this.getServiceLabel(order);
     const message = `السلام عليكم.. بتواصل مع حضرتك بخصوص طلبك لخدمة : (${service})`;
-    const url = `https://wa.me/2${order.customerPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    openWhatsappNative(order.customerPhone, message);
   }
 
   getServiceLabel(order: any): string {

@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController, AlertController, NavController, ViewWillEnter } from '@ionic/angular';
-import { Capacitor } from '@capacitor/core';
-import { Geolocation } from '@capacitor/geolocation';
-import { Mota7Location } from '../../plugins/mota7-location.plugin';
+import { getDeliveryAdCurrentLocation } from '../../core/utils/delivery-ad-geolocation.util';
 import { addIcons } from 'ionicons';
 import { 
   storefrontOutline, cartOutline, 
@@ -59,45 +57,6 @@ export class AddAdTypePage implements ViewWillEnter {
     this.navCtrl.back();
   }
 
-  // هذه الدالة ستمرر للمكونات الفرعية (Modals) لتشغيل الـ GPS من داخلها
-  async getCurrentLocation() {
-    try {
-      if (Capacitor.getPlatform() === 'android') {
-        try {
-          await Mota7Location.requestLocationAccess();
-        } catch (e: unknown) {
-          const m = String((e as { message?: string })?.message ?? e ?? '').toLowerCase();
-          if (m.includes('denied') || m.includes('location permission denied')) {
-            alert('يرجى منح صلاحية الموقع من إعدادات التطبيق ثم المحاولة مرة أخرى.');
-            return null;
-          }
-        }
-      }
-
-      const permission = await Geolocation.checkPermissions();
-      if (permission.location !== 'granted') {
-        await Geolocation.requestPermissions();
-      }
-  
-      const coordinates = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        ...(Capacitor.getPlatform() !== 'web'
-          ? { enableLocationFallback: true, timeout: 30000 }
-          : {})
-      });
-  
-      const lat = coordinates.coords.latitude;
-      const lng = coordinates.coords.longitude;
-  
-      return { lat, lng }; // نعيد الإحداثيات للمكون الذي طلبها
-      
-    } catch (error) {
-      console.error('خطأ في تحديد الموقع:', error);
-      alert('عفواً، تأكد من تفعيل الـ GPS في هاتفك');
-      return null;
-    }
-  }
-
   async selectType(type: string) {
     if (!this.acct.accountUsable()) {
       void this.navCtrl.navigateRoot('/login');
@@ -114,29 +73,43 @@ export class AddAdTypePage implements ViewWillEnter {
     }
 
     if (component) {
+      /** يمنع تكديس عدة تنبيهات عند عدة استدعاءات متزامنة لـ dismiss (زر الرجوع بالجهاز) */
+      let exitConfirmPending: Promise<boolean> | null = null;
+
       const modal = await this.modalCtrl.create({
         component: component,
         initialBreakpoint: 0.95,
         breakpoints: [0, 0.95],
         handle: true,
-        // تمرير دالة الموقع للمكون لكي يستخدمها زرار "تحديد الموقع" هناك
-        componentProps: {
-          locationFunc: () => this.getCurrentLocation()
-        },
-        canDismiss: async (data, role) => {
+        // طلب صلاحية/قراءة الموقع فقط لإعلان التوصيل — عند الضغط على زر تحديد الموقع داخل النموذج
+        componentProps:
+          type === 'delivery'
+            ? { locationFunc: () => getDeliveryAdCurrentLocation() }
+            : {},
+        canDismiss: async (_data, role) => {
           if (role === 'confirm') return true;
-          const alert = await this.alertCtrl.create({
-            header: 'تأكيد الخروج',
-            message: 'هل أنت متأكد؟ سيتم فقدان جميع البيانات المدخلة.',
-            mode: 'ios',
-            buttons: [
-              { text: 'بقاء', role: 'cancel' },
-              { text: 'خروج', role: 'confirm' }
-            ]
-          });
-          await alert.present();
-          const { role: alertRole } = await alert.onDidDismiss();
-          return alertRole === 'confirm';
+          if (exitConfirmPending) {
+            return exitConfirmPending;
+          }
+          exitConfirmPending = (async () => {
+            try {
+              const alert = await this.alertCtrl.create({
+                header: 'تأكيد الخروج',
+                message: 'هل أنت متأكد؟ سيتم فقدان جميع البيانات المدخلة.',
+                mode: 'ios',
+                buttons: [
+                  { text: 'بقاء', role: 'cancel' },
+                  { text: 'خروج', role: 'confirm' }
+                ]
+              });
+              await alert.present();
+              const { role: alertRole } = await alert.onDidDismiss();
+              return alertRole === 'confirm';
+            } finally {
+              exitConfirmPending = null;
+            }
+          })();
+          return exitConfirmPending;
         }
       });
       return await modal.present();
