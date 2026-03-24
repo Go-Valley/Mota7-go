@@ -1,0 +1,368 @@
+<app-mota7-header 
+  [title]="editData.ad_type === 'education' ? 'تعديل إعلان تعليمي' : 
+           editData.ad_type === 'delivery' ? 'تعديل إعلان توصيل' : 
+           editData.ad_type === 'store' ? 'تعديل بيانات المتجر' : 
+           editData.ad_type === 'product' ? 'تعديل بيانات المنتج' : 'تعديل خدمة أخرى'" 
+  [showBackButton]="true" 
+  (backClick)="close()">
+</app-mota7-header>
+
+<ion-content class="ion-padding">
+  <div class="edit-container">
+
+    <ng-container *ngIf="editData.ad_type === 'delivery'">
+      <div class="section-title">بيانات السائق والتواصل</div>
+      
+      <div class="mota7-input-group">
+        <label>اسم السائق</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.driver_name" placeholder="أدخل اسم السائق"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>نوع خدمة التوصيل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع الخدمة" interface="popover" class="mota7-select">
+            <ion-select-option value="private-car">ملاكي</ion-select-option>
+            <ion-select-option value="taxi">تاكسي</ion-select-option>
+            <ion-select-option value="delivery">دليڤري</ion-select-option>
+            <ion-select-option value="tricycle">تروسيكل</ion-select-option>
+            <ion-select-option value="motorcycle">موتوسيكل</ion-select-option>
+            <ion-select-option value="quarter-transport">ربع نقل</ion-select-option>
+            <ion-select-option value="half-transport">نص نقل</ion-select-option>
+            <ion-select-option value="microbus">ميكروباص</ion-select-option>
+            <ion-select-option value="loader">لودر</ion-select-option>
+            <ion-select-option value="agricultural-tractor">جرار زراعي</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم هاتف التواصل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم واتساب</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المدينة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="section-title">إعدادات الخدمة</div>
+      
+      <div class="options-grid">
+        <ion-item lines="none" class="mota7-toggle-item">
+          <ion-label>متاح للسفر (محافظات)</ion-label>
+          <ion-toggle [(ngModel)]="editData.details.can_travel" color="warning"></ion-toggle>
+        </ion-item>
+
+        <ion-item lines="none" class="mota7-toggle-item">
+          <ion-label>متاح للإيجار</ion-label>
+          <ion-toggle [(ngModel)]="editData.details.for_rent" color="warning"></ion-toggle>
+        </ion-item>
+
+        <ion-item lines="none" class="mota7-toggle-item">
+          <ion-label>الحالة (متاح الآن)</ion-label>
+          <ion-toggle [(ngModel)]="editData.details.is_available" color="success"></ion-toggle>
+        </ion-item>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="editData.ad_type === 'education'">
+      <div class="section-title">بيانات المعلم والمادة</div>
+
+      <div class="mota7-input-group">
+        <label>اسم المعلم / المركز</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.teacher_name" placeholder="أدخل اسم المعلم"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المادة العلمية</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.subject" placeholder="مثال: لغة عربية، رياضيات"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المرحلة التعليمية</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر المرحلة" interface="popover" class="mota7-select">
+            <ion-select-option value="kindergarten">مرحلة رياض الأطفال</ion-select-option>
+            <ion-select-option value="primary">المرحلة الإبتدائية</ion-select-option>
+            <ion-select-option value="preparatory">المرحلة الإعدادية</ion-select-option>
+            <ion-select-option value="secondary">المرحلة الثانوية</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+      
+      <div class="mota7-input-group">
+        <label>رقم واتساب التواصل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المدينة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="section-title">إعدادات الظهور</div>
+      
+      <div class="options-grid">
+        <ion-item lines="none" class="mota7-toggle-item">
+          <ion-label>الحالة (متاح الآن)</ion-label>
+          <ion-toggle [(ngModel)]="editData.is_available" color="success"></ion-toggle>
+        </ion-item>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="editData.ad_type === 'store'">
+      <div class="section-title">بيانات المتجر والتواصل</div>
+
+      <div class="mota7-input-group">
+        <label>اسم المتجر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.store_name" placeholder="أدخل اسم المتجر"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>اسم صاحب المتجر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.owner_name" placeholder="أدخل اسم صاحب المتجر"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>تصنيف المتجر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع المتجر" interface="popover" class="mota7-select">
+            <ion-select-option value="supermarket">سوبر ماركت</ion-select-option>
+            <ion-select-option value="pharmacy">صيدليات</ion-select-option>
+            <ion-select-option value="restaurants">مطاعم وكافيهات</ion-select-option>
+            <ion-select-option value="clothing">ملابس وأحذية</ion-select-option>
+            <ion-select-option value="electronics-stores">معارض إلكترونيات</ion-select-option>
+            <ion-select-option value="building-materials">موانئ ومواد بناء</ion-select-option>
+            <ion-select-option value="furniture">موبيليات وأثاث</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم هاتف التواصل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم واتساب المتجر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المدينة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+        </ion-item>
+      </div>
+    </ng-container>
+
+<ng-container *ngIf="editData.ad_type === 'product'">
+      <div class="section-title">صور المنتج</div>
+      
+      <div class="images-edit-grid">
+        <div class="image-box" *ngFor="let adImage of editData.details.images; let i = index">
+          <img [src]="adImage" (error)="$any($event.target).src = 'assets/mota7.png'" alt="Product image">
+          <div class="delete-icon" (click)="removeImage(i)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </div>
+        </div>
+        
+        <div class="add-image-box" (click)="uploadImage()">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span>إضافة صورة</span>
+        </div>
+      </div>
+
+      <div class="section-title">بيانات المنتج والتصنيف</div>
+
+      <div class="mota7-input-group">
+        <label>اسم المنتج</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.title" placeholder="أدخل اسم المنتج"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>وصف مختصر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.short_desc" placeholder="وصف سريع للمنتج"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>الوصف التفصيلي</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-textarea [(ngModel)]="editData.details.full_details" rows="3" placeholder="أدخل تفاصيل المنتج الكاملة"></ion-textarea>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>السعر</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.price" type="number" placeholder="أدخل السعر"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>حالة المنتج</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.details.condition" interface="popover" class="mota7-select">
+            <ion-select-option value="جديد">جديد</ion-select-option>
+            <ion-select-option value="مستعمل">مستعمل</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>القسم الرئيسي</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر القسم" interface="popover" class="mota7-select">
+            <ion-select-option value="cars-and-accessories">سيارات واكسسوار</ion-select-option>
+            <ion-select-option value="motorcycles-and-accessories">موتوسيكلات واكسسوار</ion-select-option>
+            <ion-select-option value="real-estate-shops-land">عقارات ومحلات واراضي</ion-select-option>
+            <ion-select-option value="mobiles-tablets-laptops">موبايلات وتابلت ولابتوب</ion-select-option>
+            <ion-select-option value="electrical-electronic-devices">اجهزة كهربائية واليكترونية</ion-select-option>
+            <ion-select-option value="home-tools-decoration-furniture">ادوات منزلية وديكور واثاث</ion-select-option>
+            <ion-select-option value="fashion-furnishings">الازياء والمفروشات</ion-select-option>
+            <ion-select-option value="accessories-children-supplies">اكسسوارات ومستلزمات اطفال</ion-select-option>
+            <ion-select-option value="other-products">منتجات أخرى</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>القسم الفرعي</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.sub_category_name" placeholder="مثال: موبايلات، أثاث"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم واتساب للتواصل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المدينة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+        </ion-item>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="editData.ad_type === 'other'">
+      <div class="section-title">بيانات مقدم الخدمة</div>
+
+      <div class="mota7-input-group">
+        <label>اسم الفني / مقدم الخدمة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.provider_name" placeholder="أدخل اسم مقدم الخدمة"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>نوع الخدمة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع الخدمة" interface="popover" class="mota7-select">
+            <ion-select-option value="ac-maintenance">صيانة تكييفات</ion-select-option>
+            <ion-select-option value="appliance-maintenance">صيانة غسالات وثلاجات</ion-select-option>
+            <ion-select-option value="cameras-electronics">كاميرات واليكترونيات</ion-select-option>
+            <ion-select-option value="satellite-installation">صيانة دش ورسيفر</ion-select-option>
+            <ion-select-option value="electrician">كهربائي</ion-select-option>
+            <ion-select-option value="plumbing">سباكة</ion-select-option>
+            <ion-select-option value="carpentry">نجارة</ion-select-option>
+            <ion-select-option value="painting">نقاشة</ion-select-option>
+            <ion-select-option value="plastering">محارة</ion-select-option>
+            <ion-select-option value="metalworks">حدادة</ion-select-option>
+            <ion-select-option value="construction">اعمال بناء</ion-select-option>
+            <ion-select-option value="ceramic-flooring">تركيب سيراميك وارضيات</ion-select-option>
+            <ion-select-option value="marble-installation">تركيب رخام</ion-select-option>
+            <ion-select-option value="advertising-design">تصميم الاعلانات والبنرات</ion-select-option>
+            <ion-select-option value="screen-maintenance">صيانة شاشات</ion-select-option>
+            <ion-select-option value="financing">تمويل و قروض</ion-select-option>
+            <ion-select-option value="aluminum-works">أعمال المونتال</ion-select-option>
+            <ion-select-option value="gas-stove-maintenance">صيانة بوتاجازات</ion-select-option>
+            <ion-select-option value="contracting-supplies">مقاولات وتوريدات</ion-select-option>
+            <ion-select-option value="car-towing">ونش رفع سيارات</ion-select-option>
+            <ion-select-option value="car-mechanic">ميكانيكي سيارات</ion-select-option>
+            <ion-select-option value="motorcycle-mechanic">ميكانيكي موتوسيكلات</ion-select-option>
+            <ion-select-option value="vespa-mechanic">ميكانيكي فيسبا</ion-select-option>
+            <ion-select-option value="shipping-companies">شركات الشحن</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم هاتف التواصل</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.owner_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>رقم واتساب</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.details.whatsapp_phone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
+        <label>المدينة</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-input [(ngModel)]="editData.city" placeholder="المدينة"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="section-title">إعدادات الظهور</div>
+      
+      <div class="options-grid">
+        <ion-item lines="none" class="mota7-toggle-item">
+          <ion-label>الحالة (متاح الآن)</ion-label>
+          <ion-toggle [(ngModel)]="editData.is_available" color="success"></ion-toggle>
+        </ion-item>
+      </div>
+    </ng-container>
+
+    <div class="footer-actions">
+      <ion-button expand="block" (click)="saveChanges()" class="save-btn">
+        {{ editData.ad_type === 'education' ? 'حفظ بيانات التعليم' : 
+           editData.ad_type === 'delivery' ? 'حفظ بيانات التوصيل' : 
+           editData.ad_type === 'store' ? 'حفظ بيانات المتجر' : 
+           editData.ad_type === 'product' ? 'حفظ بيانات المنتج' : 'حفظ بيانات الخدمة' }}
+      </ion-button>
+    </div>
+
+  </div>
+</ion-content>

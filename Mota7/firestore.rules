@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ——— دوال مساعدة ———
+
+    /** أدمن: هذه الإيميلات فقط (مستخدمو التطبيق {phone}@mota7.com ليسوا أدمن) */
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email is string &&
+        request.auth.token.email in [
+          'hossam@mota7.com',
+          'ibrahem@mota7.com',
+          'admin@mota7.com'
+        ];
+    }
+
+    /** معرّف مستند users/{phone} من إيميل تسجيل الدخول */
+    function userDocIdFromAuth() {
+      return request.auth != null && request.auth.token.email is string
+        ? request.auth.token.email.replace('@mota7.com', '')
+        : '';
+    }
+
+    /**
+     * نشط إذا لم يوجد حقل isActive أو isActive == true.
+     * معطّل عند isActive == false فقط.
+     */
+    function isUserActive() {
+      let phone = userDocIdFromAuth();
+      return request.auth != null &&
+        request.auth.token.email is string &&
+        exists(/databases/$(database)/documents/users/$(phone)) &&
+        userDocIsActive(phone);
+    }
+
+    function userDocIsActive(phone) {
+      let u = get(/databases/$(database)/documents/users/$(phone)).data;
+      return u.isActive == true || !u.keys().hasAny(['isActive']);
+    }
+
+    function ownsUserProfile(userId) {
+      return request.auth != null &&
+        (request.auth.uid == userId ||
+          (request.auth.token.email is string &&
+            request.auth.token.email.matches('.*@mota7\\.com$') &&
+            userId == request.auth.token.email.replace('@mota7.com', '')));
+    }
+
+    function ownsAdResource() {
+      return request.auth != null &&
+        (resource.data.userId == request.auth.uid ||
+          (request.auth.token.email is string &&
+            resource.data.owner_phone == request.auth.token.email.replace('@mota7.com', '')));
+    }
+
+    function ownsAdOnCreate() {
+      return request.auth != null &&
+        (request.resource.data.userId == request.auth.uid ||
+          (request.auth.token.email is string &&
+            request.resource.data.owner_phone == request.auth.token.email.replace('@mota7.com', '')));
+    }
+
+    function isStatsOnlyAdUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['stats', 'call_clicks', 'whatsapp_clicks']);
+    }
+
+    match /blocked_users/{phone} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+    match /expire-orders/{id} {
+      allow read, write: if true;
+    }
+    match /complete-orders/{id} {
+      allow read, write: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAdmin() || (request.auth != null && ownsUserProfile(userId));
+      allow update: if isAdmin() || (request.auth != null && ownsUserProfile(userId) && isUserActive());
+      allow delete: if isAdmin();
+    }
+
+    match /ads/{adId} {
+      allow read: if true;
+
+      allow create: if isAdmin() || (request.auth != null && isUserActive() && ownsAdOnCreate());
+
+      allow update: if
+        isStatsOnlyAdUpdate() ||
+        isAdmin() ||
+        (request.auth != null && isUserActive() && ownsAdResource());
+
+      allow delete: if isAdmin() || (request.auth != null && isUserActive() && ownsAdResource());
+    }
+
+    /**
+     * تجميع نقرات اتصال/واتساب يومياً (لوحة الأدمن: daily_stats → ads_logs).
+     * كان المسار العام يسمح بالكتابة للأدمن فقط ففشل setDoc من تطبيق المستخدم.
+     */
+    match /daily_stats/{date}/ads_logs/{logId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && isUserActive();
+      allow delete: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

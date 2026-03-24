@@ -1,0 +1,100 @@
+/* --- هيدر متاح (الثابت والموحد) --- */
+.mota7-header {
+  --background: #ffffff;
+}
+.mota7-title {
+  font-weight: 800 !important;
+  color: #1a1a1a !important;
+}
+.mota7-back-button {
+  --background: #f8f9fa;
+  --border-radius: 14px;
+  --color: #1a1a1a;
+  width: 42px;
+  height: 42px;
+}
+
+/* --- زر التفعيل الموحد --- */
+.mota7-toggle-status {
+  --handle-background: #ffffff;
+  --track-background: #eb445a !important;
+  --track-background-checked: #2dd36f !important;
+}
+
+.product-setup {
+  direction: rtl;
+  text-align: right;
+
+  .images-container-centered {
+    display: flex; justify-content: center; width: 100%; margin-bottom: 25px;
+  }
+
+  .images-grid {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 10px 5px;
+    .img-card, .add-img-btn {
+      width: 110px; height: 110px; border-radius: 20px;
+      position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .img-card {
+      img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
+      ion-button { position: absolute; top: -8px; left: -8px; --border-radius: 50%; width: 32px; height: 32px; }
+    }
+    .add-img-btn {
+      background: #fffcf8; border: 2px dashed #ffcc99;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      ion-icon { font-size: 28px; color: #ec840c; }
+      p { font-size: 0.75rem; margin-top: 8px; font-weight: 700; color: #000000; }
+    }
+  }
+
+  .main-label, .inner-label { 
+    font-weight: 800; font-size: 1rem; color: #000000 !important;
+    margin-bottom: 10px; display: block; 
+  }
+
+  /* الحفاظ على التصميم الداخلي كما طلبت */
+  .styled-item { 
+    --background: #f9f9f9; --border-radius: 16px; border: 1px solid #eeeeee;
+    --color: #000000; font-weight: 700;
+    ion-input, ion-textarea { --color: #000000; text-align: right; }
+    .whatsapp-icon-item { margin-left: 10px; }
+  }
+
+  .arabic-select {
+    width: 100%; --color: #000000;
+    &::part(placeholder), &::part(text) { text-align: right !important; color: #000000; }
+    &::part(icon) { position: relative; order: -1; margin-inline-end: 10px; }
+  }
+
+  .whatsapp-field { --background: #ffffff; border: 1px solid #e0f2f1; }
+  
+  .toggle-box { 
+    margin: 20px 0; --padding-start: 0; --background: transparent;
+    ion-label { font-weight: 800; color: #000000; }
+  }
+
+  .main-orange-btn {
+    --background: linear-gradient(135deg, #ff9f43 0%, #ff8e22 100%);
+    --color: #ffffff; --border-radius: 20px; height: 60px;
+    margin: 30px 0; font-weight: 800; font-size: 1.2rem;
+    box-shadow: 0 10px 20px rgba(255, 142, 34, 0.2);
+  }
+
+  .phone-live-warning {
+    color: #c0392b;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin: 6px 2px 0 0;
+    line-height: 1.35;
+  }
+}
+
+:host ::ng-deep {
+  .action-sheet-container { direction: rtl !important; }
+  .action-sheet-button-inner {
+    justify-content: flex-start !important;
+    direction: rtl !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+}

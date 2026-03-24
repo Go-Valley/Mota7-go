@@ -1,0 +1,108 @@
+<div class="mota7-card-wrapper" *ngIf="ad">
+  
+  <div class="status-header">
+    <div class="status-badge" [ngClass]="ad.status">
+      <span [ngSwitch]="ad.status">
+        <small *ngSwitchCase="'pending'">قيد المراجعة</small>
+        <small *ngSwitchCase="'active'">إعلان مفعل</small>
+        <small *ngSwitchCase="'expired'">إعلان منتهي</small>
+        <small *ngSwitchCase="'rejected'">إعلان مرفوض</small>
+        <small *ngSwitchDefault>جاري المراجعة</small>
+      </span>
+    </div>
+    <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
+  </div>
+
+  <div class="clickable-content" (click)="openProductDetails()">
+    <div class="product-description-header">
+      {{ ad.details?.short_desc || ad.details?.title }}
+    </div>
+
+    <div class="main-info-row">
+      <div class="image-wrapper">
+        <img [src]="(ad.details?.images && ad.details.images.length > 0) ? ad.details.images[0] : 'assets/mota7.png'" 
+             alt="صورة المنتج"
+             class="product-thumb">
+
+        <div class="verification-badge" *ngIf="ad.is_verified && ad.is_verified !== 'none'">
+          <img src="assets/gold.avif" *ngIf="ad.is_verified === 'gold'" class="verify-img" alt="ذهبي">
+          <img src="assets/blue.webp" *ngIf="ad.is_verified === 'blue'" class="verify-img" alt="أزرق">
+        </div>
+      </div>
+
+      <div class="owner-details">
+        <div class="name-and-title-section">
+          <h2 class="product-main-title">{{ ad.details?.title }}</h2>
+        </div>
+
+        <div class="contact-buttons-row">
+          <button type="button" class="action-btn call" (click)="contactAction('call', $event)" title="اتصال">
+            <ion-icon name="call"></ion-icon>
+          </button>
+          <button type="button" class="action-btn whatsapp" (click)="contactAction('whatsapp', $event)" title="واتساب">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="owner-line-full">
+      <span class="label">بواسطة:</span>
+      <span class="name">{{ displayName }}</span>
+    </div>
+
+    <div class="meta-grid-modern">
+      <div class="grid-item">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ ad.city || 'الخارجة' }}</span>
+      </div>
+      <div class="grid-item price-item">
+        <ion-icon name="cash-outline"></ion-icon>
+        <span>{{ ad.details?.price }} ج.م</span>
+      </div>
+      <div class="grid-item condition-item">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>{{ ad.details?.condition || 'جديد' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mota7-footer" *ngIf="ad.status">
+    <button type="button" class="manage-btn edit" (click)="onEdit()">
+      <ion-icon name="create-outline"></ion-icon>
+      <span>تعديل الإعلان</span>
+    </button>
+    <button type="button" class="manage-btn delete" (click)="onDelete()">
+      <ion-icon name="trash-outline"></ion-icon>
+      <span>حذف</span>
+    </button>
+  </div>
+  
+  <div class="verification-request-section" *ngIf="ad.status">
+    <button type="button" class="verification-btn" (click)="showVerificationModal()">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      طلب توثيق الإعلان
+    </button>
+  </div>
+
+  <div class="admin-box pending" *ngIf="ad.status === 'pending'">
+    <p>لتفيعل الإعلان بالظهور الفوري .. يرجى ارسال كلمة "تم" برسالة واتساب من نفس الرقم لتأكيد ملكية الرقم</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('pending', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
+    <p>سبب الرفض : {{ ad.admin_reason }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
+    <p>سبب الانتهاء : {{ ad.admin_reason || 'يرجى التواصل مع الإدارة' }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+</div>

@@ -1,0 +1,87 @@
+/* هيدر متاح الموحد */
+.custom-toolbar {
+  --background: #ffffff;
+  --color: #1a1a1a;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+}
+
+.header-title {
+  color: #1a1a1a;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.back-btn-mota7-light {
+  --color: #333; 
+  --background: #f8f9fa; 
+  --border-radius: 14px;
+  width: 42px; 
+  height: 42px; 
+  border: 1px solid rgba(0,0,0,0.05);
+  margin-right: 8px;
+  ion-icon { font-size: 20px; }
+  &:active { transform: scale(0.95); }
+}
+
+.main-content {
+  // يستخدم الخلفية الموحدة من global.scss
+}
+
+.order-container {
+  padding: 30px 20px 30px 20px;
+  text-align: center;
+  
+  .welcome-section {
+      margin-bottom: 40px;
+      .icon-circle {
+          width: 80px; height: 80px;
+          background: #fff9f0;
+          border-radius: 30px;
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 20px;
+          ion-icon { font-size: 40px; color: #ec840c; }
+      }
+      h2 { font-weight: 900; color: #1a1a1a; font-size: 1.5rem; margin-bottom: 10px; }
+      p { color: #666; font-size: 0.95rem; line-height: 1.6; padding: 0 20px; font-weight: 600; }
+  }
+
+  .mota7-main-btn {
+      width: 100%;
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      margin-bottom: 10px;
+      
+      .btn-content {
+          display: flex; align-items: center; justify-content: center; gap: 12px;
+          span { font-size: 1.2rem; font-weight: 800; }
+          ion-icon { font-size: 24px; color: #ff8800; }
+      }
+      &:active { transform: scale(0.98); }
+  }
+
+  .recent-requests {
+      margin-top: 35px;
+      text-align: right;
+      .section-label { 
+        font-weight: 900; 
+        color: #1a1a1a; 
+        margin-bottom: 20px; 
+        display: block;
+        font-size: 1.2rem;
+        border-right: 4px solid #ff8800;
+        padding-right: 12px;
+      }
+  }
+}
+
+// التعديل المطلوب لزر التأكيد الأخضر داخل الـ Alert
+::ng-deep .confirm-button {
+  color: #2e7d32 !important; 
+  font-weight: 800 !important;
+}

@@ -1,0 +1,146 @@
+.completing-container {
+  padding: 15px; 
+  background: #f8fafc; 
+  min-height: 100%; 
+  direction: rtl;
+}
+
+.search-section {
+  margin-bottom: 20px;
+  .search-bar-wrapper {
+    background: #fafafa;
+    border-radius: 15px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    box-shadow: 2px 2px 4px 1px rgb(126 1 1 / 87%);
+    ion-icon { color: #ad0202; margin-left: 10px; font-size: 22px; }
+    input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-weight: 700;
+      color: #000000;
+      font-size: 0.95rem;
+      background: #fafafa;
+      text-align: center;
+      &::placeholder {
+        text-align: center;
+      }
+    }
+  }
+}
+
+.order-card-dual {
+  background: #ffffff; 
+  border-radius: 20px; 
+  margin-bottom: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.05); 
+  border: 1px solid #e2e8f0; 
+  overflow: hidden;
+  
+  .card-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 12px 18px; 
+    background: #f1f5f9;
+    
+    .status-badge.success { 
+        display: flex; 
+        align-items: center; 
+        gap: 5px; 
+        color: #16a34a; 
+        font-weight: 800;
+        ion-icon { font-size: 18px; }
+    }
+    .order-date { font-size: 0.75rem; color: #64748b; font-weight: 600; }
+  }
+
+  .service-main-info {
+    padding: 15px 18px; 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 10px;
+    
+    .service-tag, .city-badge, .price-tag {
+      display: flex; 
+      align-items: center; 
+      gap: 5px; 
+      padding: 6px 12px;
+      border-radius: 10px; 
+      font-size: 0.85rem; 
+      font-weight: 700;
+    }
+    .service-tag { background: #eff6ff; color: #2563eb; }
+    .city-badge { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+    .price-tag { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  }
+
+  .dual-parties {
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 1px; 
+    background: #f1f5f9;
+    
+    .party-box {
+      background: #fff; 
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+
+      .party-info {
+        .label { display: block; font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
+        .name { display: block; font-size: 0.9rem; font-weight: 800; color: #1e293b; }
+        .phone { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+      }
+
+      /* تنسيق أزرار الواتساب المضافة */
+      .party-actions {
+        .icon-btn.whatsapp {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          ion-icon { color: #fff; font-size: 18px; }
+          
+          &.green { background: #22c55e; }
+          &.blue { background: #3b82f6; }
+          
+          &:active { opacity: 0.8; }
+        }
+      }
+    }
+  }
+
+  .card-footer .delete-full {
+    width: 100%; 
+    padding: 15px; 
+    border: none; 
+    background: #fff;
+    color: #ef4444; 
+    font-weight: 800; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px;
+    border-top: 1px solid #f1f5f9;
+    
+    &:active { background: #fef2f2; }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  color: #94a3b8;
+  ion-icon { font-size: 48px; margin-bottom: 10px; }
+  p { font-weight: 700; margin: 0; }
+}

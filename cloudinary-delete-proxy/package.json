@@ -1,0 +1,17 @@
+{
+  "name": "mota7-cloudinary-delete-proxy",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jose": "^5.9.6"
+  }
+}

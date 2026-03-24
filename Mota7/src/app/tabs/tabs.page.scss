@@ -1,0 +1,210 @@
+:host ion-tab-bar {
+  --border: none;
+}
+
+
+/* =========================================
+   Tab Buttons
+========================================= */
+
+:host ion-tab-button {
+  position: relative;
+  z-index: 2;
+
+  border-radius: 18px;
+  padding: 6px 12px;
+
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.25s ease,
+    color 0.25s ease;
+}
+
+
+/* Genius Press Bounce */
+
+:host ion-tab-button:active {
+  transform: scale(0.86);
+}
+
+
+/* Selected State */
+
+:host ion-tab-button.tab-selected {
+  opacity: 1;
+}
+
+
+/* Icon & Label transitions handled by global.scss */
+
+
+/* =========================================
+   Floating Order Button (Soft Luxury)
+========================================= */
+
+:host ion-tab-button.tab-order {
+  transform: translateY(-14px);
+
+  background: linear-gradient(
+    135deg,
+    #4f8cff,
+    #6f5cff
+  );
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 12px 28px rgba(79, 140, 255, 0.35),
+    0 6px 16px rgba(0, 0, 0, 0.12);
+
+  padding-top: 10px;
+
+  opacity: 1;
+}
+
+
+:host ion-tab-button.tab-order ion-icon,
+:host ion-tab-button.tab-order ion-label {
+  color: #ffffff;
+}
+
+
+:host ion-tab-button.tab-order:active {
+  transform: translateY(-14px) scale(0.92);
+}
+
+
+/* Tiny plus */
+
+:host ion-tab-button.tab-order .tiny-plus {
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  color: #ffffff;
+}
+
+/* =========================================
+   Service Request Modal Styling
+========================================= */
+
+ion-modal.service-request-modal {
+  --height: 90%;
+  --width: 100%;
+  --border-radius: 30px 30px 0 0;
+  --backdrop-opacity: 0.5;
+  --background: rgba(255, 255, 255, 0.95);
+  align-items: flex-end;
+
+  &::part(content) {
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+
+.service-modal-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  direction: rtl;
+  padding: 24px;
+  background: transparent;
+}
+
+.service-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 12px;
+  border-bottom: 4px solid #a19e9c94;
+
+  .service-modal-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1a1a2e;
+    flex: 1;
+    text-align: center;
+    margin-left: 36px; /* موازنة زر الإغلاق الموجود على اليمين */
+  }
+
+  .service-modal-close {
+    order: -1; /* نقل الزر ليكون أول عنصر (على اليمين في RTL) */
+    background: #fee2e2;
+    color: #ef4444;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+
+    &:active {
+      transform: scale(0.85);
+      background: #fecaca;
+    }
+  }
+}
+
+.service-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 40px;
+}
+
+.service-section {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .section-title {
+    color: #dc2626; /* Red color */
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .section-item {
+    color: #111827; /* Black color */
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .section-note {
+    color: #4b5563;
+    font-size: 0.95rem;
+    margin-top: 8px;
+    padding: 0 15px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+}
+
+.service-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08), transparent);
+  margin: 5px 0;
+}
+
+.service-action-btn {
+  --background: #FF6B00;
+  --background-activated: #e66000;
+  --border-radius: 50px;
+  --box-shadow: 10px 0px px rgb(255 107 0 / 78%);
+  height: 60px;
+  font-weight: 900;
+  font-size: 1.3rem;
+  margin-top: 15px;
+  text-transform: none;
+}
+

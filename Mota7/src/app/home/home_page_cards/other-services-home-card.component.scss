@@ -1,0 +1,134 @@
+.mota7-card-wrapper {
+  background: #ffffff;
+  border-radius: 50px;
+  padding: 12px;
+  width: 96%;
+  margin: 20px auto;
+  box-shadow: 1px -5px 20px 7px #3880ff54;
+  border: 5px solid #ba941e96;
+  direction: rtl;
+  box-sizing: border-box;
+  transition: all 0.4s ease;
+
+  // تأثير الكارت المطفأ عند "غير متاح"
+  &.is-unavailable {
+    filter: grayscale(0.9);
+    opacity: 0.6;
+    box-shadow: none;
+    border-color: #ddd;
+    pointer-events: none; // منع التفاعل مع الكارت المطفأ
+  }
+
+  .service-title-header {
+    color: #000000;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+
+  .provider-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+    padding: 6px 12px;
+    border-radius: 25px;
+    margin-bottom: 15px;
+
+    .name-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+
+      .avatar-container {
+        position: relative;
+        display: inline-flex;
+
+        .logo-circle {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: #eef3ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+          ion-icon { font-size: 30px; color: #1a4ed8; }
+        }
+
+        .verification-badge {
+          position: absolute;
+          bottom: -5px;
+          right: -5px;
+          width: 26px; /* زيادة الحجم قليلاً لتظهر الصور بوضوح */
+          height: 26px;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+    
+          .verify-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* إزالة البوردر والخلفية لأن الصورة ستكون هي العلامة */
+            border-radius: 50%;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          }
+        }
+      }
+            
+      .provider-name-wrapper {
+        .provider-name {
+          font-weight: 800;
+          color: #930000;
+          font-size: 1.3rem;
+        }
+      }
+    }
+
+    .contact-icons {
+      display: flex;
+      gap: 10px;
+      .icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #fff;
+        &.call { background: #3880ff; }
+        &.whatsapp { background: #2dd36f; }
+      }
+    }
+  }
+
+  .info-grid {
+    display: flex;
+    gap: 10px;
+    .grid-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 30px;
+      font-weight: 900;
+      font-size: 1rem;
+
+      &.city-box {
+        background: #f4f5f8;
+        color: #000;
+      }
+
+      &.status-toggle {
+        &.active { background: #e7fbf0; color: #2dd36f; }
+        &.inactive { background: #fdeced; color: #eb445a; }
+      }
+    }
+  }
+}

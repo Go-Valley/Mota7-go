@@ -1,0 +1,148 @@
+<app-mota7-header 
+  title="الملف الشخصي"
+  [showBackButton]="false">
+</app-mota7-header>
+
+<ion-content>
+  <div class="account-wrapper">
+
+    <div *ngIf="!isLoggedIn" class="guest-container">
+      <div class="brand-visual">
+        <div class="modern-logo-container">
+          <div class="logo-pulse-ring"></div>
+          <div class="logo-inner-orb">
+            <ion-icon name="person-add-outline"></ion-icon>
+          </div>
+        </div>
+        <h1>حسابي</h1>
+        <p>سجل الدخول لعرض طلبات العملاء وادارة اعلاناتك</p>
+      </div>
+
+      <div class="auth-group">
+        <ion-button expand="block" class="btn-main" (click)="goToLogin()">
+          تسجيل الدخول
+        </ion-button>
+        <ion-button expand="block" fill="outline" class="btn-register-modern" (click)="goToRegister()">
+          إنشاء حساب جديد
+        </ion-button>
+      </div>
+
+      <div class="support-menu-modern">
+        <ion-item lines="none" detail="false" class="menu-item-chat" (click)="openContactOptions()">
+          <ion-icon slot="start" name="chatbubble-ellipses-outline"></ion-icon>
+          <ion-label>تحدث معنا</ion-label>
+        </ion-item>
+
+        <ion-item lines="none" detail="false" class="menu-item-terms" (click)="setOpenTerms(true)">
+          <ion-icon slot="start" name="document-text-outline"></ion-icon>
+          <ion-label>الشروط والأحكام</ion-label>
+        </ion-item>
+      </div>
+    </div>
+
+    <div *ngIf="isLoggedIn" class="member-container">
+      <div class="user-main-card-modern">
+        <div class="user-avatar-section">
+          <div class="avatar-ring-animated"></div>
+          <div class="avatar-bg">
+            <ion-icon name="person-outline"></ion-icon>
+          </div>
+        </div>
+        
+        <div class="user-info-text">
+          <div class="user-name-row">
+            <h2 class="user-name__heading">{{ userName }}</h2>
+            <!-- نفس هيكل كروت الإعلانات (delivery-card): verification-badge + verify-img -->
+            <div
+              class="verification-badge"
+              *ngIf="verificationLevel === 'blue' || verificationLevel === 'gold'"
+              [ngClass]="verificationLevel"
+            >
+              <!-- AVIF + WebP: WebView أندرويد غالباً لا يعرض AVIF؛ gold.webp احتياط بنفس الشكل -->
+              <picture *ngIf="verificationLevel === 'gold'">
+                <source [srcset]="assetUrl('assets/gold.avif')" type="image/avif" />
+                <img
+                  [src]="assetUrl('assets/gold.webp')"
+                  class="verify-img"
+                  alt="شارة التحقق الذهبية"
+                  title="متجر موثَّق - ذهبية"
+                />
+              </picture>
+              <img
+                *ngIf="verificationLevel === 'blue'"
+                [src]="assetUrl('assets/blue.webp')"
+                class="verify-img"
+                alt="شارة التحقق الزرقاء"
+                title="متجر موثَّق - زرقاء"
+              />
+            </div>
+          </div>
+          <p class="user-phone">{{ userPhone }}</p>
+          <div class="user-city-badge" *ngIf="userCity">
+            <ion-icon name="location-outline"></ion-icon>
+            {{ userCity }}
+          </div>
+        </div>
+      </div>
+
+      <div class="management-grid" *ngIf="acct.accountUsable()">
+        <div class="grid-card orange-card" (click)="goToMyAds()">
+          <ion-icon name="megaphone-outline"></ion-icon>
+          <span>إدارة إعلاناتي</span>
+        </div>
+        <div class="grid-card blue-card" (click)="goToCusOrder()">
+          <ion-icon name="people-outline"></ion-icon>
+          <span>طلبات العملاء</span>
+        </div>
+      </div>
+
+      <div class="profile-options-list">
+        <ion-item
+          *ngIf="acct.accountUsable()"
+          lines="none"
+          detail="true"
+          detail-icon="chevron-back"
+          class="option-item"
+          (click)="openEditProfile()"
+        >
+          <ion-icon slot="start" name="create-outline"></ion-icon>
+          <ion-label>تعديل الملف الشخصي</ion-label>
+        </ion-item>
+
+        <ion-item lines="none" detail="true" detail-icon="chevron-back" class="option-item" (click)="openContactOptions()">
+          <ion-icon slot="start" name="chatbubble-ellipses-outline"></ion-icon>
+          <ion-label>تحدث معنا</ion-label>
+        </ion-item>
+
+        <ion-item lines="none" detail="true" detail-icon="chevron-back" class="option-item" (click)="setOpenTerms(true)">
+          <ion-icon slot="start" name="document-text-outline"></ion-icon>
+          <ion-label>الشروط والأحكام</ion-label>
+        </ion-item>
+
+        <ion-item lines="none" class="option-item logout-btn" (click)="logout()">
+          <ion-icon slot="start" name="log-out-outline"></ion-icon>
+          <ion-label>تسجيل الخروج</ion-label>
+        </ion-item>
+      </div>
+    </div>
+
+    <ion-modal *ngIf="isTermsModalOpen" [isOpen]="true" [keepContentsMounted]="false" (didDismiss)="setOpenTerms(false)">
+      <ng-template>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>الشروط والأحكام</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="setOpenTerms(false)">إغلاق</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding terms-modal-content">
+          <div class="terms-text">
+            <div [innerHTML]="termsContent"></div>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+  </div>
+</ion-content>

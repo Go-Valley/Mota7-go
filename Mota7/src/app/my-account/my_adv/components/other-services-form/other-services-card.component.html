@@ -1,0 +1,105 @@
+<div class="mota7-card-wrapper" *ngIf="ad">
+  
+  <div class="status-header">
+    <div class="status-badge" [ngClass]="ad.status">
+      <span [ngSwitch]="ad.status">
+        <small *ngSwitchCase="'pending'">قيد المراجعة</small>
+        <small *ngSwitchCase="'active'">إعلان مفعل</small>
+        <small *ngSwitchCase="'expired'">إعلان منتهي</small>
+        <small *ngSwitchCase="'rejected'">إعلان مرفوض</small>
+        <small *ngSwitchDefault>جاري المراجعة</small>
+      </span>
+    </div>
+    <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
+  </div>
+
+  <div class="service-title-header">
+    {{ getCategoryName(ad.category_id) }}
+  </div>
+
+  <div class="provider-info-row">
+    <div class="name-section">
+      <div class="avatar-container">
+        <div class="logo-circle">
+          <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+        </div>
+        
+        <div class="verification-badge" *ngIf="ad.is_verified && ad.is_verified !== 'none'">
+           <img src="assets/gold.avif" *ngIf="ad.is_verified === 'gold'" class="verify-img" alt="ذهبي">
+           <img src="assets/blue.webp" *ngIf="ad.is_verified === 'blue'" class="verify-img" alt="أزرق">
+        </div>
+      </div>
+ 
+      <div class="provider-name-wrapper">
+        <span class="provider-name">{{ ad.details?.provider_name || ad.owner_name || 'مقدم خدمة متاح' }}</span>
+      </div>
+    </div>
+
+    <div class="contact-icons">
+      <button type="button" class="icon-btn call" (click)="contactAction('call', $event)" title="اتصال">
+        <ion-icon name="call"></ion-icon>
+      </button>
+      <button type="button" class="icon-btn whatsapp" (click)="contactAction('whatsapp', $event)" title="واتساب">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="grid-item city-box">
+      <ion-icon name="location-outline"></ion-icon>
+      <span>{{ ad.city || 'غير محدد' }}</span>
+    </div>
+
+    <div class="grid-item status-toggle" 
+         [class.active]="ad.is_available"
+         [class.inactive]="!ad.is_available"
+         (click)="toggleAvailability()">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>{{ ad.is_available ? 'متاح الآن' : 'غير متاح' }}</span>
+    </div>
+  </div>
+
+  <div class="description-box" *ngIf="ad.details?.description">
+    <p>{{ ad.details.description }}</p>
+  </div>
+
+  <div class="mota7-footer" *ngIf="ad.status">
+    <button type="button" class="manage-btn edit" (click)="onEdit()">
+      <ion-icon name="create-outline"></ion-icon>
+      <span>تعديل الاعلان</span>
+    </button>
+    <button type="button" class="manage-btn delete" (click)="onDelete()">
+      <ion-icon name="trash-outline"></ion-icon>
+      <span>حذف</span>
+    </button>
+  </div>
+  
+  <div class="verification-request-section" *ngIf="ad.status">
+    <button type="button" class="verification-btn" (click)="showVerificationModal()">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      طلب توثيق الإعلان
+    </button>
+  </div>
+
+  <div class="admin-box pending" *ngIf="ad.status === 'pending'">
+    <p>لتفيعل الإعلان بالظهور الفوري .. يرجى ارسال كلمة "تم" برسالة واتساب من نفس الرقم لتأكيد ملكية الرقم</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('pending', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
+    <p>سبب الرفض : {{ ad.admin_reason }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
+    <p>سبب الانتهاEاء : {{ ad.admin_reason || 'يرجي التواصل مع الإدارة' }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+</div>

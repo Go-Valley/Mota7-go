@@ -1,0 +1,126 @@
+.mota7-admin-store-wrapper {
+  background: #ffffff;
+  border-radius: 30px;
+  padding: 15px;
+  margin: 12px auto;
+  border: 1px solid #ff9d00;
+  box-shadow: 0px -5px 0px 0px #e76e07;
+  position: relative;
+  direction: rtl;
+
+  .admin-action-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    --color: #000;
+    z-index: 10;
+  }
+  .sort-badge {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 38px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
+    z-index: 15;
+    box-shadow: 0px 0px 7px 3px #000000;
+    &.gold { background: #d4af37; }
+    &.blue { background: #2f6bff; }
+    &.gray { background: #b60000; }
+  }
+
+  .admin-top-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-left: 35px;
+    .ad-date { color: #000000; font-size: 1rem; }
+    .admin-status-badge {
+      padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;
+      &[data-status="active"] { background: #e7fbf0; color: #2dd36f; }
+      &[data-status="pending"] { background: #fff4e5; color: #ff9800; }
+      &[data-status="rejected"] { background: #fdeced; color: #eb445a; }
+      &[data-status="expired"] { background: #fdeced; color: #eb445a; }
+    }
+  }
+
+  .store-main-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+
+    .store-circle {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      position: relative;
+      border: 2px solid #f0f0f0;
+      img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+      .verification-badge {
+        position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px;
+        .verify-img { width: 100%; height: 100%; object-fit: contain; }
+      }
+    }
+
+    .store-info-text {
+      flex: 1;
+      .store-name { font-size: 1.2rem; font-weight: 800; color: #000; }
+      .owner-name { font-size: 0.85rem; color: #666; }
+    }
+
+    .store-actions {
+      display: flex; gap: 8px;
+      .action-btn {
+        width: 35px; height: 35px; border-radius: 50%; display: flex;
+        align-items: center; justify-content: center; color: #fff;
+        &.call { background: #3880ff; }
+        &.whatsapp { background: #2dd36f; }
+      }
+    }
+  }
+
+  .store-footer-grid {
+    display: flex;
+    border-top: 1px dashed #eee;
+    padding-top: 10px;
+    gap: 10px;
+    .footer-item {
+      flex: 1; background: #f9f9f9; padding: 6px; border-radius: 15px;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      font-size: 0.85rem; font-weight: 700;
+      &.expiry-toggle { background: #fff4e5; color: #ff9800; cursor: pointer; }
+      &.products-toggle { background: #eef3ff; color: #3880ff; cursor: pointer; }
+    }
+  }
+
+  .products-mini-panel {
+    margin-top: 10px; background: #fffcf5; padding: 10px; border-radius: 15px;
+    border: 1px solid #ffeeba; text-align: center;
+    .panel-hint { font-size: 0.8rem; color: #856404; margin: 0; }
+  }
+
+  .admin-reason-box {
+    background: #fdeced;
+    color: #c5283d;
+    padding: 8px 12px;
+    margin-top: 12px;
+    border-radius: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+    border: 1px solid #f5c6cb;
+    p {
+      margin: 0;
+      strong {
+        font-weight: 800;
+      }
+    }
+  }
+}

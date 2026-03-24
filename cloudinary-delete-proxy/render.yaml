@@ -1,0 +1,11 @@
+# Deploy this folder as a Render Web Service (Node).
+# In Render: New > Blueprint, or connect repo with Root Directory = cloudinary-delete-proxy.
+# Add env vars from env.sample.txt in the dashboard (CLOUDINARY_* secrets).
+
+services:
+  - type: web
+    name: mota7-cloudinary-delete-proxy
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free

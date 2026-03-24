@@ -1,0 +1,61 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# Node
+**/node_modules/
+**/.npm/
+**/.pnpm-store/
+
+# Angular / Ionic outputs
+**/.angular/
+**/dist/
+**/build/
+**/www/
+**/.cache/
+**/.sass-cache/
+
+# Test outputs
+**/coverage/
+**/.nyc_output/
+
+# Firebase local
+**/.firebase/
+firebase-debug.log
+
+# Android / Gradle generated
+**/android/.gradle/
+**/android/**/build/
+**/android/local.properties
+**/android/captures/
+**/android/.cxx/
+**/android/**/externalNativeBuild/
+
+# Capacitor generated
+**/android/app/src/main/assets/public/
+**/android/app/src/main/assets/capacitor.config.json
+
+# temp
+*.tmp
+*.temp
+*.bak

@@ -1,0 +1,36 @@
+<div class="store-icon-card" *ngIf="ad">
+  <div class="store-circle" (click)="toggleProducts($event)">
+    <img [src]="ad.logo || 'assets/mota7.png'"
+         loading="lazy"
+         decoding="async"
+         (error)="$any($event.target).src = 'assets/mota7.png'"
+         alt="لوجو المتجر">
+         
+     <div class="verification-badge" 
+     *ngIf="ad.verification_level && ad.verification_level !== 'none'" 
+     [ngClass]="ad.verification_level">
+  <img 
+    loading="lazy"
+    decoding="async"
+    src="assets/gold.avif"
+    *ngIf="ad.verification_level === 'gold'"
+    class="verify-img"
+    alt="شارة التحقق الذهبية"
+    title="متجر موثَّق - ذهبية">
+  <img 
+    loading="lazy"
+    decoding="async"
+    src="assets/blue.webp"
+    *ngIf="ad.verification_level === 'blue'"
+    class="verify-img"
+    alt="شارة التحقق الزرقاء"
+    title="متجر موثَّق - زرقاء">
+</div>
+</div>
+
+  <div class="store-name">{{ ad.store_name }}</div>
+
+  <div class="products-panel" *ngIf="showProducts">
+    <app-product-home-card *ngFor="let p of (products$ | async)" [ad]="p"></app-product-home-card>
+  </div>
+</div>

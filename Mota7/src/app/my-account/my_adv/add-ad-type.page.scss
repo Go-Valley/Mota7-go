@@ -1,0 +1,79 @@
+/* هيدر متاح المعتمد */
+.custom-header-mota7 {
+  --background: #ffffff;
+  --padding-top: 5px;
+  --padding-bottom: 5px;
+
+  ion-title {
+    font-weight: 800; 
+    font-size: 1.1rem; 
+    color: #1a1a1a;
+    text-align: center;
+  }
+}
+
+/* زر الرجوع متاح (رمادي فاتح - بوردات 14px - جهة اليمين) */
+.back-btn-mota7 {
+  --background: #f8f9fa;
+  --border-radius: 14px;
+  --color: #1a1a1a;
+  --padding-start: 0;
+  --padding-end: 0;
+  width: 42px;
+  height: 42px;
+  margin-right: 10px; /* مسافة من حافة الشاشة اليمين */
+
+  ion-icon {
+    font-size: 22px;
+  }
+}
+
+/* باقي التصميم كما هو دون أي تغيير في الألوان أو البيانات */
+.selection-container {
+  padding: 20px 10px;
+  background: #fcfcfc;
+  min-height: 100%;
+}
+
+.subtitle {
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+  margin-bottom: 25px;
+}
+
+.types-grid {
+  display: flex;
+  flex-direction: column; gap: 15px; padding: 5px;
+}
+
+.type-card {
+  display: flex; align-items: center; background: #ffffff;
+  border-radius: 18px; padding: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #f3f3f3;
+  cursor: pointer;
+  direction: rtl;
+}
+
+.icon-box {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin-left: 15px; flex-shrink: 0;
+}
+
+.store { background: #e3f2fd; color: #1976d2; }
+.product { background: #f3e5f5; color: #7b1fa2; }
+.delivery { background: #fff3e0; color: #f57c00; }
+.education { background: #e8f5e9; color: #388e3c; }
+.other { background: #ffebee; color: #d32f2f; }
+
+.text-box { flex-grow: 1; text-align: right; }
+.text-box h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #222; }
+.text-box p { margin: 4px 0 0; font-size: 0.82rem; color: #777; line-height: 1.3; }
+.arrow {
+  transform: scaleX(-1); /* يقوم بعكس الأيقونة أفقياً لتشير لليسار */
+  color: #000000; /* أو أي لون تفضله */
+  font-size: 18px;
+}

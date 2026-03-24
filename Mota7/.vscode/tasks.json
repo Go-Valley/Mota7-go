@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ionic-serve",
+            "type": "shell",
+            "command": "npx ionic serve --port 8839 --open --browser chrome",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "base": "$tsc-watch",
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".*compiling.*",
+                        "endsPattern": ".*compiled successfully.*|Local:.*http://localhost:8839"
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": "build"
+        }
+    ]
+}

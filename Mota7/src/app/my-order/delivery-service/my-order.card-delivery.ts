@@ -1,0 +1,390 @@
+import {
+  Component,
+  Input,
+  OnInit,
+  OnDestroy,
+  OnChanges,
+  SimpleChanges,
+  inject,
+  Output,
+  EventEmitter,
+  EnvironmentInjector,
+  runInInjectionContext
+} from '@angular/core';
+import { Firestore, doc, deleteDoc, getDoc, Timestamp, updateDoc } from '@angular/fire/firestore';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import { addIcons } from 'ionicons';
+import { AlertController, ModalController, ToastController } from '@ionic/angular';
+import { presentMota7ThankYouModal } from '../thank-you-modal/thank-you-modal.presenter';
+import {
+  checkmarkCircle,
+  carSportOutline,
+  businessOutline,
+  cashOutline,
+  callOutline,
+  logoWhatsapp,
+  navigateOutline,
+  refreshOutline
+} from 'ionicons/icons';
+import {
+  ORDER_ACCEPTED_WINDOW_MS,
+  ORDER_ARCHIVE_UI_MS,
+  orderFieldToMs,
+  timestampPlusMs,
+  openMapsUrlWithFallback,
+  buildGoogleMapsDirectionsUrl
+} from '../../core/utils/order-lifecycle.util';
+import { hasOrderLocationCoordinates } from '../../core/utils/order-form-fields.util';
+import {
+  finalizeOrderRemovedFromUi,
+  markAcceptedOrderTimedOut
+} from '../../core/utils/order-lifecycle.firestore';
+
+@Component({
+  selector: 'app-my-order-card-delivery',
+  templateUrl: './my-order.card-delivery.html',
+  styleUrls: ['./my-order.card-delivery.scss'],
+  standalone: false
+})
+export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChanges {
+  @Input() order: any;
+  @Output() orderDeleted = new EventEmitter<void>();
+
+  remainingTime: string = '00:00';
+  isVisible: boolean = true;
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
+
+  private firestore = inject(Firestore);
+  private alertCtrl = inject(AlertController);
+  private modalCtrl = inject(ModalController);
+  private toastController = inject(ToastController);
+  private injector = inject(EnvironmentInjector);
+
+  constructor() {
+    addIcons({
+      checkmarkCircle,
+      carSportOutline,
+      businessOutline,
+      cashOutline,
+      callOutline,
+      logoWhatsapp,
+      navigateOutline,
+      refreshOutline
+    });
+  }
+
+  ngOnInit() {
+    this.checkStatusAndTimer();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['order'] && this.order && !changes['order'].firstChange) {
+      this.checkStatusAndTimer();
+    }
+  }
+
+  ngOnDestroy() {
+    this.stopTimer();
+  }
+
+  private stopTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  checkStatusAndTimer() {
+    this.stopTimer();
+    const now = Date.now();
+    const order = this.order;
+    if (!order) return;
+
+    if (order.status === 'completed') {
+      const completedAt = orderFieldToMs(order.completedAt, now);
+      const until = order.uiArchiveUntil
+        ? orderFieldToMs(order.uiArchiveUntil, completedAt + ORDER_ARCHIVE_UI_MS)
+        : completedAt + ORDER_ARCHIVE_UI_MS;
+      const diff = until - now;
+      if (diff > 0) {
+        this.startTimer(diff, () => {
+          void this.afterArchiveUiElapsed();
+        });
+      } else {
+        void this.afterArchiveUiElapsed();
+      }
+      return;
+    }
+
+    if (order.status === 'pending') {
+      const createdAt = orderFieldToMs(order.createdAt, now);
+      const diff = ORDER_ACCEPTED_WINDOW_MS - (now - createdAt);
+      if (diff > 0) {
+        this.startTimer(diff, () => this.expirePendingHardDelete());
+      } else {
+        this.expirePendingHardDelete();
+      }
+      return;
+    }
+
+    if (order.status === 'accepted') {
+      const acceptedAt = orderFieldToMs(order.acceptedAt, now);
+      const diff = ORDER_ACCEPTED_WINDOW_MS - (now - acceptedAt);
+      if (diff > 0) {
+        this.startTimer(diff, () => void this.expireAcceptedSoftRemove());
+      } else {
+        void this.expireAcceptedSoftRemove();
+      }
+    }
+  }
+
+  private startTimer(durationMs: number, onDone: () => void) {
+    let remaining = durationMs;
+    const updateDisplay = () => {
+      if (remaining <= 0) {
+        this.stopTimer();
+        onDone();
+        return;
+      }
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      this.remainingTime = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      remaining -= 1000;
+    };
+    updateDisplay();
+    this.timerInterval = setInterval(updateDisplay, 1000);
+  }
+
+  /** انتهاء مهلة الطلب المعلّق: حذف نهائي من الفايربيز */
+  private async expirePendingHardDelete() {
+    const id = this.order?.id;
+    if (!id) return;
+    try {
+      await runInInjectionContext(this.injector, () =>
+        deleteDoc(doc(this.firestore, 'orders', id))
+      );
+      this.orderDeleted.emit();
+    } catch (e) {
+      console.error('expirePendingHardDelete delivery:', e);
+    }
+    this.isVisible = false;
+    this.stopTimer();
+  }
+
+  /** انتهاء المهلة بعد القبول: إخفاء من الواجهات + بقاء 24 ساعة ثم حذف */
+  private async expireAcceptedSoftRemove() {
+    const id = this.order?.id;
+    if (!id) return;
+    try {
+      await markAcceptedOrderTimedOut(this.injector, this.firestore, id);
+      this.orderDeleted.emit();
+    } catch (e) {
+      console.error('expireAcceptedSoftRemove delivery:', e);
+    }
+    this.isVisible = false;
+    this.stopTimer();
+  }
+
+  private async afterArchiveUiElapsed() {
+    const id = this.order?.id;
+    if (!id) return;
+    try {
+      await finalizeOrderRemovedFromUi(this.injector, this.firestore, id);
+      this.orderDeleted.emit();
+    } catch (e) {
+      console.error('afterArchiveUiElapsed delivery:', e);
+    }
+    this.isVisible = false;
+    this.stopTimer();
+  }
+
+  async deleteOrder(orderId: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'تأكيد الحذف',
+      message: 'سيتم حذف طلبكم بشكل نهائي\n\nهل أنت متأكد؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد',
+          cssClass: 'mota7-alert-confirm-delete',
+          handler: async () => {
+            try {
+              await runInInjectionContext(this.injector, () =>
+                deleteDoc(doc(this.firestore, 'orders', orderId))
+              );
+              this.orderDeleted.emit();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async finishTask(orderId: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'إنهاء المهمة',
+      message: 'هل أنت متأكد من إنهاء المهمة والإلغاء؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد وإنهاء',
+          cssClass: 'confirm-button',
+          handler: async () => {
+            try {
+              const now = Timestamp.now();
+              const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+              this.order.status = 'completed';
+              this.order.completedAt = now;
+              this.order.uiArchiveUntil = uiArchiveUntil;
+              this.checkStatusAndTimer();
+
+              await runInInjectionContext(this.injector, () =>
+                updateDoc(doc(this.firestore, 'orders', orderId), {
+                  status: 'completed',
+                  completedAt: now,
+                  isArchiving: true,
+                  uiArchiveUntil
+                })
+              );
+
+              await presentMota7ThankYouModal(this.modalCtrl);
+            } catch (e) {
+              console.error('Error finishing delivery task:', e);
+              this.presentToast('عذراً، حدث خطأ أثناء إنهاء الطلب');
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  callProvider() {
+    const phone = this.order?.providerPhone || this.order?.providerId;
+    if (phone) {
+      window.open(`tel:${phone}`, '_system');
+    } else {
+      this.presentToast('رقم هاتف المندوب غير متاح حالياً');
+    }
+  }
+
+  openWhatsApp() {
+    const phone = this.order?.providerPhone || this.order?.providerId;
+    const descriptor = this.order?.subService || 'طلب خدمة';
+    if (phone) {
+      const msg = `السلام عليكم.. بتواصل مع حضرتك بخصوص طلب: ${descriptor}`;
+      const url = `whatsapp://send?phone=2${phone}&text=${encodeURIComponent(msg)}`;
+      window.open(url, '_system');
+    }
+  }
+
+  /**
+   * تتبع من موقع طالب الخدمة (GPS حالياً، أو «من» المحفوظ) إلى موقع المندوب المحدّث من جهازه.
+   */
+  async navigateToProvider() {
+    const pLat = this.order?.providerLat;
+    const pLng = this.order?.providerLng;
+    const destOk =
+      pLat != null &&
+      pLng != null &&
+      Number.isFinite(Number(pLat)) &&
+      Number.isFinite(Number(pLng));
+    if (!destOk) {
+      await this.presentToast(
+        'موقع المندوب غير متاح بعد — انتظر قليلاً حتى يُحدَّث من تطبيقه بعد القبول'
+      );
+      return;
+    }
+
+    let originLat: number | undefined;
+    let originLng: number | undefined;
+    try {
+      if (Capacitor.isNativePlatform()) {
+        let perm = await Geolocation.checkPermissions();
+        if (perm.location !== 'granted') {
+          perm = await Geolocation.requestPermissions();
+        }
+        if (perm.location === 'granted') {
+          const pos = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30_000
+          });
+          originLat = pos.coords.latitude;
+          originLng = pos.coords.longitude;
+        }
+      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        const o = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+            reject,
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 30_000 }
+          );
+        });
+        originLat = o.lat;
+        originLng = o.lng;
+      }
+    } catch {
+      /* احتياطي أدناه */
+    }
+
+    if (
+      (originLat == null || originLng == null) &&
+      hasOrderLocationCoordinates(this.order?.lat, this.order?.lng)
+    ) {
+      originLat = Number(this.order.lat);
+      originLng = Number(this.order.lng);
+    }
+
+    const url = buildGoogleMapsDirectionsUrl(
+      originLat,
+      originLng,
+      Number(pLat),
+      Number(pLng)
+    );
+    await openMapsUrlWithFallback(url);
+  }
+
+  /** جلب آخر providerLat/providerLng من الفايربيز ثم إعادة فتح رابط الخرائط */
+  async refreshRouteToProvider() {
+    const id = this.order?.id;
+    if (!id) {
+      await this.presentToast('تعذّر تحديث المسار');
+      return;
+    }
+    try {
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', id))
+      );
+      if (!snap.exists()) {
+        await this.presentToast('الطلب غير موجود');
+        return;
+      }
+      const d = snap.data();
+      this.order = { ...this.order, ...d, id };
+    } catch (e) {
+      console.error('refreshRouteToProvider:', e);
+      await this.presentToast('تعذّر جلب أحدث موقع المندوب');
+      return;
+    }
+    await this.navigateToProvider();
+  }
+
+  async presentToast(msg: string) {
+    const toast = await this.toastController.create({
+      message: msg,
+      duration: 2500,
+      color: 'dark',
+      position: 'bottom',
+      cssClass: 'mota7-toast'
+    });
+    await toast.present();
+  }
+}

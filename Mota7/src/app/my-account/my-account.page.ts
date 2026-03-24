@@ -1,0 +1,202 @@
+import { IonicModule, ActionSheetController, LoadingController } from '@ionic/angular'; 
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { addIcons } from 'ionicons';
+import { Router } from '@angular/router';
+import { Firestore, doc, onSnapshot, getDoc } from '@angular/fire/firestore';
+import { Component, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Auth, authState, signOut } from '@angular/fire/auth';
+import { Observable } from 'rxjs';
+import { 
+  personAddOutline, chatbubbleEllipsesOutline, documentTextOutline,
+  callOutline, logoWhatsapp, chevronBackOutline, personOutline,
+  megaphoneOutline, peopleOutline, logOutOutline, createOutline, locationOutline,
+  closeOutline
+} from 'ionicons/icons';
+import { Mota7HeaderComponent } from '../top_header/header';
+import { UserAccountStatusService } from './user-account-status.service';
+
+
+@Component({
+  selector: 'app-my-account',
+  templateUrl: './my-account.page.html',
+  styleUrls: ['./my-account.page.scss'],
+  standalone: true,
+  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
+})
+export class MyAccountPage implements OnInit {
+  isLoggedIn: boolean = false; 
+  isTermsModalOpen: boolean = false;
+  private contactSheetOpen = false;
+  termsContent: string = 'جاري التحميل...'; // متغير لتخزين النص
+  userName: string = 'جاري التحميل...';
+  userPhone: string = '';
+  userCity: string = ''; 
+  verificationLevel: string = 'none';
+  private unsubscribeSnapshot: any;
+
+  private auth = inject(Auth);
+  private firestore = inject(Firestore);
+  private injector = inject(EnvironmentInjector);
+  private document = inject(DOCUMENT);
+  private authState$!: Observable<any>;
+  readonly acct = inject(UserAccountStatusService);
+
+  /** مسارات أصول مطلقة من baseURI — ضرورية لـ Capacitor/APK مع baseHref: ./ */
+  assetUrl(relativePath: string): string {
+    try {
+      const base = this.document.baseURI || '/';
+      return new URL(relativePath, base).href;
+    } catch {
+      return relativePath;
+    }
+  }
+
+  constructor(
+    private actionSheetCtrl: ActionSheetController,
+    private loadingCtrl: LoadingController,
+    private router: Router
+  ) { 
+    addIcons({
+      'person-add-outline': personAddOutline,
+      'chatbubble-ellipses-outline': chatbubbleEllipsesOutline,
+      'document-text-outline': documentTextOutline,
+      'call-outline': callOutline,
+      'logo-whatsapp': logoWhatsapp,
+      'chevron-back': chevronBackOutline,
+      'person-outline': personOutline,
+      'megaphone-outline': megaphoneOutline,
+      'people-outline': peopleOutline,
+      'log-out-outline': logOutOutline,
+      'create-outline': createOutline,
+      'location-outline': locationOutline,
+      'close-outline': closeOutline,
+    });
+  }
+
+  ngOnInit() { this.monitorAuthState(); }
+
+  monitorAuthState() {
+    this.authState$ = runInInjectionContext(this.injector, () => authState(this.auth));
+    this.authState$.subscribe((user) => {
+      if (user) {
+        this.isLoggedIn = true;
+        runInInjectionContext(this.injector, () => {
+          const userIdentifier = user.email ? user.email.split('@')[0] : user.uid;
+          const docRef = doc(this.firestore, 'users', userIdentifier);
+          
+          if (this.unsubscribeSnapshot) this.unsubscribeSnapshot();
+
+          this.unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              this.userName = data['fullName'] || 'مُشترك';
+              this.userPhone = data['phone'] || '';
+              this.userCity = data['city'] || '';
+              const fromAdmin = data['verifiedStatus'];
+              const legacy = data['verification_level'];
+              const raw =
+                fromAdmin !== undefined && fromAdmin !== null ? fromAdmin : legacy;
+              this.verificationLevel =
+                raw === 'blue' || raw === 'gold' ? raw : 'none';
+            } else {
+              this.verificationLevel = 'none';
+            }
+          });
+        });
+      } else {
+        this.isLoggedIn = false;
+        if (this.unsubscribeSnapshot) this.unsubscribeSnapshot();
+      }
+    });
+  }
+
+  async setOpenTerms(isOpen: boolean) { 
+    this.isTermsModalOpen = isOpen; 
+    if (isOpen) { 
+      await this.fetchTerms(); 
+    } 
+  } 
+
+  async fetchTerms() { 
+    try { 
+      const docSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'TermsAndConditions', 'current'))
+      ); 
+      if (docSnap.exists()) { 
+        this.termsContent = docSnap.data()['content']; 
+      } else { 
+        this.termsContent = 'لا توجد شروط متاحة حالياً.'; 
+      } 
+    } catch (error) { 
+      console.error('Error fetching terms:', error); 
+      this.termsContent = 'حدث خطأ أثناء تحميل الشروط.'; 
+    } 
+  } 
+
+  // تحديث الدالة لتصبح احترافية (Action Sheet)
+  async openContactOptions() {
+    if (this.contactSheetOpen) {
+      return;
+    }
+    this.contactSheetOpen = true;
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'للاستفسار أو الدعم الفني تواصل معنا',
+      subHeader: 'اختر الوسيلة المناسبة للتواصل معنا',
+      mode: 'ios',
+      cssClass: 'mota7-premium-sheet', // نفس التصميم الحالي
+      backdropDismiss: true,
+      buttons: [
+        { 
+          text: 'الاتصال هاتفي', 
+          icon: 'call-outline', 
+          handler: () => { window.open('tel:01220883999', '_self'); } 
+        },
+        { 
+          text: 'تواصل عبر واتساب', 
+          icon: 'logo-whatsapp', 
+          handler: () => { 
+            const msg = encodeURIComponent("مرحبا .. اريد التواصل مع الدعم الفني");
+            window.open(`whatsapp://send?phone=201220883999&text=${msg}`, '_system');
+          }
+        },
+        { 
+          text: 'إلغاء', 
+          role: 'cancel',
+          icon: 'close-outline'
+        }
+      ]
+    });
+    void actionSheet.onDidDismiss().then(() => {
+      this.contactSheetOpen = false;
+    });
+    await actionSheet.present();
+  }
+
+  goToLogin() { this.router.navigateByUrl('/login'); }
+  goToRegister() { this.router.navigateByUrl('/register'); }
+  openEditProfile() { this.router.navigateByUrl('/edit-profile'); }
+  goToMyAds() { this.router.navigateByUrl('/my-ads'); }
+
+  goToCusOrder() {
+    console.log('محاولة الانتقال...');
+    this.router.navigateByUrl('/tabs/my-account/cus-order');
+  }
+
+  async logout() {
+    const loading = await this.loadingCtrl.create({ message: 'جاري تسجيل الخروج...' });
+    await loading.present();
+    try {
+      if (this.unsubscribeSnapshot) this.unsubscribeSnapshot();
+      await signOut(this.auth);
+      
+      this.isLoggedIn = false;
+      this.userName = 'جاري التحميل...';
+      this.userPhone = '';
+      this.userCity = '';
+      this.verificationLevel = 'none';
+      
+      this.router.navigateByUrl('/tabs/my-account');
+    } finally { loading.dismiss(); }
+  }
+}

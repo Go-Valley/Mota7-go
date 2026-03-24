@@ -1,0 +1,77 @@
+@import '../shared-order-card.styles.scss';
+
+.mota7-order-card {
+  @include order-card-shell;
+
+  .completed-topbar {
+    background: #f0fdf4;
+    color: #16a34a;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #dcfce7;
+
+    ion-icon {
+      font-size: 1.3rem;
+    }
+  }
+
+  .accepted-topbar {
+    background: linear-gradient(90deg, #e8f5e9, #f1f8e9);
+    color: #1b5e20;
+    font-weight: 800;
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid #dcedc8;
+
+    .provider-moving-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+
+      &::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background-color: #2dd36f;
+        border-radius: 50%;
+        animation: mota7-delivery-moving-dot 1.5s infinite;
+      }
+    }
+  }
+
+  .card-content {
+    padding: 18px 18px 8px;
+    flex: 1;
+  }
+}
+
+@keyframes mota7-delivery-moving-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 211, 111, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(45, 211, 111, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 211, 111, 0);
+  }
+}
+
+::ng-deep .mota7-alert-confirm-delete {
+  color: #be123c !important;
+  font-weight: 800 !important;
+}

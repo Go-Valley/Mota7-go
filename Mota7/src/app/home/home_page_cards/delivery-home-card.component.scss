@@ -1,0 +1,196 @@
+.mota7-card-wrapper {
+  background: #ffffff;
+  border-radius: 50px;
+  padding: 12px;
+  width: 96%;
+  margin: 20px auto;
+  box-shadow: 1px -5px 20px 7px #3880ff54;
+  border: 5px solid #ba941e96;
+  direction: rtl;
+  box-sizing: border-box;
+  transition: all 0.4s ease;
+
+    // كلاس البهتان عند عدم الإتاحة
+    &.mota7-faded {
+      opacity: 0.6; // تقليل الشفافية
+      filter: grayscale(0.3); // لمسة رمادية بسيطة لتبدو مطفأة
+      pointer-events: none; // منع الضغط على الكارت تماماً
+      box-shadow: none; // إزالة الظل الملون لزيادة تأثير الإطفاء
+      border-color: #ccc; // تحويل الحدود للرمادي
+      
+      .contact-icons {
+        display: none; // التأكيد على إخفاء أيقونات التواصل
+      }
+    }
+
+  .spacer-top { margin-top: 10px; }
+
+  .vehicle-title-header {
+    color: #000000;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .main-info-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 25px;
+    margin-bottom: 15px;
+
+    .image-wrapper {
+      .vehicle-icon-bg {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        background: #eef3ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+
+        ion-icon { font-size: 32px; color: #3880ff; }
+
+        .verification-badge {
+          position: absolute;
+          bottom: -5px;
+          right: -5px;
+          width: 26px; /* زيادة الحجم قليلاً لتظهر الصور بوضوح */
+          height: 26px;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+    
+          .verify-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* إزالة البوردر والخلفية لأن الصورة ستكون هي العلامة */
+            border-radius: 50%;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          }
+        }
+      }
+        }
+
+    .owner-details {
+      flex: 1;
+      .name-value {
+        font-weight: 800;
+        color: #930000;
+        font-size: 1.4rem;
+      }
+    }
+
+    .contact-icons {
+      display: flex;
+      gap: 10px;
+      margin-right: auto;
+      pointer-events: auto; // للسماح بالضغط على الأيقونات داخل الكارت الباهت إذا لزم الأمر
+
+      .icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #fff;
+        border: none;
+
+        &.call { background: #3880ff; }
+        &.whatsapp { background: #2dd36f; }
+      }
+    }
+  }
+
+  .info-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    &.info-chips--split {
+      .chips-row {
+        display: flex;
+        flex-direction: row;
+        gap: 7px;
+        align-items: stretch;
+
+        .grid-item {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+      }
+    }
+
+    .chips-row--all {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 7px;
+      align-items: stretch;
+
+      .grid-item {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+  }
+
+  .chips-row .grid-item,
+  .chips-row--all .grid-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border-radius: 80px;
+    font-weight: 900;
+    font-size: 0.82rem;
+    min-height: 48px;
+    line-height: 1.25;
+    box-sizing: border-box;
+
+    ion-icon {
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+
+    .chip-label {
+      display: block;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      hyphens: auto;
+    }
+
+    &.city-box {
+      background: #f4f5f8 !important;
+      color: #000000 !important;
+      ion-icon {
+        color: #ff3636;
+      }
+    }
+
+    &.status-toggle {
+      &.active {
+        background: #e7fbf0;
+        color: #2dd36f;
+      }
+      &.inactive {
+        background: #fdeced;
+        color: #eb445a;
+      }
+    }
+  }
+}

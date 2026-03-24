@@ -1,0 +1,58 @@
+<app-mota7-header 
+  title="إدارة المستخدمين" 
+  [showBackButton]="true" 
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content>
+  <div class="users-container">
+    
+<div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline" class="search-icon"></ion-icon>
+        <input 
+          type="tel" 
+          placeholder="ابحث برقم الهاتف او الاسم" 
+          [(ngModel)]="searchQuery"
+          (input)="filterUsers()"
+          class="search-input"
+        >
+      </div>
+    </div>
+
+    <div class="user-card-luxury" *ngFor="let user of filteredUsers">
+      <div class="user-avatar">
+        <ion-icon name="person-outline"></ion-icon>
+      </div>
+
+      <div class="user-info">
+        <h3>{{ user.fullName || 'مستخدم غير معروف' }}</h3>
+        <p>{{ user.phone }}</p>
+        
+        <div class="badges-row">
+          <ion-badge [color]="user.isActive ? 'success' : 'danger'">
+            {{ user.isActive ? 'حساب نشط' : 'حساب معطل' }}
+          </ion-badge>
+          
+          <ion-badge color="primary" *ngIf="user.verifiedStatus === 'blue'">توثيق أزرق</ion-badge>
+          <ion-badge color="warning" *ngIf="user.verifiedStatus === 'gold'">توثيق ذهبي</ion-badge>
+        </div>
+      </div>
+
+      <ion-button fill="clear" color="dark" (click)="openArabicList(user)">
+        <ion-icon slot="icon-only" name="ellipsis-vertical-outline"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredUsers.length === 0">
+      <ng-container *ngIf="usersList.length === 0; else noResults">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>جاري مزامنة بيانات المستخدمين...</p>
+      </ng-container>
+      <ng-template #noResults>
+        <p class="no-results-text">لا توجد نتائج تطابق بحثك</p>
+      </ng-template>
+    </div>
+
+  </div>
+</ion-content>

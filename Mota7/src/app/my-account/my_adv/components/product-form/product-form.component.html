@@ -1,0 +1,110 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="mota7-header">
+    <ion-title class="mota7-title">{{ isEditMode ? 'تعديل المنتج' : 'إضافة منتج' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" class="mota7-back-button">
+        <ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="product-setup" dir="rtl">
+    
+    <div class="images-container-centered">
+      <div class="images-grid">
+        <div class="img-card" *ngFor="let img of productData.images; let i = index">
+          <img [src]="img" alt="صورة المنتج">
+          <ion-button (click)="removeImage(i)" color="danger">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </div>
+        <div class="add-img-btn" (click)="imgInput.click()" *ngIf="productData.images.length < 3">
+          <ion-icon name="camera-outline"></ion-icon>
+          <p>إضافة صور ({{productData.images.length}}/3)</p>
+        </div>
+        <input type="file" #imgInput (change)="onImagesSelected($event)" hidden multiple accept="image/*">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <ion-label class="main-label">نوع المنتج*</ion-label>
+      <ion-item lines="none" class="styled-item">
+        <ion-select [(ngModel)]="productData.main_cat_id" (ionChange)="onMainCategoryChange()" 
+                    placeholder="حدد النوع" mode="ios" interface="action-sheet" class="arabic-select" toggle-icon="chevron-down-outline">
+          <ion-select-option *ngFor="let cat of mainCategories" [value]="cat.id">{{cat.nameAr}}</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </div>
+
+    <div class="input-group" *ngIf="subCategories.length > 0">
+      <ion-label class="main-label">فئة المنتج*</ion-label>
+      <ion-item lines="none" class="styled-item">
+        <ion-select [(ngModel)]="productData.sub_cat_name" placeholder="حدد الفئة" mode="ios" interface="action-sheet" class="arabic-select" toggle-icon="chevron-down-outline">
+          <ion-select-option *ngFor="let sub of subCategories" [value]="sub">{{sub}}</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </div>
+
+    <div class="input-group">
+      <ion-label class="main-label">وصف مختصر*</ion-label>
+      <ion-item lines="none" class="styled-item">
+        <ion-input [(ngModel)]="productData.short_desc" maxlength="50" placeholder="اكتب الوصف الذي سيظهر للمشتري"></ion-input>
+      </ion-item>
+    </div>
+
+    <div class="input-group">
+      <ion-label class="main-label">تفاصيل المنتج</ion-label>
+      <ion-item lines="none" class="styled-item">
+        <ion-textarea [(ngModel)]="productData.full_details" rows="4" placeholder="اكتب تفاصيل المنتج هنا..."></ion-textarea>
+      </ion-item>
+    </div>
+
+    <ion-row>
+      <ion-col size="6">
+        <ion-label class="inner-label">السعر</ion-label>
+        <ion-item lines="none" class="styled-item">
+          <ion-input
+            type="text"
+            [(ngModel)]="priceInputStr"
+            (ionInput)="onProductPriceInput($event)"
+            (keydown)="onProductPriceKeyDown($event)"
+            (beforeinput)="onProductPriceBeforeInput($event)"
+            placeholder="أرقام فقط">
+          </ion-input>
+        </ion-item>
+        <p class="phone-live-warning" *ngIf="priceLiveWarning" role="alert">{{ priceLiveWarning }}</p>
+      </ion-col>
+      <ion-col size="6">
+        <ion-label class="inner-label">حالة المنتج</ion-label>
+        <ion-item lines="none" class="styled-item">
+          <ion-select [(ngModel)]="productData.condition" mode="ios" interface="action-sheet" class="arabic-select" toggle-icon="chevron-down-outline">
+            <ion-select-option value="غير محدد">غير محدد</ion-select-option>
+            <ion-select-option value="جديد">جديد</ion-select-option>
+            <ion-select-option value="مستعمل">مستعمل</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+
+    <ion-item lines="none" class="toggle-box">
+      <ion-label class="main-label">إظهار زر الواتساب</ion-label>
+      <ion-toggle [(ngModel)]="productData.whatsappEnabled" 
+                  [color]="productData.whatsappEnabled ? 'success' : 'danger'"
+                  class="mota7-toggle-status"></ion-toggle>
+    </ion-item>
+
+    <div class="input-group" *ngIf="productData.whatsappEnabled">
+      <ion-label class="main-label">رقم الواتساب للتواصل</ion-label>
+      <ion-item lines="none" class="styled-item whatsapp-field">
+        <ion-icon name="logo-whatsapp" slot="start" color="success" class="whatsapp-icon-item"></ion-icon>
+        <ion-input [(ngModel)]="productData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx"></ion-input>
+      </ion-item>
+    </div>
+
+<ion-button expand="block" 
+            class="main-orange-btn" 
+            (click)="onAddProductClick()" 
+            [disabled]="isSubmitting"> {{ isEditMode ? 'تعديل' : 'إضافة المنتج' }}
+</ion-button>

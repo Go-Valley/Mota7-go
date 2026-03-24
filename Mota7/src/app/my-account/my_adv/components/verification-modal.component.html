@@ -1,0 +1,63 @@
+<ion-content class="verification-content" dir="rtl">
+  <div class="modal-header">
+    <h2 class="header-title center-text">مزايا التوثيق مع مُتاح</h2>
+    <button type="button" class="close-button" (click)="closeModal()" title="إغلاق" aria-label="إغلاق">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- العنوان الرئيسي -->
+    <div class="main-title red-text center-text">
+      ✨ ارتقِ بحضورك.. اختر بصمتك في "مُتاح"
+    </div>
+
+    <!-- التوثيق الذهبي -->
+    <div class="section">
+      <div class="gold-title center-text">
+        ⚜️ التوثيق الذهبي | للنخبة
+      </div>
+      <div class="description">
+        صدارة لا تُنازع وثقة تبني إمبراطورية
+      </div>
+      <div class="feature">• السيادة: إعلانك دائماً في المربع الأول؛ أول ما تراه الأعين</div>
+      <div class="feature">• الانتشار: أولوية قصوى تضمن ظهورك أمام كافة مستخدمي التطبيق</div>
+      <div class="feature">• الاستحقاق: الصدارة التلقائية في نتائج البحث عن الخدمات والمنتجات</div>
+    </div>
+
+    <!-- التوثيق الأزرق -->
+    <div class="section">
+      <div class="blue-title center-text">
+        💎 التوثيق الأزرق | للمتميزين
+      </div>
+      <div class="description">
+        اثبت مصداقيتك وتفوق على المنافسين بذكاء
+      </div>
+      <div class="feature">• الأسبقية: ظهور دائم يكتسح كافة الإعلانات غير الموثقة</div>
+      <div class="feature">• الثقة: شارة زرقاء تمنحك موثوقية فورية لدى الباحثين</div>
+      <div class="feature">• التفضيل: أولوية تقنية تجعل الوصول إليك أسرع من غيرك</div>
+    </div>
+
+    <!-- لماذا التوثيق -->
+    <div class="section">
+      <div class="red-title center-text">
+        🛡️ لماذا التوثيق؟
+      </div>
+      <div class="feature">• هيبة العلامة: لأن الشارة هي صك الجودة في "مُتاح"</div>
+      <div class="feature">• قوة الجذب: وصول أعلى بنسبة 300% لزر الاتصال والواتساب</div>
+    </div>
+
+    <!-- أزرار التوثيق -->
+    <div class="buttons-section">
+      <button class="gold-button" (click)="requestVerification('gold')">
+        طلب التوثيق الذهبي
+      </button>
+      <button class="blue-button" (click)="requestVerification('blue')">
+        طلب التوثيق الأزرق
+      </button>
+      <button class="red-button" (click)="closeModal()">
+        إلغاء
+      </button>
+    </div>
+  </div>
+</ion-content>

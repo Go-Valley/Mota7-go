@@ -1,0 +1,72 @@
+<app-mota7-header [title]="'إجمالي طلبات المستخدم'" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="user-total-container" (click)="closeOpenSlidings($event)">
+    
+    <div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline" class="search-icon"></ion-icon>
+        <input 
+          type="tel" 
+          placeholder="ابحث برقم الهاتف او الاسم" 
+          [(ngModel)]="searchQuery"
+          (input)="filterUsers()"
+          class="search-input"
+        >
+      </div>
+    </div>
+
+    <div class="users-grid">
+      <ng-container *ngFor="let user of filteredUsers">
+        <ion-item-sliding #sliding>
+          <ion-item lines="none" class="sliding-stat-item">
+            <div class="user-stat-card">
+              <div class="user-header">
+                <div class="user-info">
+                  <h3>{{ user.name || 'مستخدم غير مسجل' }}</h3>
+                  <p>{{ user.phone }}</p>
+                </div>
+                <div class="user-avatar">
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                </div>
+              </div>
+
+              <div class="stats-row">
+                <div class="stat-box pending">
+                  <span class="count">{{ user.pending }}</span>
+                  <span class="label">معلق</span>
+                </div>
+                <div class="stat-box accepted">
+                  <span class="count">{{ user.accepted }}</span>
+                  <span class="label">مقبول</span>
+                </div>
+                <div class="stat-box completed">
+                  <span class="count">{{ user.completed }}</span>
+                  <span class="label">مكتمل</span>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <button type="button" class="whatsapp-btn" (click)="contactUser(user.phone)">
+                  <ion-icon name="logo-whatsapp"></ion-icon>
+                  تواصل واتساب
+                </button>
+              </div>
+            </div>
+          </ion-item>
+          <ion-item-options side="end">
+            <ion-item-option color="danger" (click)="confirmDeleteUserOrders(user, sliding); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ng-container>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredUsers.length === 0">
+      <ion-icon name="search-outline"></ion-icon>
+      <p>لا توجد نتائج تطابق بحثك</p>
+    </div>
+
+  </div>
+</ion-content>

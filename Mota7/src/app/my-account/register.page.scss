@@ -1,0 +1,142 @@
+// --- Animations ---
+@keyframes pulse-soft {
+  0% { transform: scale(1) translateY(0); opacity: 1; }
+  50% { transform: scale(1.05) translateY(-5px); opacity: 0.9; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+// --- الحاوية الرئيسية (حل مشكلة البهتان) ---
+.main-wrapper {
+  --primary-color: #FF6B00;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px); // يغطي كامل الشاشة باللون الأبيض الصريح
+  padding: 10px 24px;
+  background: #ffffff;
+  direction: rtl;
+}
+
+.phone-live-warning {
+  color: #c0392b;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 4px 4px 0 0;
+  line-height: 1.35;
+  padding-inline-start: 4px;
+}
+
+.register-container {
+  flex: 1;
+}
+
+// --- قسم الشعار (زاهي وقوي) ---
+.brand-section {
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 30px;
+
+  .modern-icon-box {
+    width: 95px;
+    height: 95px;
+    background: #ffffff;
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    /* ظل زاهي وقوي لمنع المظهر الباهت */
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08); 
+    animation: pulse-soft 3s infinite ease-in-out;
+
+    .inner-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 107, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      ion-icon { font-size: 32px; color: #FF6B00; }
+    }
+  }
+
+  .main-title { font-size: 1.7rem; font-weight: 800; color: #1a1a1a; margin: 0; }
+  .sub-title { color: #6b7280; font-size: 0.95rem; margin-top: 5px; }
+}
+
+// --- التسميات (Labels) ---
+.input-label {
+  display: block;
+  margin: 12px 5px 8px;
+  font-size: 14px;
+  font-weight: 800; // زيادة السمك للوضوح
+  color: #374151;
+  
+  .required { color: #ef4444; margin-right: 3px; }
+}
+
+// --- الخانات (تصميم نظيف وزاهي) ---
+.custom-input {
+  --background: #f8f9fa;
+  --border-radius: 16px;
+  --padding-start: 16px;
+  margin-bottom: 8px;
+  border: 1px solid #f1f5f9;
+  
+  ion-icon { color: #FF6B00; font-size: 20px; }
+
+  &.item-has-focus {
+    border-color: #FF6B00;
+  }
+}
+
+/* ضبط السليكت (المدينة) ليكون واضحاً جداً */
+.custom-select {
+  .full-width-select {
+    width: 100%;
+    --placeholder-color: #000000;
+    --placeholder-opacity: 0.5;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    font-size: 15px;
+  }
+  
+  ion-select::part(icon) {
+    color: #FF6B00 !important;
+    opacity: 1 !important;
+  }
+}
+
+.dark-text {
+  --color: #000000 !important;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+// --- الزر الرئيسي ---
+.main-login-btn {
+  --background: #FF6B00;
+  --border-radius: 18px;
+  --box-shadow: 0 8px 25px rgba(255, 107, 0, 0.25);
+  height: 60px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-top: 30px;
+}
+
+.register-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #6b7280;
+  ion-button { --color: #FF6B00; font-weight: 800; }
+}
+
+.bottom-padding { height: 40px; }
+
+// التأكد من خلفية الأيونك
+ion-content { 
+  --background: #ffffff; 
+}

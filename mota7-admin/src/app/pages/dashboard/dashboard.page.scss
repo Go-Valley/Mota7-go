@@ -1,0 +1,216 @@
+.dashboard-luxury-container {
+  padding: 30px 20px;
+  background: #f8f9fb;
+  min-height: 100vh;
+  direction: rtl;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  .title-bold { font-weight: 800; font-size: 1.8rem; color: #1a1a1a; margin: 0; }
+  .subtitle-light { color: #6b7280; font-weight: 600; margin-top: 5px; }
+  .admin-avatar { font-size: 35px; color: #1a1a1a; }
+}
+
+.stats-container {
+  margin-bottom: 25px;
+
+  .stats-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 0 5px;
+    
+    ion-icon {
+      font-size: 18px;
+      color: #ea580c; // لون متناسق مع "إدارة الإعلانات"
+      
+      // الفئة المضافة لأيقونة ملخص الطلبات
+      &.header-icon-blue {
+        color: #3880ff;
+      }
+    }
+
+    span {
+      font-weight: 800;
+      font-size: 1rem;
+      color: #4b5563;
+    }
+  }
+}
+
+.quick-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  
+  .stat-mini-card {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0,0,0,0.01);
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-bottom: 4px;
+      
+      // فئة مضافة للنصوص الداكنة في بطاقة الإجمالي
+      &.dark-text { color: #1a1a1a !important; }
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      
+      // فئة مضافة للنصوص الداكنة في بطاقة الإجمالي
+      &.dark-text { color: #1a1a1a !important; }
+    }
+
+    // تمييز الألوان حسب الحالة (الأصلية + الإضافات المطلوبة)
+    &.pending { border-right: 4px solid #f59e0b; }
+    &.active { border-right: 4px solid #10b981; }
+    &.rejected { border-right: 4px solid #ef4444; }
+    &.expired { border-right: 4px solid #64748b; }
+    
+    // الفئات المضافة للتحكم في ألوان حدود الطلبات من ملف الـ SCSS
+    &.border-blue { border-right: 4px solid #3880ff !important; }
+    &.border-green { border-right: 4px solid #2dd36f !important; }
+    &.total-orders-card { 
+      background: rgba(0, 0, 0, 0.05) !important; 
+      border-right: 4px solid #1a1a1a !important; 
+    }
+  }
+}
+
+.admin-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 40px;
+}
+
+.luxury-nav-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgb(0, 0, 0);
+  border: 1px solid rgba(0,0,0,0.01);
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:active { 
+    transform: scale(0.97); 
+    background: #fdfdfd; 
+  }
+
+  .card-icon {
+    width: 52px; height: 52px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    ion-icon { font-size: 24px; }
+    
+    &.blue { background: #eff6ff; color: #2563eb; }
+    &.orange { background: #fff7ed; color: #ea580c; }
+    &.green { background: #f0fdf4; color: #16a34a; }
+    &.red { background: #fef2f2; color: #dc2626; }
+    &.purple { background: #faf5ff; color: #9333ea; }
+    &.teal { background: #f0fdfa; color: #0d9488; }
+    &.indigo { background: #eef2ff; color: #4f46e5; }
+    &.gold { background: #fefce8; color: #ca8a04; }
+    &.dark { background: #f8fafc; color: #334155; }
+  }
+
+  .card-info {
+    margin-right: 15px;
+    flex: 1;
+    h3 { font-weight: 800; font-size: 1.05rem; color: #1a1a1a; margin: 0; }
+    p { color: #94a3b8; font-size: 0.8rem; margin: 4px 0 0; font-weight: 600; }
+  }
+
+  .badge-count {
+    background: #dc2626; 
+    color: white; 
+    padding: 6px 12px;
+    border-radius: 12px; 
+    font-size: 0.75rem; 
+    font-weight: 800;
+    margin-left: 10px;
+    white-space: nowrap;
+  }
+
+  .badge-count-inline {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    margin-left: 10px;
+    
+    &.blue-bg { background: #eff6ff; color: #2563eb; }
+    &.green-bg { background: #f0fdf4; color: #16a34a; }
+    &.red-bg { background: #fef2f2; color: #dc2626; }
+  }
+
+  .arrow { 
+    color: #ff0200fc; 
+    font-size: 18px; 
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+  }
+}
+
+.pulse-border {
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  animation: border-pulse 2s infinite;
+  
+}
+
+@keyframes border-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
+  70% { box-shadow: 0 2px 8px rgb(0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.footer-logout-wrapper {
+  margin-top: 20px;
+  padding: 10px 0 30px;
+  display: flex;
+  justify-content: center;
+}
+
+.logout-btn-premium {
+  --background: #ffffff;
+  --color: #dc2626;
+  --border-radius: 18px;
+  --border-color: #f1f5f9;
+  --border-style: solid;
+  --border-width: 1px;
+  --box-shadow: 0 10px 20px rgba(220, 38, 38, 0.05);
+  width: 90%;
+  height: 60px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin: 0 auto;
+  
+  ion-icon {
+    font-size: 22px;
+    margin-left: 8px;
+  }
+
+  &:active {
+    --background: #fef2f2;
+    transform: scale(0.96);
+  }
+}

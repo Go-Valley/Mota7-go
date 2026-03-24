@@ -1,0 +1,54 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="custom-toolbar">
+    <ion-title class="header-title">اختر نوع الخدمة</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" class="back-btn-mota7-light">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="mota7-wrapper" dir="rtl">
+    <div class="selection-grid">
+      
+      <div class="service-option-card" (click)="openServiceForm('delivery')">
+        <div class="card-inner">
+          <div class="content-side">
+            <h4>نقل وتوصيل</h4>
+            <p>تاكسي، دليفري، أو نقل بضائع</p>
+          </div>
+          <div class="icon-side delivery">
+            <ion-icon name="car-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-option-card" (click)="openServiceForm('education')">
+        <div class="card-inner">
+          <div class="content-side">
+            <h4>خدمات تعليمية</h4>
+            <p>مدرسين لكافة المراحل والمواد</p>
+          </div>
+          <div class="icon-side education">
+            <ion-icon name="school-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-option-card" (click)="openServiceForm('other')">
+        <div class="card-inner">
+          <div class="content-side">
+            <h4>خدمات أخرى</h4>
+            <p>سباكة، كهرباء، صيانة تكييفات</p>
+          </div>
+          <div class="icon-side other">
+            <ion-icon name="construct-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

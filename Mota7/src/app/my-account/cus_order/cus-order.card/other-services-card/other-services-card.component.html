@@ -1,0 +1,110 @@
+<div
+  class="mota7-order-card other-card provider-order-card"
+  [class.completed-state]="isArchiving"
+  dir="rtl"
+  *ngIf="isVisible"
+>
+  <div class="accepted-topbar" *ngIf="order?.status === 'accepted' || isArchiving">
+    <ion-icon [name]="isArchiving ? 'time-outline' : 'sparkles-outline'"></ion-icon>
+
+    <span *ngIf="!isArchiving">تم استلام الطلب — العميل: {{ order?.customerName }}</span>
+
+    <span *ngIf="isArchiving">تم الإتمام - سيتم الأرشفة خلال {{ remainingTime }}</span>
+  </div>
+
+  <div class="accepted-topbar provider-ignored-bar" *ngIf="isIgnoredView && order?.status === 'pending'">
+    <span>طلب متجاهل — يختفي خلال {{ remainingTime }}</span>
+  </div>
+
+  <div class="card-header-unified" [class.--muted]="isArchiving">
+    <div class="service-type">
+      <ion-icon name="grid-outline"></ion-icon>
+      <span>طلب خدمة: {{ order?.subService }}</span>
+    </div>
+    <div class="status-badge-live --search" *ngIf="order?.status === 'pending' && !isIgnoredView && !isArchiving">
+      <span class="status-badge-live__dot"></span>
+      جاري البحث
+    </div>
+    <div class="status-badge-live --search provider-ignored-badge" *ngIf="order?.status === 'pending' && isIgnoredView">
+      <span class="status-badge-live__dot"></span>
+      متجاهل مؤقتاً
+    </div>
+    <div class="status-badge-live --accepted" *ngIf="order?.status === 'accepted' && !isArchiving">
+      <span class="status-badge-live__dot"></span>
+      مقبول
+    </div>
+    <div class="status-badge-static --completed" *ngIf="isArchiving">مكتمل</div>
+  </div>
+
+  <div class="card-content">
+    <div class="main-info-unified">
+      <h2 class="customer-name">{{ order?.customerName }}</h2>
+      <p class="customer-phone">{{ order?.customerPhone }}</p>
+    </div>
+
+    <div class="details-grid-unified">
+      <div class="detail-item">
+        <span class="label">وصف الطلب:</span>
+        <span class="value note-text">{{ order?.shortNote || order?.notes }}</span>
+      </div>
+    </div>
+
+    <div class="bottom-tags-row">
+      <div class="info-chip">
+        <ion-icon name="location-outline"></ion-icon>
+        {{ order?.city || order?.locationName }}
+      </div>
+      <div class="info-chip --accent">
+        <ion-icon name="flash-outline"></ion-icon>
+        متاح الآن
+      </div>
+    </div>
+
+    <div class="action-row-modern" *ngIf="order?.status === 'accepted' && !isArchiving">
+      <button type="button" class="action-pill --call" (click)="makeCall(order.customerPhone)">
+        <ion-icon name="call-outline"></ion-icon>
+        اتصال
+      </button>
+      <button type="button" class="action-pill --whatsapp" (click)="openWhatsApp(order.customerPhone, order.subService)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        واتساب
+      </button>
+    </div>
+
+    <button type="button" class="finish-btn-3d" *ngIf="order?.status === 'accepted' && !isArchiving" (click)="onFinishClick()">
+      إنهاء المهمة
+    </button>
+
+    <div class="provider-pending-actions" *ngIf="order?.status === 'pending' && !isIgnoredView && !showConfirmIgnore">
+      <button type="button" class="finish-btn-3d provider-btn-accept" (click)="onAcceptClick()">قبول الطلب فوراً</button>
+      <button type="button" class="delete-full-width-btn-unified provider-btn-ignore" (click)="showConfirmIgnore = true">تجاهل الطلب</button>
+    </div>
+
+    <div class="confirm-ignore-box" *ngIf="showConfirmIgnore">
+      <p>هل أنت متأكد من تجاهل هذا الطلب؟</p>
+      <div class="confirm-btns">
+        <button type="button" class="btn-confirm-yes" (click)="onIgnoreClick()">نعم، تجاهل</button>
+        <button type="button" class="btn-confirm-no" (click)="showConfirmIgnore = false">إلغاء</button>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="delete-full-width-btn-unified provider-btn-undo"
+      *ngIf="isIgnoredView && order?.status === 'pending'"
+      (click)="onAcceptClick()"
+    >
+      تراجع عن التجاهل وقبول الطلب
+    </button>
+  </div>
+
+  <div class="timer-section-unified" *ngIf="!isArchiving && order?.status === 'accepted'">
+    <div class="timer-label">متبقي قبل انتهاء صلاحية الطلب (30 دقيقة):</div>
+    <div class="countdown-value">{{ acceptedRemainingTime }}</div>
+  </div>
+
+  <div class="timer-section-unified" [class.--completed-archive]="isArchiving" *ngIf="isArchiving">
+    <div class="timer-label">سيتم إخفاء الطلب من القائمة خلال:</div>
+    <div class="countdown-value">{{ remainingTime }}</div>
+  </div>
+</div>

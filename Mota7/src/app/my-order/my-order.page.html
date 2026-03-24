@@ -1,0 +1,56 @@
+<app-mota7-header 
+  [title]="selectedCategoryName"
+  [showBackButton]="false">
+</app-mota7-header>
+
+<ion-content class="main-content">
+  <div class="order-container" dir="rtl">
+    
+    <div class="welcome-section">
+      <div class="icon-circle">
+        <ion-icon name="sparkles-outline"></ion-icon>
+      </div>
+      <h2>أهلاً بك في "مُتاح - Mota7"</h2>
+      <p>اطلب خدمتك الآن بضغطة زر، وسيتواصل معك أقرب مزود خدمة في منطقتك.</p>
+    </div>
+
+    <div class="action-container">
+      <button type="button" class="mota7-main-btn" (click)="openServiceSelection()">
+        <div class="btn-content">
+          <ion-icon name="search-outline"></ion-icon>
+          <span>محتاج تطلب إيه؟</span>
+        </div>
+      </button>
+    </div>
+
+    <div class="recent-requests" *ngIf="hasActiveRequest && activeOrders.length > 0">
+      <h3 class="section-label">طلباتك الحالية</h3>
+      
+      <div *ngFor="let order of activeOrders">
+        
+        <app-my-order-card-delivery 
+          *ngIf="order.serviceType === 'delivery'" 
+          [order]="order"
+          (orderDeleted)="onOrderDeleted()"
+          (archivingStarted)="order.isArchiving = true">
+        </app-my-order-card-delivery>
+
+        <app-my-order-card-educational 
+          *ngIf="order.serviceType === 'education'" 
+          [order]="order"
+          (orderDeleted)="onOrderDeleted()"
+          (archivingStarted)="order.isArchiving = true"> 
+        </app-my-order-card-educational>
+
+        <app-my-order-card-other 
+          *ngIf="order.serviceType === 'other'" 
+          [order]="order"
+          (orderDeleted)="onOrderDeleted()"
+          (archivingStarted)="order.isArchiving = true">
+        </app-my-order-card-other>
+
+      </div>
+    </div>
+
+  </div>
+</ion-content>

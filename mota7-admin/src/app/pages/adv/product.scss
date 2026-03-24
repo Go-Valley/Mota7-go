@@ -1,0 +1,215 @@
+.mota7-card-wrapper {
+  background: #ffffff;
+  border-radius: 40px;
+  padding: 12px;
+  width: 100%;
+  margin: 10px auto;
+  box-shadow: 0px -6px 0px 0px #e76e07;
+  border: 1px solid #ff9d00;
+  direction: rtl;
+  position: relative;
+  transition: all 0.4s ease;
+
+  .admin-action-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 20;
+    --color: #000;
+    }
+  .sort-badge {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 38px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
+    z-index: 15;
+    box-shadow: 0px 0px 7px 3px #000000;
+    &.gold { background: #d4af37; }
+    &.blue { background: #2f6bff; }
+    &.gray { background: #b60000; }
+  }
+
+  .footer-grid {
+    display: flex;
+    border-top: 1px dashed #eee;
+    padding-top: 10px;
+    gap: 10px;
+    margin-top: 15px; // إضافة مسافة علوية
+    .footer-item {
+      flex: 1; background: #f9f9f9; padding: 8px 12px; border-radius: 20px; // زيادة البادينج والانحناء
+      display: flex; align-items: center; justify-content: center; gap: 8px; // زيادة المسافة بين الأيقونة والنص      font-size: 1rem; font-weight: 800; // زيادة حجم ووزن الخط
+     color: #000; // لون نص افتراضي
+      &.expiry-toggle { background: #fff4e5; color: #ff9800; cursor: pointer; border: 1px solid #ff9800; } // تنسيق مميز
+      &:hover { opacity: 0.8; } // تأثير عند مرور الفأرة
+    }
+  }
+ }
+
+  .admin-top-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-left: 35px;
+    .ad-date { color: #000000; font-size: 1rem; }
+    .admin-status-badge {
+      padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;
+      &[data-status="active"] { background: #e7fbf0; color: #2dd36f; }
+      &[data-status="pending"] { background: #fff4e5; color: #ff9800; }
+      &[data-status="rejected"] { background: #fdeced; color: #eb445a; }
+      &[data-status="expired"] { background: #fdeced; color: #eb445a; }
+    }
+  }
+
+  .product-description-header {
+    color: #1a1a1a; font-size: 1.8rem; font-weight: 800; margin-bottom: 12px;
+  }
+
+  .main-info-row {
+    display: flex; align-items: center; gap: 10px; background: #f9f9f9;
+    padding: 10px; border-radius: 15px; margin-bottom: 12px;
+
+    .image-wrapper {
+      position: relative; width: 85px; height: 85px;
+      .product-thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; }
+      .verification-badge {
+        position: absolute; bottom: -5px; right: -5px; width: 26px; height: 26px;
+        .verify-img { width: 100%; height: 100%; object-fit: contain; }
+      }
+    }
+
+    .owner-details {
+      flex: 1; display: flex; justify-content: space-between; align-items: center;
+      .product-main-title { font-size: 1rem; font-weight: 800; color: #000; }
+      .contact-buttons-row {
+        display: flex; gap: 8px;
+        .action-btn {
+          width: 38px; height: 38px; border-radius: 50%; display: flex;
+          align-items: center; justify-content: center; color: #fff;
+          &.call { background: #3880ff; }
+          &.whatsapp { background: #2dd36f; }
+        }
+      }
+    }
+  }
+
+  .owner-line-full {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding-right: 15px;
+    .label { color: #666; font-size: 0.9rem; font-weight: 600; }
+    .name { color: #b80404; font-size: 1.1rem; font-weight: 800; }
+  }
+
+  .meta-grid-modern {
+    display: flex; gap: 8px;
+    .grid-item {
+      flex: 1; background: #f4f5f8; padding: 8px; border-radius: 15px;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      font-size: 1rem; font-weight: 700; color: #000;
+      ion-icon { color: #3880ff; }
+      &.price-item { color: #008f0c; ion-icon { color: #2dd36f; } }
+    }
+  }
+
+  .admin-reason-box {
+    background: #fdeced;
+    color: #c5283d;
+    padding: 8px 12px;
+    margin-top: 12px;
+    border-radius: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+    border: 1px solid #f5c6cb;
+    p {
+      margin: 0;
+      strong {
+        font-weight: 800;
+      }
+    }
+  }
+
+
+:host ::ng-deep .product-details-modal {
+  --background: rgba(0, 0, 0, 0.35);
+  padding: 12px;
+}
+
+:host ::ng-deep .product-details-modal .modal-body {
+  background: #ffffff;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0px -6px 0px 0px #e76e07;
+  border: 1px solid #ff9d00;
+  direction: rtl;
+}
+
+:host ::ng-deep .product-details-modal .images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+:host ::ng-deep .product-details-modal .images-grid img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 18px;
+}
+
+:host ::ng-deep .product-details-modal .section .title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+:host ::ng-deep .product-details-modal .section .desc {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+:host ::ng-deep .product-details-modal .section .full {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.6;
+}
+
+:host ::ng-deep .product-details-modal .meta {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+:host ::ng-deep .product-details-modal .meta .item {
+  background: #f4f5f8;
+  border-radius: 15px;
+  padding: 8px 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+}
+
+:host ::ng-deep .product-details-modal .meta .label {
+  color: #666;
+  font-weight: 700;
+}
+
+:host ::ng-deep .product-details-modal .meta .value {
+  color: #1a1a1a;
+}

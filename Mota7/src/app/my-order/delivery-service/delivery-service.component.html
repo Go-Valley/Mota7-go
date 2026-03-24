@@ -1,0 +1,109 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="mota7-dark-header">
+    <ion-title class="header-title">تفاصيل الطلب</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" class="close-btn-white">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="mota7-wrapper" dir="rtl">
+    <div class="form-card-container">
+      
+      <div class="input-group">
+        <label class="main-label">الأسم : <span>*</span></label>
+        <ion-input
+          #inputCustomerName
+          type="text"
+          [(ngModel)]="orderData.customerName"
+          (ionInput)="onDeliveryFreeTextInput($event, 'customerName')"
+          placeholder="اكتب اسمك هنا">
+        </ion-input>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">رقم الهاتف : <span>*</span></label>
+        <ion-input
+          type="tel"
+          maxlength="11"
+          [(ngModel)]="orderData.customerPhone"
+          (ionInput)="onCustomerPhoneInput($event)"
+          (keydown)="onCustomerPhoneKeyDown($event)"
+          (beforeinput)="onCustomerPhoneBeforeInput($event)"
+          placeholder="01xxxxxxxxx">
+        </ion-input>
+        <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">المدينة : <span>*</span></label>
+        <ion-select [(ngModel)]="orderData.city" 
+                    interface="action-sheet" 
+                    mode="ios" 
+                    placeholder="اختر المدينة"
+                    cancelText="إلغاء">
+          <ion-select-option *ngFor="let city of availableCities" [value]="city">{{city}}</ion-select-option>
+        </ion-select>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">نوع المركبة : <span>*</span></label>
+        <ion-select [(ngModel)]="orderData.subService" 
+                    interface="action-sheet" 
+                    mode="ios" 
+                    placeholder="اختر وسيلة النقل / التوصيل"
+                    cancelText="إلغاء">
+          <ion-select-option *ngFor="let item of deliveryItems" [value]="item.nameAr">{{item.nameAr}}</ion-select-option>
+        </ion-select>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">من : (نقطة الانطلاق) <span>*</span></label>
+        <ion-input
+          #inputFromLocation
+          [(ngModel)]="orderData.fromLocation"
+          (ionInput)="onDeliveryFreeTextInput($event, 'fromLocation')"
+          placeholder="المكان الحالي">
+        </ion-input>
+        
+        <ion-button expand="block" fill="outline" [class.location-success]="orderData.lat !== 0" class="mota7-location-btn" (click)="getCurrentLocation()">
+          <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'location-outline'" slot="start"></ion-icon>
+          {{ (orderData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد مكانك الحالي' }}
+        </ion-button>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">إلى : (جهة الوصول) <span>*</span></label>
+        <ion-input
+          #inputToLocation
+          [(ngModel)]="orderData.toLocation"
+          (ionInput)="onDeliveryFreeTextInput($event, 'toLocation')"
+          placeholder="المكان المتوجه إليه">
+        </ion-input>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">المبلغ : (اختياري)</label>
+        <ion-input
+          type="text"
+          [(ngModel)]="orderData.price"
+          (ionInput)="onPriceInput($event)"
+          (keydown)="onPriceKeyDown($event)"
+          (beforeinput)="onPriceBeforeInput($event)"
+          placeholder="أرقام فقط — مثلاً: 30">
+        </ion-input>
+        <p class="phone-live-warning" *ngIf="priceLiveWarning" role="alert">{{ priceLiveWarning }}</p>
+      </div>
+
+      <div class="footer-action">
+        <button class="mota7-orange-btn" (click)="submitOrder()">
+          إرسال الطلب
+        </button>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

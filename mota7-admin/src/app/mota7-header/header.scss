@@ -1,0 +1,70 @@
+ion-header {
+  background: transparent;
+  /* إضافة حماية لمنطقة الساعة والكاميرا في الموبايل لضمان عدم التداخل */
+  padding-top: var(--ion-safe-area-top); 
+
+  .mota7-header {
+    background: #ffffff;
+    /* انحناء سفلي كبير 30px كما في تصميمك */
+    border-radius: 0 0 30px 30px; 
+    /* ظل بارز واحترافي */
+    box-shadow: 0 10px 8px 0px rgba(0, 0, 0, 0.2); /* تم تنعيم الدرجة قليلاً لتبدو احترافية */
+    margin: 0;
+    position: relative;
+    z-index: 10;
+
+    ion-toolbar {
+      --background: transparent;
+      --border-width: 0;
+      --padding-top: 10px;
+      --padding-bottom: 15px;
+      --padding-start: 15px;
+      --padding-end: 15px;
+      /* ضبط الارتفاع ليتناسب مع العناصر الداخلية */
+      --min-height: 70px;
+    }
+
+    .mota7-title-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+
+      .mota7-title {
+        font-weight: 800 !important; /* نصوص سوداء واضحة وعريضة [cite: 2026-02-20] */
+        font-size: 1.25rem;
+        color: #1a1a2e;
+        margin: 0;
+      }
+
+      /* الـ underline الذهبي من التصميم المستجد */
+      .underline { 
+        width: 40px; 
+        height: 4px; 
+        background: linear-gradient(90deg, #FF6B00, #ff9e5e); 
+        margin-top: 6px; 
+        border-radius: 4px; 
+      }
+    }
+
+    .mota7-back-button {
+      --background: #f8f9fa; /* خلفية رمادية فاتحة [cite: 2026-02-20] */
+      --border-radius: 14px; /* حدود 14px [cite: 2026-02-20] */
+      --color: #1a1a1a;
+      width: 45px;
+      height: 45px;
+      margin: 0;
+      
+      ion-icon {
+        font-size: 22px;
+        transform: rotate(359deg)
+      }
+
+      &:active {
+        transform: scale(0.92);
+        opacity: 0.8;
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+<app-mota7-header 
+  title="إضافة إعلان" 
+  [showBackButton]="true"
+  (backClick)="goBack()"> 
+</app-mota7-header>
+
+<ion-content>
+  <div class="main-wrapper selection-container" dir="rtl">
+    <p class="subtitle">اختر نوع الإعلان الذي ترغب في إضافته اليوم</p>
+
+    <div class="types-grid">
+      
+      <div class="type-card" (click)="selectType('store')">
+        <div class="icon-box store">
+          <ion-icon name="storefront-outline"></ion-icon>
+        </div>
+        <div class="text-box">
+          <h3>إضافة متجر</h3>
+          <p>عرض نشاطك التجاري في قسم المتاجر</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="type-card" (click)="selectType('product')">
+        <div class="icon-box product">
+          <ion-icon name="cart-outline"></ion-icon>
+        </div>
+        <div class="text-box">
+          <h3>إضافة منتج</h3>
+          <p>بيع سيارة، عقار، موبايل، أو أي سلعة</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="type-card" (click)="selectType('delivery')">
+        <div class="icon-box delivery">
+          <ion-icon name="car-outline"></ion-icon>
+        </div>
+        <div class="text-box">
+          <h3>خدمة نقل وتوصيل</h3>
+          <p>تاكسي، ملاكي، نقل بضائع، أو دليفري</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="type-card" (click)="selectType('education')">
+        <div class="icon-box education">
+          <ion-icon name="school-outline"></ion-icon>
+        </div>
+        <div class="text-box">
+          <h3>خدمة تعليمية</h3>
+          <p>دروس خصوصية للمواد والمراحل المختلفة</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="type-card" (click)="selectType('other')">
+        <div class="icon-box other">
+          <ion-icon name="construct-outline"></ion-icon>
+        </div>
+        <div class="text-box">
+          <h3>خدمات أخرى</h3>
+          <p>سباكة، نجارة، صيانة، أو حرف تقنية</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+    </div> </div> </ion-content>

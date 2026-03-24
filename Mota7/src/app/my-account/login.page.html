@@ -1,0 +1,63 @@
+<app-mota7-header 
+  title="اهلا بعودتك مرة تانية" 
+  [showBackButton]="true"
+  (backClick)="goBack()"> 
+</app-mota7-header>
+
+<ion-content>
+  <div class="main-wrapper">
+    
+    <div class="login-container">
+      <div class="brand-section">
+        <div class="modern-icon-box">
+          <div class="inner-circle">
+            <ion-icon name="finger-print-outline"></ion-icon>
+          </div>
+        </div>
+        <h1 class="main-title">تسجيل الدخول</h1>
+        <p class="sub-title">يسعدنا انضمامك إلينا مجدداً</p>
+      </div>
+
+      <div class="form-section">
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
+          <ion-input
+            type="tel"
+            maxlength="11"
+            placeholder="01xxxxxxxxx"
+            class="ion-text-right dark-text"
+            [(ngModel)]="loginData.phone"
+            (ionInput)="onLoginPhoneInput($event)"
+            (keydown)="onLoginPhoneKeyDown($event)"
+            (beforeinput)="onLoginPhoneBeforeInput($event)">
+          </ion-input>
+        </ion-item>
+        <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
+
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          <ion-input type="password" 
+                     placeholder="كلمة المرور" 
+                     class="ion-text-right dark-text"
+                     [(ngModel)]="loginData.password"></ion-input>
+        </ion-item>
+
+        <div class="forgot-link-wrapper">
+          <a (click)="forgotPassword()">نسيت كلمة المرور؟</a>
+        </div>
+      </div>
+
+      <div class="actions-section">
+        <ion-button expand="block" class="main-login-btn" (click)="performLogin()">
+          دخول
+        </ion-button>
+        
+        <div class="register-hint">
+          <span>ليس لديك حساب؟</span>
+          <ion-button fill="clear" (click)="goToRegister()">إنشاء حساب جديد</ion-button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

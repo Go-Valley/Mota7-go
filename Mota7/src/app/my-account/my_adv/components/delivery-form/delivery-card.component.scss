@@ -1,0 +1,259 @@
+.mota7-card-wrapper {
+  background: #ffffff;
+  border-radius: 40px; 
+  padding: 12px;       
+  width: 96%;          
+  margin: 10px auto;   
+  box-shadow: 0 8px 25px #3880ff; 
+  border: 1px solid #000000; 
+  direction: rtl;
+  box-sizing: border-box; 
+
+  .status-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    .status-badge {
+      padding: 4px 8px; border-radius: 25px; font-weight: 800; 
+      font-size: 1.5rem; 
+      &.pending { background: #fff4e5; color: #ff9f43; }
+      &.active { background: #e7fbf0; color: #2dd36f; }
+      &.expired, &.rejected { background: #fdeced; color: #eb445a; }
+    }
+    .ad-date { color: #000000; font-weight: 700; }
+  }
+
+  .vehicle-title-header {
+    color: #000000; 
+    font-size: 1.8rem; 
+    font-weight: 800; 
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .main-info-row {
+    display: flex; align-items: center; gap: 15px;
+    background: #f9f9f9; padding: 10px 15px; border-radius: 25px; margin-bottom: 15px;
+
+    .image-wrapper {
+      .vehicle-icon-bg {
+        position: relative;
+        width: 60px; height: 60px; background: #eef3ff; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+
+        ion-icon { font-size: 32px; color: #3880ff; }
+      }
+
+      .verification-badge {
+        position: absolute; bottom: -5px; right: -5px; width: 26px; height: 26px;
+        z-index: 10; display: flex; align-items: center; justify-content: center;
+        .verify-img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+      }
+    } 
+
+    .owner-details {
+      flex: 1;
+      .owner-name-row {
+        display: flex; justify-content: space-between; align-items: center;
+        .name-value { font-weight: 800; color: #b80404; font-size: 1.3rem; }
+
+        .icon-contact-actions {
+          display: flex; gap: 10px;
+          .icon-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: #fff; border: none;
+            &.call { background: #3880ff; }
+            &.whatsapp { background: #2dd36f; }
+          }
+        }
+      }
+    }
+  }
+
+  .meta-grid-modern {
+    display: flex; gap: 7px; margin-bottom: 12px;
+    .grid-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0px;
+      border-radius: 20px;
+      font-weight: 1000;
+      font-size: 0.9rem;
+      min-height: 45px;
+      
+      &.city-box { 
+        background: #f4f5f8 !important; color: #000000 !important; 
+        ion-icon { color: #3880ff; font-size: 18px; }
+      }
+      &.status-toggle {
+        cursor: pointer;
+        &.active { background: #e7fbf0; color: #2dd36f; }
+        &.inactive { background: #fdeced; color: #eb445a; }
+      }
+    }
+  }
+
+  .mota7-footer {
+    display: flex; gap: 10px;
+    .manage-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; border-radius: 14px; font-weight: 800; font-size: 0.95rem; border: none;
+      &.edit { background: #c3ddf8; color: #0516ad; }
+      &.delete { background: #fab0b0; color: #ac0118; }
+    }
+  }
+
+  .admin-box {
+    margin-top: 12px; padding: 12px; border-radius: 12px;
+    display: flex; flex-direction: column; gap: 10px; font-weight: 700;
+    p { margin: 0; font-size: 1rem; align-items: center; text-align: center; }
+
+    &.pending { background: #eef3ff; color: #1e3a8a; }
+    &.rejected { background: #fdeced; color: #eb445a; }
+
+    .admin-btn {
+      width: 100%; border: none; border-radius: 12px; padding: 10px;
+      font-weight: 800; font-size: 0.95rem; background: #2dd36f; color: #ffffff;
+    }
+  }
+
+  .verification-request-section {
+    margin-top: 12px;
+    .verification-btn {
+      width: 100%; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #ffd700, #ffb700);
+      color: #000000;
+      font-weight: 800;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+      
+      ion-icon {
+        font-size: 18px;
+        color: #000000;
+      }
+
+      &:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+      }
+    }
+  }
+}
+
+// ستايلات المودال الخاص بالتوثيق
+.verification-modal {
+  .alert-wrapper {
+    border-radius: 20px;
+    .alert-head {
+      text-align: center;
+      .alert-title {
+        font-weight: 900;
+        color: #000000;
+        font-size: 1.3rem;
+      }
+    }
+    
+    .alert-message {
+      direction: rtl;
+      text-align: right;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #333333;
+      max-height: 60vh;
+      overflow-y: auto;
+      
+      span {
+        display: block;
+        margin: 8px 0;
+        font-weight: 700;
+        
+        &.center {
+          text-align: center;
+          font-weight: 900;
+        }
+        
+        &.red-title {
+          color: #ff0000;
+          font-size: 1.1rem;
+        }
+        
+        &.gold-title {
+          color: #ffd700;
+          font-size: 1rem;
+        }
+        
+        &.blue-title {
+          color: #007bff;
+          font-size: 1rem;
+        }
+        
+        &.description {
+          color: #000000;
+          font-weight: 800;
+          margin: 4px 0 8px 0;
+        }
+      }
+      
+      // تنسيق النقاط
+      &::before {
+        content: '•';
+        margin-left: 4px;
+      }
+      
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: #ffd700;
+        border-radius: 2px;
+      }
+    }
+    
+    .alert-button-group {
+      flex-direction: column;
+      gap: 8px;
+      
+      .alert-button {
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 1rem;
+        margin: 0;
+        
+        &.gold-button {
+          background: linear-gradient(135deg, #ffd700, #ffb700);
+          color: #000000;
+        }
+        
+        &.blue-button {
+          background: linear-gradient(135deg, #007bff, #0056b3);
+          color: #ffffff;
+        }
+        
+        &.cancel-button {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+        
+        &.red-button {
+          background: #ff0000;
+          color: #ffffff;
+        }
+        
+        &:active {
+          transform: scale(0.98);
+        }
+      }
+    }
+  }
+}

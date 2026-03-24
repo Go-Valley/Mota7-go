@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Mota7: Launch Chrome",
+            "url": "http://localhost:8839",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "ionic-serve",
+            "sourceMaps": true,
+            "smartStep": true
+        }
+    ]
+}

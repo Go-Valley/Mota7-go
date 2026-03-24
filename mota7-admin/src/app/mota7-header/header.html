@@ -1,0 +1,20 @@
+<ion-header class="ion-no-border" translucent="false">
+  <div class="mota7-header">
+    <ion-toolbar>
+      <ion-buttons slot="start" *ngIf="showBackButton">
+        <ion-button class="mota7-back-button" (click)="goBack()">
+          <ion-icon name="chevron-back-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      
+      <div class="mota7-title-container">
+        <h3 class="mota7-title">{{ title }}</h3>
+        <div class="underline"></div>
+      </div>
+
+      <ion-buttons slot="end" *ngIf="showBackButton">
+        <div class="mota7-spacer"></div>
+      </ion-buttons>
+    </ion-toolbar>
+  </div>
+</ion-header>

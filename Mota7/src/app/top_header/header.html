@@ -1,0 +1,11 @@
+<ion-header class="ion-no-border">
+    <ion-toolbar mode="ios" class="mota7-header">
+      <ion-title class="mota7-title">{{ title }}</ion-title>
+  
+      <ion-buttons slot="end" *ngIf="showBackButton">
+        <ion-button (click)="goBack()" class="mota7-back-button">
+          <ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-toolbar>
+  </ion-header>

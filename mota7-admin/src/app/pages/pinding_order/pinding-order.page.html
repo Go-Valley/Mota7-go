@@ -1,0 +1,102 @@
+<app-mota7-header 
+  title="الطلبات المعلقة" 
+  [showBackButton]="true" 
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content>
+  <div class="orders-container">
+    
+    <div *ngIf="(pendingOrders$ | async)?.length === 0" class="empty-state">
+      <ion-icon name="time-outline"></ion-icon>
+      <p>لا توجد طلبات معلقة حالياً</p>
+    </div>
+
+    <div class="order-card" *ngFor="let order of pendingOrders$ | async">
+      
+      <div class="card-header" [ngClass]="order.serviceType">
+        <div class="type-badge">
+          <ion-icon [name]="order.serviceType === 'education' ? 'school-outline' : (order.serviceType === 'delivery' ? 'car-outline' : 'construct-outline')"></ion-icon>
+          <span>{{ order.serviceType === 'education' ? 'طلب تعليمي' : (order.serviceType === 'delivery' ? 'طلب توصيل' : 'خدمات أخرى') }}</span>
+        </div>
+        <div class="time-stamp">
+          <ion-icon name="calendar-outline"></ion-icon>
+          {{ order.createdAt?.toDate() | date:'shortTime' }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        
+        <div class="customer-section">
+          <div class="user-info">
+            <h2 class="customer-name">{{ order.customerName }}</h2>
+            <p class="customer-phone">{{ order.customerPhone }}</p>
+          </div>
+          <div class="whatsapp-btn" (click)="openWhatsApp(order)">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="details-section">
+          
+          <ng-container *ngIf="order.serviceType === 'education'">
+            <div class="detail-item">
+              <span class="label">المادة:</span>
+              <span class="value highlight">{{ order.subjectName }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">المرحلة:</span>
+              <span class="value">{{ order.stageName }}</span>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="order.serviceType === 'delivery'">
+            <div class="detail-item">
+              <span class="label">النوع:</span>
+              <span class="value highlight">{{ order.subService }}</span>
+            </div>
+            <div class="detail-item price-tag">
+              <span class="label">السعر المتوقع:</span>
+              <span class="value">{{ order.price }} ج.م</span>
+            </div>
+            <div class="location-box">
+              <p><ion-icon name="location-outline" color="primary"></ion-icon> من: {{ order.fromLocation }}</p>
+              <p><ion-icon name="location-outline" color="danger"></ion-icon> إلى: {{ order.toLocation }}</p>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="order.serviceType === 'other'">
+            <div class="detail-item">
+              <span class="label">الخدمة:</span>
+              <span class="value highlight">{{ order.subService }}</span>
+            </div>
+            <div class="note-box" *ngIf="order.shortNote">
+              <span class="label">ملاحظة العميل:</span>
+              <p>{{ order.shortNote }}</p>
+            </div>
+          </ng-container>
+
+          <div class="detail-item">
+            <span class="label">المدينة:</span>
+            <span class="value">{{ order.city }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <ion-button fill="clear" color="medium" class="btn-action">
+          <ion-icon name="create-outline" slot="start"></ion-icon>
+          تعديل
+        </ion-button>
+        <div class="v-divider"></div>
+        <ion-button fill="clear" color="danger" class="btn-action" (click)="deleteOrder(order.id)">
+          <ion-icon name="trash-outline" slot="start"></ion-icon>
+          حذف الطلب
+        </ion-button>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

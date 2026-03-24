@@ -1,0 +1,21 @@
+{
+  "name": "mota7-cloudinary-functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "echo \"no lint\"",
+    "firebase": "firebase",
+    "deploy:deleteCloudinary": "cd ../.. && firebase deploy --only functions:deleteCloudinaryAssets"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.29.1"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.1",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^4.9.0"
+  }
+}

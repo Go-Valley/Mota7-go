@@ -1,0 +1,49 @@
+<div class="banners-wrapper" *ngIf="activeBanners$ | async as banners">
+  <swiper-container 
+    class="mota7-swiper"
+    pagination="false" 
+    autoplay-delay="4000"
+    autoplay-disable-on-interaction="false"
+    [attr.loop]="banners.length > 3"
+    observer="true" 
+    observe-parents="true"
+    threshold="20"
+    touch-start-prevent-default="false"
+    prevent-clicks="false"
+    prevent-clicks-propagation="false"
+    no-swiping="false"
+    simulate-touch="true">
+    
+    <swiper-slide *ngFor="let banner of banners; let i = index; trackBy: trackByFn">
+      <div class="banner-card" (click)="handleBannerClick(banner)" role="button" tabindex="0">
+        <img [src]="banner.imageUrl" 
+             alt="إعلان تطبيق متاح" 
+             title="إعلان متاح"
+             loading="eager"
+             decoding="async">
+        
+        <div class="banner-overlay" *ngIf="banner.title">
+          <h3>{{ banner.title }}</h3>
+        </div>
+      </div>
+    </swiper-slide>
+
+    <swiper-slide>
+      <div class="banner-card ad-request-card" (click)="openAdRequest()" role="button" tabindex="0">
+        <div class="glass-effect-layer"></div> 
+        <div class="content">
+          <div class="icon-badge">
+            <img src="assets/mota7.png" class="mota7-logo-icon" alt="شعار متاح" title="مساحتك الإعلانية">
+          </div>
+          <h3>مساحتك الإعلانية هنا</h3>
+          <p>أعلن معنا وابدأ بالوصول لآلاف العملاء</p>
+          
+          <ion-button fill="clear" class="start-now-btn" type="button">
+            ابدأ الآن
+          </ion-button>
+        </div>
+      </div>
+    </swiper-slide>
+    
+  </swiper-container>
+</div>

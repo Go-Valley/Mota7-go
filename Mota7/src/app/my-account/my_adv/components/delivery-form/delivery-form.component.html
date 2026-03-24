@@ -1,0 +1,103 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="mota7-header">
+    <ion-title class="mota7-title">خدمات النقل والتوصيل</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" class="mota7-back-button">
+        <ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="delivery-wrapper" dir="rtl">
+    
+    <div class="form-card">
+      <div class="field-box">
+        <ion-label class="bold-label">نوع المركبة / الخدمة:*</ion-label>
+        <ion-item lines="none" class="input-item">
+          <ion-select [(ngModel)]="deliveryData.category_id" 
+                      placeholder="اختر النوع (تاكسي، ملاكي، إلخ)"
+                      interface="action-sheet"
+                      mode="ios"
+                      class="center-select"
+                      toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let cat of deliveryCategories" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <ion-item lines="none" class="toggle-row">
+        <ion-label>
+          <h2 class="bold-text">متاح الآن:*</h2>
+        </ion-label>
+        <ion-toggle [(ngModel)]="deliveryData.isAvailable" 
+                    [color]="deliveryData.isAvailable ? 'success' : 'danger'"
+                    class="mota7-toggle-status"></ion-toggle>
+      </ion-item>
+
+      <hr class="divider">
+
+      <ion-item lines="none" class="toggle-row">
+        <ion-label>
+          <h2 class="bold-text">تفعيل الواتساب:</h2>
+        </ion-label>
+        <ion-toggle [(ngModel)]="deliveryData.whatsappEnabled" 
+                    [color]="deliveryData.whatsappEnabled ? 'success' : 'danger'"
+                    class="mota7-toggle-status"></ion-toggle>
+      </ion-item>
+
+      <div class="field-box whatsapp-box" *ngIf="deliveryData.whatsappEnabled">
+        <ion-label class="bold-label">رقم الواتساب للتواصل:</ion-label>
+        <ion-item lines="none" class="input-item">
+          <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
+          <ion-input [(ngModel)]="deliveryData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx" class="center-input"></ion-input>
+        </ion-item>
+      </div>
+    </div>
+
+    <div class="form-card" *ngIf="deliveryData.category_id === 'private-car' || deliveryData.category_id === 'taxi'">
+      <ion-item lines="none" class="toggle-row">
+        <ion-label>
+          <h2 class="bold-text">متاح للسفر:</h2>
+        </ion-label>
+        <ion-toggle [(ngModel)]="deliveryData.canTravel" 
+                    [color]="deliveryData.canTravel ? 'success' : 'danger'"
+                    class="mota7-toggle-status"></ion-toggle>
+      </ion-item>
+
+      <ng-container *ngIf="deliveryData.category_id === 'private-car'">
+        <hr class="divider">
+        <ion-item lines="none" class="toggle-row">
+          <ion-label>
+            <h2 class="bold-text">متاح للإيجار:</h2>
+          </ion-label>
+          <ion-toggle [(ngModel)]="deliveryData.forRent" 
+                      [color]="deliveryData.forRent ? 'success' : 'danger'"
+                      class="mota7-toggle-status"></ion-toggle>
+        </ion-item>
+      </ng-container>
+    </div>
+
+    <div class="form-card">
+      <div class="field-box">
+        <ion-label class="bold-label">موقعك الجغرافي:*</ion-label>
+        <ion-button expand="block" fill="outline" color="dark" class="location-btn" (click)="requestLocation()">
+          <ion-icon name="location-outline" slot="start"></ion-icon>
+          {{ (deliveryData.lat !== 0) ? 'تم تحديد الموقع بنجاح' : 'اضغط لتحديد موقعك الحالي' }}
+        </ion-button>
+        <p class="location-hint" *ngIf="deliveryData.lat !== 0">
+          إحداثياتك: {{ deliveryData.lat.toFixed(4) }}, {{ deliveryData.lng.toFixed(4) }}
+        </p>
+      </div>
+    </div>
+
+    <ion-button expand="block" class="submit-orange-btn" (click)="saveDeliveryAd()">
+      إرسال الطلب الآن
+    </ion-button>
+  </div>
+</ion-content>

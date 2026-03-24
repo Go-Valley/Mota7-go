@@ -1,0 +1,117 @@
+// هيدر متاح (الثابت: خلفية بيضاء + نص أسود عريض)
+.mota7-header {
+  --background: #ffffff;
+}
+.mota7-title {
+  font-weight: 800 !important;
+  color: #1a1a1a !important;
+}
+.mota7-back-button {
+  --background: #f8f9fa;
+  --border-radius: 14px;
+  --color: #1a1a1a;
+  width: 42px;
+  height: 42px;
+}
+
+// زر التفعيل (الثابت: أخضر للتفعيل / أحمر للإغلاق)
+.mota7-toggle-status {
+  --handle-background: #ffffff;
+  --handle-background-checked: #ffffff;
+  --track-background: #eb445a !important;      // إغلاق صريح
+  --track-background-checked: #2dd36f !important; // تفعيل صريح
+  opacity: 1 !important;
+}
+
+.store-container {
+  direction: rtl;
+  text-align: right;
+
+  .logo-section { display: flex; justify-content: center; margin-bottom: 30px; position: relative; }
+  .logo-uploader {
+    position: relative;
+    width: 130px; height: 130px; background: #fffcf8;
+    border: 2px dashed #ffcc99; border-radius: 40px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(236, 132, 12, 0.08);
+    
+    // --- شارات التوثيق العصرية ---
+    .verification-badge-overlay {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+
+      ion-icon { font-size: 22px; color: #ffffff; }
+
+      // توثيق بلو (ستايل فيس بوك العالمي)
+      &.blue {
+        background: linear-gradient(135deg, #0062ff 0%, #00a3ff 100%);
+      }
+
+      // توثيق ذهبي (فخامة وعصرية)
+      &.gold {
+        background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+        ion-icon { color: #5d4037; }
+      }
+    }
+
+    .upload-placeholder {
+      text-align: center;
+      p { font-size: 0.9rem; margin-top: 8px; font-weight: 700; color: #1a1a1a; }
+      ion-icon { font-size: 38px; color: #ff8e22; }
+    }
+    .preview-img { width: 100%; height: 100%; img { width: 100%; height: 100%; object-fit: cover; border-radius: 38px; } }
+  }
+
+  .form-card {
+    background: #fffcf9; padding: 22px 16px; border-radius: 28px;
+    margin-bottom: 20px; border: 1px solid #ffeeda;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  }
+
+  .field-box {
+    margin-bottom: 20px;
+    .bold-label { display: block; margin-bottom: 10px; font-weight: 800; font-size: 1rem; color: #000000; }
+    .required-star { color: #eb445a; font-weight: 800; }
+    .input-item {
+      --background: #ffffff; --border-radius: 16px; border: 1.5px solid #f0f0f0;
+      .center-select, .center-input { text-align: center; font-weight: 700; color: #000000 !important; }
+    }
+    &.disabled-look { --background: #f1f1f1; opacity: 1; }
+  }
+
+  .toggle-row {
+    --padding-start: 0; --background: transparent;
+    ion-label {
+      text-align: right;
+      .bold-text { font-weight: 900; color: #000; font-size: 1.1rem; margin-bottom: 4px; }
+      .hint-text { font-size: 0.85rem; color: #666; font-weight: 600; }
+    }
+  }
+
+  .submit-orange-btn {
+    --background: linear-gradient(135deg, #ff9f43 0%, #ff8e22 100%);
+    --color: #ffffff; --border-radius: 20px; height: 60px;
+    margin: 30px 10px; font-weight: 800; font-size: 1.2rem;
+  }
+}
+
+:host ::ng-deep {
+  .action-sheet-container { direction: rtl !important; }
+  .action-sheet-button-inner {
+    justify-content: flex-start !important;
+    direction: rtl !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+}
+ion-select::part(text) { text-align: center; color: #000000 !important; font-weight: 700; }

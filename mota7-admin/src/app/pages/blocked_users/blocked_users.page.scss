@@ -1,0 +1,96 @@
+// إلغاء أي خلفية افتراضية للمحتوى ليتناسب مع الهيدر المنحني
+ion-content {
+  --background: #f8f9fb;
+}
+
+.header-info {
+  text-align: center;
+  padding: 40px 20px 20px; // زيادة التباعد العلوي لأن الهيدر الجديد له ظل
+  background: #f8f9fb;
+
+  .icon-circle {
+    width: 70px;
+    height: 70px;
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 35px;
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.1);
+  }
+
+  h2 { font-weight: 800; color: #1a1a1a; margin: 0; font-size: 1.5rem; }
+  p { color: #6b7280; font-size: 0.9rem; margin: 8px 0 20px; font-weight: 500; }
+
+  // تنسيق زر الإضافة الجديد
+  .add-block-btn {
+    --background: linear-gradient(90deg, #FF6B00, #ff9e5e);
+    --color: white;
+    --border-radius: 15px;
+    --box-shadow: 0 8px 15px rgba(255, 107, 0, 0.2);
+    font-weight: 800;
+    height: 50px;
+    margin-bottom: 10px;
+  }
+}
+
+.list-container {
+  padding: 10px 15px 40px;
+}
+
+.user-card {
+  margin: 0 0 15px 0;
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.01);
+  background: #ffffff;
+
+  ion-item {
+    --background: transparent;
+    --padding-start: 15px;
+    --padding-end: 10px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+  }
+
+  .phone-box {
+    width: 48px;
+    height: 48px;
+    background: #f1f5f9;
+    color: #1a1a2e;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  h3 { font-weight: 800; font-size: 1.15rem; color: #1a1a1a; margin-bottom: 6px; }
+  
+  p {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 3px 0;
+    ion-icon { font-size: 15px; color: #ff6b00; }
+    &.reason { color: #4b5563; font-weight: 600; font-size: 0.85rem; }
+    &.date { color: #94a3b8; font-size: 0.75rem; }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #cbd5e1;
+  ion-icon { font-size: 70px; margin-bottom: 15px; }
+  p { font-weight: 700; font-size: 1.1rem; color: #94a3b8; }
+}
+
+.loading-box {
+  display: flex;
+  justify-content: center;
+  padding: 60px;
+}

@@ -1,0 +1,138 @@
+<app-mota7-header [title]="'إحداثيات النقر'" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="analytics-container" (click)="closeOpenSlidings($event)">
+    
+    <div class="date-filter-card">
+      <div class="date-info">
+        <ion-icon name="calendar-outline" class="calendar-icon"></ion-icon>
+        <span class="date-text">فلترة النقرات</span>
+      </div>
+
+      <ion-segment
+        [value]="dateFilterMode"
+        (ionChange)="onSegmentChange($event)"
+        mode="ios"
+        class="filter-mode-segment"
+      >
+        <ion-segment-button value="single">
+          <ion-label>يوم محدد</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="range">
+          <ion-label>فترة (من — إلى)</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <div class="single-day-row" *ngIf="dateFilterMode === 'single'">
+        <span class="field-label">اليوم</span>
+        <input
+          type="date"
+          [(ngModel)]="selectedDate"
+          (change)="onSingleDateChange()"
+          title="اختر اليوم"
+          class="date-input-field"
+        >
+      </div>
+
+      <div class="range-days-row" *ngIf="dateFilterMode === 'range'">
+        <div class="range-field">
+          <span class="field-label">من</span>
+          <input
+            type="date"
+            [(ngModel)]="rangeFrom"
+            (change)="onRangeDateChange()"
+            title="تاريخ البداية"
+            class="date-input-field"
+          >
+        </div>
+        <div class="range-field">
+          <span class="field-label">إلى</span>
+          <input
+            type="date"
+            [(ngModel)]="rangeTo"
+            (change)="onRangeDateChange()"
+            title="تاريخ النهاية"
+            class="date-input-field"
+          >
+        </div>
+      </div>
+
+      <p class="period-hint" *ngIf="periodLabel">
+        المعروض: {{ periodLabel }}
+      </p>
+    </div>
+
+    <div class="global-stats-row">
+      <div class="stat-card calls">
+        <div class="stat-icon"><ion-icon name="call-outline"></ion-icon></div>
+        <div class="stat-data">
+          <span class="value">{{ totalCalls }}</span>
+          <span class="label">إجمالي نقرات الاتصال</span>
+        </div>
+      </div>
+      <div class="stat-card whatsapp">
+        <div class="stat-icon"><ion-icon name="logo-whatsapp"></ion-icon></div>
+        <div class="stat-data">
+          <span class="value">{{ totalWhatsapp }}</span>
+          <span class="label">إجمالي نقرات واتساب</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+        <input 
+          type="text" 
+          placeholder="ابحث بالعنوان أو اسم صاحب الإعلان..." 
+          [(ngModel)]="searchQuery"
+          (input)="filterAds()"
+          title="ابحث هنا"
+        >
+      </div>
+    </div>
+
+    <ion-list class="analytics-list" lines="none">
+      <ion-item-sliding *ngFor="let ad of filteredAds" #sliding class="ad-sliding-item">
+        
+        <ion-item class="ad-item-inner">
+          <div class="ad-row full-width">
+            <div class="ad-main-info">
+              <div class="ad-thumb">
+                <img [src]="ad.image" (error)="handleImgError($event)" alt="ad-image">
+              </div>
+              <div class="ad-text">
+                <h4>{{ ad.title }}</h4>
+                <p>بواسطة: {{ ad.owner }}</p>
+              </div>
+            </div>
+
+            <div class="ad-metrics">
+              <div class="metric call">
+                <ion-icon name="call-outline"></ion-icon>
+                <span>{{ ad.calls }}</span>
+              </div>
+              <div class="metric whatsapp">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+                <span>{{ ad.whatsapp }}</span>
+              </div>
+            </div>
+          </div>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="danger" class="delete-option" (click)="confirmDelete(ad, sliding); $event.stopPropagation()">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+
+      </ion-item-sliding>
+    </ion-list>
+
+    <div class="empty-state" *ngIf="filteredAds.length === 0">
+      <ion-icon name="stats-chart-outline"></ion-icon>
+      <p>لا توجد إعلانات مطابقة للبحث أو القائمة فارغة</p>
+    </div>
+
+  </div>
+</ion-content>

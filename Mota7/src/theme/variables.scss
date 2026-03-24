@@ -1,0 +1,26 @@
+// Mota7 — Premium Global SaaS Theme
+// https://ionicframework.com/docs/theming/
+
+:root {
+  color-scheme: light !important; /* يمنع النظام من تحويل الألوان للأسود */
+  --ion-color-primary: #c9a227;
+  --ion-color-primary-rgb: 201, 162, 39;
+  --ion-color-primary-contrast: #1a1a1a;
+  --ion-color-primary-contrast-rgb: 26, 26, 26;
+  --ion-color-primary-shade: #b18e22;
+  --ion-color-primary-tint: #ceab3d;
+
+  --ion-color-secondary: #1a1a2e;
+  --ion-color-secondary-rgb: 26, 26, 46;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-shade: #171728;
+  --ion-color-secondary-tint: #313143;
+
+  --mota7-gold: #c9a227;
+  --mota7-gold-soft: #e8d48a;
+  --mota7-charcoal: #1a1a2e;
+  --mota7-ink: #0f0f1a;
+  --mota7-glass-bg: rgba(255, 255, 255, 0.72);
+  --mota7-glass-border: rgba(255, 255, 255, 0.4);
+  --mota7-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}

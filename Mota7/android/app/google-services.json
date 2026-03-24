@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1078959492808",
+    "project_id": "mota7-go",
+    "storage_bucket": "mota7-go.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078959492808:android:ed01e8164ba3ed1b551ffd",
+        "android_client_info": {
+          "package_name": "com.mota7.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWe5iZBpRnHyd3XL-Op-sEDyXbwaR1Qkc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078959492808:android:8594f1122e0b4b52551ffd",
+        "android_client_info": {
+          "package_name": "com.mota7.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWe5iZBpRnHyd3XL-Op-sEDyXbwaR1Qkc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

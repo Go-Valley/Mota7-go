@@ -1,0 +1,65 @@
+:host {
+  display: block;
+}
+
+.thank-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.thank-card {
+  $side: min(90vw, 440px);
+  width: $side;
+  min-height: $side;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(1.75rem, 7vw, 2.75rem) clamp(1.5rem, 6vw, 2.25rem);
+  background: linear-gradient(165deg, #ffffff 0%, #f1f5f9 48%, #e8eef4 100%);
+  color: #000000;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 28px 56px rgba(15, 23, 42, 0.14),
+    0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.thank-line {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  color: #000000;
+}
+
+.thank-line--primary {
+  font-size: clamp(1.28rem, 4.8vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.1rem;
+}
+
+.thank-line--secondary {
+  font-size: clamp(1.08rem, 4vw, 1.28rem);
+  font-weight: 600;
+  line-height: 1.65;
+  color: #0a0a0a;
+}
+
+.thank-rule {
+  margin-top: 1.5rem;
+  width: min(120px, 40%);
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  opacity: 0.9;
+}

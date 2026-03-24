@@ -1,0 +1,92 @@
+<div class="mota7-card-wrapper" [ngClass]="{
+  'gold-border-verified': ad.verification_level === 'gold',
+  'blue-border-verified': ad.verification_level === 'blue'
+}">
+
+  <div class="status-header">
+    <div class="status-badge" [ngClass]="ad.status">
+      <span [ngSwitch]="ad.status">
+        <small *ngSwitchCase="'pending'">قيد المراجعة</small>
+        <small *ngSwitchCase="'active'">متجر مفعل</small>
+        <small *ngSwitchCase="'expired'">متجر منتهي</small>
+        <small *ngSwitchCase="'rejected'">متجر مرفوض</small>
+        <small *ngSwitchDefault>جاري المراجعة</small>
+      </span>
+    </div>
+    <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
+  </div>
+
+  <div class="store-main-title-header">
+    {{ ad.store_name }}
+  </div>
+
+  <div class="card-main-content">
+    <div class="store-logo-container">
+      <img [src]="ad.logo || 'assets/mota7.png'" 
+           (error)="$any($event.target).src = 'assets/mota7.png'" 
+           alt="لوجو المتجر">
+
+      <div class="verification-badge" 
+           *ngIf="ad.verification_level && ad.verification_level !== 'none'" 
+           [ngClass]="ad.verification_level">
+        <img src="assets/gold.avif" *ngIf="ad.verification_level === 'gold'" class="verify-img" alt="ذهبي">
+        <img src="assets/blue.webp" *ngIf="ad.verification_level === 'blue'" class="verify-img" alt="أزرق">
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="icon-contact-actions">
+      <button type="button" class="icon-btn call" (click)="contactAction('call')" title="اتصال">
+        <ion-icon name="call"></ion-icon>
+      </button>
+      <button type="button" *ngIf="ad.whatsapp_phone" class="icon-btn whatsapp" (click)="contactAction('whatsapp')" title="واتساب">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="owner-line-full">
+    <span class="label">صاحب المتجر:</span>
+    <span class="name">{{ displayName }}</span>
+  </div>
+
+  <div class="mota7-footer" *ngIf="ad.status">
+    <button type="button" class="manage-btn edit" (click)="onEdit()">
+      <ion-icon name="create-outline"></ion-icon>
+      <span>تعديل المتجر</span>
+    </button>
+    <button type="button" class="manage-btn delete" (click)="onDelete()">
+      <ion-icon name="trash-outline"></ion-icon>
+      <span>حذف</span>
+    </button>
+  </div>
+  
+  <div class="verification-request-section" *ngIf="ad.status">
+    <button type="button" class="verification-btn" (click)="showVerificationModal()">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      طلب توثيق الإعلان
+    </button>
+  </div>
+
+  <div class="admin-box pending" *ngIf="ad.status === 'pending'">
+    <p>لتفيعل الإعلان بالظهور الفوري .. يرجى ارسال كلمة "تم" برسالة واتساب من نفس الرقم لتأكيد ملكية الرقم</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('pending', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
+    <p>سبب الرفض : {{ ad.admin_reason }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+
+  <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
+    <p>سبب الانتهاء : {{ ad.admin_reason }}</p>
+    <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
+      تواصل واتساب مع الإدارة
+    </button>
+  </div>
+</div>

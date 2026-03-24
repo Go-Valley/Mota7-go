@@ -1,0 +1,51 @@
+<app-mota7-header 
+  title="إدارة القائمة السوداء" 
+  [showBackButton]="true" 
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content>
+  <div class="header-info">
+    <div class="icon-circle">
+      <ion-icon name="person-remove-outline"></ion-icon>
+    </div>
+    <h2>قائمة الحظر</h2>
+    <p>الأرقام الموجودة هنا لن تتمكن من إجراء طلبات جديدة</p>
+    
+    <ion-button (click)="openAddBlockModal()" class="add-block-btn" mode="ios">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      إضافة رقم للقائمة
+    </ion-button>
+  </div>
+
+  <div class="list-container">
+    <ng-container *ngIf="(blockedUsers$ | async) as users; else loading">
+      <div class="empty-state" *ngIf="users.length === 0">
+        <ion-icon name="shield-half-outline"></ion-icon>
+        <p>لا يوجد مستخدمين محظورين حالياً</p>
+      </div>
+
+      <ion-card class="user-card" *ngFor="let user of users">
+        <ion-item lines="none">
+          <div class="phone-box" slot="start">
+            <ion-icon name="call-outline"></ion-icon>
+          </div>
+          <ion-label>
+            <h3>{{ user.phone }}</h3>
+            <p class="reason"><ion-icon name="document-text-outline"></ion-icon> {{ user.reason }}</p>
+            <p class="date"><ion-icon name="time-outline"></ion-icon> {{ user.blockedAt?.toDate() | date:'short' }}</p>
+          </ion-label>
+          <ion-button slot="end" fill="clear" color="danger" (click)="unblockUser(user.phone)">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </ion-card>
+    </ng-container>
+
+    <ng-template #loading>
+      <div class="loading-box">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+      </div>
+    </ng-template>
+  </div>
+</ion-content>

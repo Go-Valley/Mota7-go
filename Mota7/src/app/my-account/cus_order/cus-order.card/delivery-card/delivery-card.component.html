@@ -1,0 +1,128 @@
+<div
+  class="mota7-order-card provider-order-card"
+  dir="rtl"
+  *ngIf="isVisible"
+  [class.completed-mode]="order.status === 'completed'"
+  [class.provider-ignored]="isIgnoredView && order.status === 'pending'"
+>
+  <div class="accepted-topbar" *ngIf="order.status === 'accepted'">
+    <span>جاري التواصل مع العميل — {{ order.customerName }}</span>
+    <span *ngIf="order.providerLat" class="provider-moving-badge">جاري التحرك الآن</span>
+    <span class="accepted-countdown">متبقي قبل انتهاء صلاحية الطلب: {{ acceptedRemainingTime }}</span>
+  </div>
+
+  <div class="accepted-topbar provider-ignored-bar" *ngIf="isIgnoredView && order.status === 'pending'">
+    <span>طلب متجاهل — يختفي خلال {{ remainingTime }}</span>
+  </div>
+
+  <div class="completed-topbar" *ngIf="order.status === 'completed'">
+    <ion-icon name="checkmark-circle"></ion-icon>
+    <span>تم تنفيذ المهمة بنجاح</span>
+  </div>
+
+  <div class="card-header-unified" [class.--muted]="order.status === 'completed'">
+    <div class="service-type">
+      <ion-icon name="car-sport-outline"></ion-icon>
+      <span>طلب خدمة: {{ order.subService }}</span>
+    </div>
+    <div class="status-badge-live --search" *ngIf="order.status === 'pending' && !isIgnoredView">
+      <span class="status-badge-live__dot"></span>
+      جاري البحث
+    </div>
+    <div class="status-badge-live --search provider-ignored-badge" *ngIf="order.status === 'pending' && isIgnoredView">
+      <span class="status-badge-live__dot"></span>
+      متجاهل مؤقتاً
+    </div>
+    <div class="status-badge-live --accepted" *ngIf="order.status === 'accepted'">
+      <span class="status-badge-live__dot"></span>
+      مقبول
+    </div>
+    <div class="status-badge-static --completed" *ngIf="order.status === 'completed'">مكتمل</div>
+  </div>
+
+  <div class="card-content">
+    <div class="main-info-unified">
+      <h2 class="customer-name">{{ order.customerName }}</h2>
+      <p class="customer-phone">{{ order.customerPhone }}</p>
+    </div>
+
+    <div class="details-grid-unified">
+      <div class="detail-item">
+        <span class="label">من:</span>
+        <span class="value">{{ order.fromLocation }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">إلى:</span>
+        <span class="value">{{ order.toLocation }}</span>
+      </div>
+    </div>
+
+    <div class="bottom-tags-row">
+      <div class="info-chip">
+        <ion-icon name="business-outline"></ion-icon>
+        {{ order.city }}
+      </div>
+      <div class="info-chip --accent" *ngIf="order.price">
+        <ion-icon name="cash-outline"></ion-icon>
+        أريد دفع مبلغ ( {{ order.price }} ) جم
+      </div>
+    </div>
+
+    <div class="action-row-modern" *ngIf="order.status === 'accepted'">
+      <button type="button" class="action-pill --call" (click)="makeCall(order.customerPhone)">
+        <ion-icon name="call-outline"></ion-icon>
+        اتصال
+      </button>
+      <button type="button" class="action-pill --whatsapp" (click)="openWhatsApp(order.customerPhone)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        واتساب
+      </button>
+      <button type="button" class="action-pill --track" (click)="openMap(order.lat, order.lng)">
+        <ion-icon name="navigate-outline"></ion-icon>
+        تتبع
+      </button>
+      <button type="button" class="action-pill --refresh" (click)="refreshRouteOpenMap()">
+        <ion-icon name="refresh-outline"></ion-icon>
+        تحديث المسار
+      </button>
+    </div>
+
+    <button type="button" class="finish-btn-3d" *ngIf="order.status === 'accepted'" (click)="onFinishClick()">
+      إنهاء المهمة
+    </button>
+
+    <div class="provider-pending-actions" *ngIf="order.status === 'pending' && !isIgnoredView && !showConfirmIgnore">
+      <button type="button" class="finish-btn-3d provider-btn-accept" (click)="onAcceptClick()">قبول الطلب والتحرك الآن</button>
+      <button type="button" class="delete-full-width-btn-unified provider-btn-ignore" (click)="showConfirmIgnore = true">تجاهل الطلب</button>
+    </div>
+
+    <div class="confirm-ignore-box" *ngIf="showConfirmIgnore">
+      <p>هل أنت متأكد من تجاهل هذا الطلب؟</p>
+      <div class="confirm-btns">
+        <button type="button" class="btn-confirm-yes" (click)="onIgnoreClick()">نعم، تجاهل</button>
+        <button type="button" class="btn-confirm-no" (click)="showConfirmIgnore = false">إلغاء</button>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="delete-full-width-btn-unified provider-btn-undo"
+      *ngIf="isIgnoredView && order.status === 'pending'"
+      (click)="onAcceptClick()"
+    >
+      تراجع عن التجاهل وقبول الطلب
+    </button>
+  </div>
+
+  <div
+    class="timer-section-unified"
+    [class.--completed-archive]="order.status === 'completed'"
+    *ngIf="order.status === 'accepted' || order.status === 'completed'"
+  >
+    <div class="timer-label" *ngIf="order.status !== 'completed'">متبقي قبل انتهاء صلاحية الطلب (30 دقيقة):</div>
+    <div class="timer-label" *ngIf="order.status === 'completed'">سيتم إخفاء الطلب من القائمة خلال:</div>
+    <div class="countdown-value">
+      {{ order.status === 'completed' ? remainingTime : acceptedRemainingTime }}
+    </div>
+  </div>
+</div>

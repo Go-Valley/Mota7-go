@@ -1,0 +1,70 @@
+.edit-container {
+  direction: rtl;
+  padding-bottom: 80px;
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 25px 0 15px;
+    color: #1a1a1a;
+    border-right: 4px solid #ff9d00;
+    padding-right: 10px;
+  }
+
+  .mota7-input-group {
+    margin-bottom: 18px;
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .mota7-item {
+      --background: #f8f9fa;
+      --border-radius: 15px;
+      --padding-start: 15px;
+      --inner-padding-end: 15px;
+      border: 1px solid #eee;
+      ion-input {
+        font-weight: 600;
+        --placeholder-color: #999;
+        color: #1a1a1a;
+      }
+    }
+  }
+
+  .options-grid {
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 10px;
+    
+    .mota7-toggle-item {
+      --background: transparent;
+      --padding-start: 10px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 5px;
+    }
+  }
+
+  .footer-actions {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 100;
+
+    .save-btn {
+      --background: #ff9d00;
+      --color: #fff;
+      --border-radius: 40px;
+      --box-shadow: 0 10px 20px rgba(255, 157, 0, 0.3);
+      font-weight: 800;
+      height: 55px;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+  }
+}

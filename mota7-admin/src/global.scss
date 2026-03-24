@@ -1,0 +1,362 @@
+/* استيراد خط القاهرة بجميع الأوزان بما فيها 800 (السر في التصميم العريض) */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/* إجبار لون داكن لأيقونات شريط الحالة في جميع الأحوال */
+:root {
+  --ion-statusbar-padding: env(safe-area-inset-top);
+}
+
+html, body {
+  /* إجبار لون داكن لأيقونات شريط الحالة حتى في الوضع الداكن */
+  color-scheme: light !important;
+}
+
+/* ضمان ظهور شريط الحالة بشكل صحيح على جميع الأجهزة */
+.ion-statusbar-white,
+.ion-statusbar-black {
+  --ion-statusbar-color: #ffffff !important;
+}
+
+/* منع أي تأثير للوضع الداكن على شريط الحالة */
+@media (prefers-color-scheme: dark) {
+  html, body {
+    color-scheme: light !important;
+  }
+  
+  .ion-statusbar-white,
+  .ion-statusbar-black {
+    --ion-statusbar-color: #000000 !important;
+  }
+}
+
+/* خلفية التطبيق */
+ion-content {
+  --background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 50%, #e8eaef 100%) !important;
+}
+
+/* ============================================
+   ion-tab-bar: البار العائم
+   ============================================ */
+
+ion-tab-bar {
+position: fixed !important;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 auto !important;
+  width: calc(100% - 40px) !important;
+  max-width: 450px !important;
+  height: 70px !important; 
+  min-height: 70px !important;
+  z-index: 1000 !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  --background: rgba(255, 255, 255, 0.98) !important;
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border-radius: 25px !important;
+  border: 2px solid rgba(255, 255, 255, 0.98) !important; 
+  box-shadow: 0 10px 25px rgba(255, 107, 0, 0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+}
+
+ion-tab-bar ion-tab-button {
+  --color: #3880ff !important;
+  --color-selected: #ff6b00 !important;
+  background: transparent !important;
+  height: 100% !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+
+  ion-icon {
+    font-size: 1.6rem !important;
+    margin-bottom: 2px !important;
+    color: #3880ff !important; 
+    opacity: 1 !important;
+    transition: all 0.3s ease !important;
+  }
+
+  ion-label {
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    display: block !important;
+    color: #3880ff !important; 
+    opacity: 1 !important;
+  }
+
+  &.tab-selected {
+    ion-icon, ion-label { color: #ff6b00 !important; }
+    ion-icon { transform: translateY(-5px) !important; }
+    &::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: 5px !important;
+      width: 5px !important;
+      height: 5px !important;
+      border-radius: 50% !important;
+      background: #ff6b00 !important;
+    }
+  }
+}
+
+/* ============================================
+   تنسيق زر "طلب خدمة" - التحكم الكامل هنا
+   ============================================ */
+.tab-order {
+
+  /* 1. التحكم في الدائرة (الأيقونة الخلفية) */
+  .icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* تحريك الدائرة والزائد معاً للأعلى أو الأسفل */
+    transform: translateY(2px) !important; 
+  }
+
+  ion-icon {
+    /* تصغير أو تكبير الدائرة من هنا */
+    font-size: 1.8rem !important; 
+    color: #0808f0 !important;
+    opacity: 1 !important;
+  }
+
+  /* 2. التحكم في علامة الزائد (+) */
+  .tiny-plus {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    /* تحريك الـ + داخل الدائرة (القيمة الثانية تحركها فوق وتحت) */
+    transform: translate(-50%, -50%) !important; 
+    /* تصغير أو تكبير الـ + من هنا */
+    font-size: 1rem !important; 
+    font-weight: 900 !important;
+    color: #ffffff !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+  }
+
+  /* 3. التحكم في كلمة "طلب خدمة" */
+  ion-label {
+    color: #3880ff !important;
+    opacity: 1 !important;
+    /* تحريك الكلمة للأعلى (استخدم قيمة سالبة) أو الأسفل */
+    margin-top: 0px !important; 
+    font-weight: 700 !important;
+  }
+}
+
+/* تنسيق متاح العالمي للمودال المنبثق */
+.mota7-global-modal {
+  --height: 85vh; 
+  --width: 100%;
+  --max-width: 500px;
+  --border-radius: 30px 30px 0 0;
+  --box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+  
+  align-items: flex-end;
+
+  .modal-wrapper {
+    position: absolute;
+    bottom: 0;
+  }
+
+  ion-content {
+    --padding-bottom: 0px;
+    --overflow-scroll: true;
+    
+    &::part(scroll) {
+      padding-bottom: 20px; 
+    }
+  }
+
+  ion-footer {
+    display: block !important;
+    background: #ffffff;
+    border-top: 1px solid #f0f0f0;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 10;
+  }
+}
+
+* { font-family: 'Cairo', sans-serif !important; }
+
+/* ============================================================
+   التعديل الجديد: تنسيق الـ Action Sheet (مساحتك الإعلانية)
+   ============================================================ */
+.mota7-premium-sheet {
+  --background: rgba(255, 255, 255, 0.85) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  
+  .action-sheet-container {
+    border-radius: 35px 35px 0 0 !important;
+    background: transparent !important;
+  }
+
+  .action-sheet-title {
+    color: #1a1a1a !important;
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    padding: 25px 20px 5px 20px !important;
+    letter-spacing: -0.5px;
+  }
+
+  .action-sheet-sub-title {
+    color: #000000 !important;
+    font-size: 1rem !important;
+    text-align: center !important;
+    padding-bottom: 15px !important;
+    opacity: 0.8;
+  }
+
+  .action-sheet-button {
+    --background: transparent !important;
+    --color: #1a1a1a !important;
+    height: 65px !important;
+    font-weight: 600 !important;
+    font-size: 1.05rem !important;
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.06) !important;
+
+    .action-sheet-icon {
+      color: #f16c14 !important; /* لون متاح البرتقالي */
+      font-size: 1.6rem !important;
+      margin-inline-end: 15px !important;
+    }
+    
+    &.activated {
+      background: rgba(241, 108, 20, 0.05) !important;
+    }
+  }
+
+  /* زر الإلغاء */
+  .action-sheet-cancel {
+    --color: #eb445a !important;
+    font-weight: 800 !important;
+  }
+
+  /* إضافة مقبض السحب (Drag Handle) */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 45px;
+    height: 5px;
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-radius: 10px;
+    z-index: 10;
+  }
+}
+
+/* تحسين تغبيش الخلفية خلف القائمة */
+.action-sheet-backdrop {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* قائمة إجراءات صفحة المستخدمين — نص أسود واضح ووسط الشاشة */
+ion-action-sheet.mota7-action-sheet {
+  --color: #000000 !important;
+  --button-color: #000000 !important;
+  --button-color-activated: #000000 !important;
+  --button-color-focused: #000000 !important;
+  --button-color-hover: #000000 !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-title {
+  text-align: center !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  width: 100% !important;
+  padding-inline: 20px !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-button {
+  text-align: center !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-button-inner {
+  justify-content: center !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-icon {
+  color: #000000 !important;
+  margin-inline-end: 12px !important;
+  margin-inline-start: 0 !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-button.action-sheet-destructive {
+  --button-color: #000000 !important;
+  color: #000000 !important;
+}
+
+ion-action-sheet.mota7-action-sheet .action-sheet-button.action-sheet-destructive .action-sheet-icon {
+  color: #000000 !important;
+}
+
+/* خلفية التطبيق المتدرجة - الحفاظ عليها كما هي */
+ion-content {
+  --background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 50%, #e8eaef 100%) !important;
+  direction: rtl;
+}
+
+/* التأكد من لون النصوص السوداء الواضحة مع إضافة الوزن 800 للعناوين [cite: 2026-02-20] */
+h1, h2, h3, .mota7-title, .page-title {
+  color: #1a1a1a !important;
+  font-weight: 800 !important; /* لمسة التصميم العالمي العريض */
+}
+
+h4, h5, h6, p, span, ion-label {
+  color: #1a1a1a !important;
+}
+
+/* تعديل الهيدر ليدعم العربية */
+.mota7-header {
+  ion-toolbar {
+    --padding-start: 15px;
+    --padding-end: 15px;
+  }
+}
+
+/* ضبط اتجاه أيقونات الرجوع */
+ion-icon[name="chevron-back-outline"], 
+ion-icon[name="chevron-back"] {
+  transform: rotate(180deg);
+}
+
+/* تنسيق إضافي للكروت لتبدو أكثر احترافية وعالمية [cite: 2026-02-22] */
+.mota7-card {
+  border-radius: 20px !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.8) !important;
+}

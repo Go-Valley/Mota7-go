@@ -1,0 +1,95 @@
+<div class="mota7-card-wrapper" *ngIf="ad" [class.mota7-faded]="!ad.details?.is_available">
+
+  <div class="vehicle-title-header">
+    {{ getCategoryName(ad.category_id) }}
+  </div>
+
+  <div class="main-info-row">
+    <div class="image-wrapper">
+      <div class="vehicle-icon-bg">
+        <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+
+           <div class="verification-badge" 
+           *ngIf="ad.is_verified && ad.is_verified !== 'none'" 
+           [ngClass]="ad.verification_level">
+        <img 
+          loading="lazy" decoding="async"
+          src="assets/gold.avif"
+          *ngIf="ad.is_verified=== 'gold'"
+          class="verify-img"
+          alt="شارة التحقق الذهبية"
+          title="متجر موثَّق - ذهبية">
+        <img 
+          loading="lazy" decoding="async"
+          src="assets/blue.webp"
+          *ngIf="ad.is_verified=== 'blue'"
+          class="verify-img"
+          alt="شارة التحقق الزرقاء"
+          title="متجر موثَّق - زرقاء">
+      </div>
+    </div>
+    </div>
+
+    <div class="owner-details">
+      <span class="name-value">{{ ad.details?.driver_name || ad.owner_name || 'مستخدم متاح' }}</span>
+    </div>
+
+    <div class="contact-icons" *ngIf="ad.details?.is_available">
+      <div class="icon-btn call" (click)="trackContactClick(ad, 'call'); contactAction('call', $event)">
+        <ion-icon name="call"></ion-icon>
+      </div>
+      <div class="icon-btn whatsapp" (click)="trackContactClick(ad, 'whatsapp'); contactAction('whatsapp', $event)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-chips" [class.info-chips--split]="useTwoRowChipLayout">
+    <ng-container *ngIf="useTwoRowChipLayout; else chipsSingleRow">
+      <div class="chips-row">
+        <div class="grid-item city-box">
+          <ion-icon name="location-outline"></ion-icon>
+          <span class="chip-label">{{ ad.city || 'غير محدد' }}</span>
+        </div>
+        <div class="grid-item status-toggle"
+             [class.active]="ad.details?.is_available"
+             [class.inactive]="!ad.details?.is_available">
+          <ion-icon name="time-outline"></ion-icon>
+          <span class="chip-label">{{ ad.details?.is_available ? 'متاح الآن' : 'غير متاح حالياً' }}</span>
+        </div>
+      </div>
+      <div class="chips-row">
+        <div class="grid-item status-toggle active">
+          <ion-icon name="airplane-outline"></ion-icon>
+          <span class="chip-label">متاح للسفر</span>
+        </div>
+        <div class="grid-item status-toggle active">
+          <ion-icon name="key-outline"></ion-icon>
+          <span class="chip-label">متاح للإيجار</span>
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #chipsSingleRow>
+      <div class="chips-row chips-row--all">
+        <div class="grid-item city-box">
+          <ion-icon name="location-outline"></ion-icon>
+          <span class="chip-label">{{ ad.city || 'غير محدد' }}</span>
+        </div>
+        <div class="grid-item status-toggle"
+             [class.active]="ad.details?.is_available"
+             [class.inactive]="!ad.details?.is_available">
+          <ion-icon name="time-outline"></ion-icon>
+          <span class="chip-label">{{ ad.details?.is_available ? 'متاح الآن' : 'غير متاح حالياً' }}</span>
+        </div>
+        <div class="grid-item status-toggle active" *ngIf="showTravelChip">
+          <ion-icon name="airplane-outline"></ion-icon>
+          <span class="chip-label">متاح للسفر</span>
+        </div>
+        <div class="grid-item status-toggle active" *ngIf="showRentChip">
+          <ion-icon name="key-outline"></ion-icon>
+          <span class="chip-label">متاح للإيجار</span>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</div>

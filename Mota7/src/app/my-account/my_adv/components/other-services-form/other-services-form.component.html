@@ -1,0 +1,67 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="mota7-header">
+    <ion-title class="mota7-title">{{ isEditMode ? 'تعديل بيانات الخدمة' : 'إضافة خدمة/حرفة' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" class="mota7-back-button">
+        <ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="service-wrapper" dir="rtl">
+    
+    <div class="form-card">
+      <div class="field-box">
+        <ion-label class="bold-label">نوع الخدمة / الحرفة:*</ion-label>
+        <ion-item lines="none" class="input-item">
+          <ion-select [(ngModel)]="serviceData.category_id" 
+                      placeholder="اختر نوع الخدمة"
+                      interface="action-sheet"
+                      mode="ios"
+                      class="center-select"
+                      toggleIcon="chevron-down-outline">
+            <ion-select-option *ngFor="let cat of categories" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <ion-item lines="none" class="toggle-row">
+        <ion-label>
+          <h2 class="bold-text">متاح الآن:*</h2>
+        </ion-label>
+        <ion-toggle [(ngModel)]="serviceData.isAvailable" 
+                    [color]="serviceData.isAvailable ? 'success' : 'danger'"
+                    class="mota7-toggle-status"></ion-toggle>
+      </ion-item>
+
+      <hr class="divider">
+
+      <ion-item lines="none" class="toggle-row">
+        <ion-label>
+          <h2 class="bold-text">تفعيل الواتساب:</h2>
+        </ion-label>
+        <ion-toggle [(ngModel)]="serviceData.whatsappEnabled" 
+                    [color]="serviceData.whatsappEnabled ? 'success' : 'danger'"
+                    class="mota7-toggle-status"></ion-toggle>
+      </ion-item>
+
+      <div class="field-box whatsapp-box" *ngIf="serviceData.whatsappEnabled">
+        <ion-label class="bold-label">رقم الواتساب للتواصل:</ion-label>
+        <ion-item lines="none" class="input-item">
+          <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
+          <ion-input [(ngModel)]="serviceData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx" class="center-input"></ion-input>
+        </ion-item>
+      </div>
+    </div>
+
+    <ion-button expand="block" class="submit-orange-btn" (click)="saveServiceAd()">
+      {{ isEditMode ? 'حفظ التعديلات' : 'نشر الخدمة الآن' }}
+    </ion-button>
+  </div>
+</ion-content>

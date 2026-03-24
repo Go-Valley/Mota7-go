@@ -1,0 +1,87 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios" class="mota7-header">
+    <ion-title class="mota7-title">تفاصيل المنتج</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" class="mota7-back-button" aria-label="رجوع">
+        <ion-icon slot="icon-only" name="chevron-forward-outline" title="إغلاق"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="details-container" dir="rtl">
+    
+    <div class="image-gallery-wrapper">
+      <swiper-container 
+        class="product-swiper"
+        pagination="true" 
+        autoplay-delay="3000" 
+        [attr.loop]="(ad.details?.images?.length || 0) > 3">
+        
+        <swiper-slide *ngFor="let img of ad.details?.images; let i = index">
+          <img [src]="img" 
+               class="slide-img" 
+               alt="صورة المنتج"
+               title="صورة المنتج"
+               [attr.alt]="(ad.details?.title || 'منتج متاح') + ' - ' + (i + 1)"
+               [attr.title]="ad.details?.title || 'تفاصيل المنتج'" />
+        </swiper-slide>
+      </swiper-container>
+    </div>
+
+    <div class="content-padding">
+      <h1 class="product-main-title">{{ ad.details?.title }}</h1>
+      
+      <div class="divider"></div>
+
+      <div class="product-description-section">
+        <p class="custom-short-desc">{{ ad.details?.short_desc }}</p>
+
+        <h2 class="section-title mt-10">تفاصيل المنتج</h2>
+        <p class="custom-full-details">{{ ad.details?.full_details || 'لا يوجد وصف إضافي متوفر.' }}</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="info-list-modern">
+        <div class="info-item">
+          <ion-icon name="person-outline" title="البائع"></ion-icon>
+          <div class="info-label">اسم البائع:</div>
+          <div class="info-value">{{ ownerName }}</div>
+        </div>
+        
+        <div class="info-item">
+          <ion-icon name="shield-checkmark-outline" title="الحالة"></ion-icon>
+          <div class="info-label">حالة المنتج:</div>
+          <div class="info-value">{{ ad.details?.condition }}</div>
+        </div>
+
+        <div class="info-item price-row">
+          <ion-icon name="cash-outline" title="السعر"></ion-icon>
+          <div class="info-label">السعر:</div>
+          <div class="info-value">{{ ad.details?.price }} ج.م</div>
+        </div>
+
+        <div class="info-item">
+          <ion-icon name="location-outline" title="الموقع"></ion-icon>
+          <div class="info-label">المدينة:</div>
+          <div class="info-value">{{ ad.details?.location || 'الخارجة' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <div class="footer-actions">
+    <button class="action-btn call" (click)="contactAction('call')">
+      <ion-icon name="call"></ion-icon>
+      اتصال
+    </button>
+    <button class="action-btn whatsapp" (click)="contactAction('whatsapp')">
+      <ion-icon name="logo-whatsapp"></ion-icon>
+      واتساب
+    </button>
+  </div>
+</ion-footer>

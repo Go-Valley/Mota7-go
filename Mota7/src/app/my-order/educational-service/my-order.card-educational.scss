@@ -1,0 +1,95 @@
+@import '../shared-order-card.styles.scss';
+
+.mota7-order-card.education-card {
+  @include order-card-shell;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &.completed-state {
+    transform: scale(0.97);
+    border-color: #4caf50;
+    filter: saturate(1.1);
+
+    .accepted-topbar {
+      background: linear-gradient(90deg, #f1f8e9, #dcedc8);
+      color: #2e7d32;
+      animation: slideInDown 0.5s both;
+    }
+
+    .card-header-unified {
+      background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+      transition: background 0.5s ease;
+    }
+
+    .action-row-modern,
+    .finish-btn-3d {
+      display: none !important;
+    }
+  }
+
+  .accepted-topbar {
+    background: linear-gradient(90deg, #e8f5e9, #f1f8e9);
+    color: #1b5e20;
+    font-weight: 800;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    animation: fadein 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border-bottom: 1px solid #dcedc8;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    ion-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+  }
+
+  .card-content {
+    padding: 18px 18px 8px;
+    flex: 1;
+
+    .note-text {
+      font-weight: 600;
+      color: #475569;
+      font-style: italic;
+    }
+  }
+
+  .service-type ion-icon {
+    color: #38bdf8;
+  }
+}
+
+::ng-deep .confirm-button {
+  color: #2e7d32 !important;
+  font-weight: 800 !important;
+}
+
+::ng-deep .mota7-alert-confirm-delete {
+  color: #be123c !important;
+  font-weight: 800 !important;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translate3d(0, -100%, 0);
+    visibility: visible;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}

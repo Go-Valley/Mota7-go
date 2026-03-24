@@ -1,0 +1,71 @@
+<div class="mota7-card-wrapper" *ngIf="ad">
+  <div class="clickable-content" (click)="openProductDetails()">
+    <div class="product-description-header">
+      {{ ad.details?.short_desc || ad.details?.title }}
+    </div>
+
+    <div class="main-info-row">
+      <div class="image-wrapper">
+        <img [src]="(ad.details?.images && ad.details.images.length > 0) ? ad.details.images[0] : 'assets/mota7.png'" 
+             loading="lazy" decoding="async"
+             (error)="$any($event.target).src = 'assets/mota7.png'" 
+             alt="صورة المنتج" 
+             class="product-thumb">
+
+             <div class="verification-badge" 
+             *ngIf="ad.is_verified && ad.is_verified !== 'none'" 
+             [ngClass]="ad.verification_level">
+          <img 
+            loading="lazy" decoding="async"
+            src="assets/gold.avif"
+            *ngIf="ad.is_verified=== 'gold'"
+            class="verify-img"
+            alt="شارة التحقق الذهبية"
+            title="متجر موثَّق - ذهبية">
+          <img 
+            loading="lazy" decoding="async"
+            src="assets/blue.webp"
+            *ngIf="ad.is_verified=== 'blue'"
+            class="verify-img"
+            alt="شارة التحقق الزرقاء"
+            title="متجر موثَّق - زرقاء">
+        </div>
+      </div>
+  
+      <div class="owner-details">
+        <div class="name-and-title-section">
+          <h2 class="product-main-title">{{ ad.details?.title }}</h2>
+        </div>
+
+        <div class="contact-buttons-row">
+          <button class="action-btn call" (click)="trackContactClick(ad, 'call'); contactAction('call', $event)" aria-label="اتصال">
+            <ion-icon name="call"></ion-icon>
+          </button>
+          <button *ngIf="ad.details?.whatsapp_phone || ad.owner_phone" class="action-btn whatsapp" (click)="trackContactClick(ad, 'whatsapp'); contactAction('whatsapp', $event)" aria-label="واتساب">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="owner-line-full">
+      <span class="label">بواسطة:</span>
+      <span class="name">{{ displayName }}</span>
+    </div>
+
+    <div class="meta-grid-modern">
+      <div class="grid-item">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ ad.details?.location || 'الخارجة' }}</span>
+      </div>
+      <div class="grid-item price-item">
+        <ion-icon name="cash-outline"></ion-icon>
+        <span>{{ ad.details?.price }} ج.م</span>
+      </div>
+      <div class="grid-item condition-item">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>{{ ad.details?.condition || 'جديد' }}</span>
+      </div>
+    </div>
+  </div>
+</div>

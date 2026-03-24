@@ -1,0 +1,188 @@
+.mota4-card-wrapper {
+  background: #ffffff;
+  border-radius: 40px;
+  padding: 12px;
+  width: 100%;
+  margin: 10px auto;
+  box-shadow: 0px -6px 0px 0px #e76e07;
+  border: 1px solid #ff9d00;
+  direction: rtl;
+  position: relative;
+  transition: all 0.4s ease;
+
+  &.is-unavailable {
+    filter: grayscale(0.8);
+    opacity: 0.7;
+    box-shadow: none;
+    border-color: #ccc;
+    .main-info-row { background: #eeeeee; }
+  }
+
+  .admin-action-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px; // أقصى اليسار
+    z-index: 20;
+    --color: #000;
+  }
+  .sort-badge {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 38px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
+    z-index: 15;
+    box-shadow: 0px 0px 7px 3px #000000;
+    &.gold { background: #d4af37; }
+    &.blue { background: #2f6bff; }
+    &.gray { background: #b60000; }
+  }
+
+  .admin-top-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-left: 35px; // مساحة لزر الأكشن
+    .ad-date { color: #000000; font-size: 1rem; }
+    .admin-status-badge {
+      padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;
+      &[data-status="active"] { background: #e7fbf0; color: #2dd36f; }
+      &[data-status="pending"] { background: #fff4e5; color: #ff9800; }
+      &[data-status="rejected"] { background: #fdeced; color: #eb445a; }
+      &[data-status="expired"] { background: #fdeced; color: #eb445a; }
+    }
+  }
+
+  .title-and-badge-row {
+    display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
+    .vehicle-title-header { color: #000 !important; font-size: 1.8rem; font-weight: 800; }
+    .modern-stage-badge {
+      background: #38bacf4a; color: #880101; padding: 4px 12px;
+      border-radius: 25px; font-weight: 800; font-size: 0.85rem;
+    }
+  }
+
+  .main-info-row {
+    display: flex; align-items: center; gap: 12px; background: #f9f9f9;
+    padding: 8px 12px; border-radius: 25px; margin-bottom: 15px;
+
+    .avatar-container {
+      position: relative;
+      .logo-circle {
+        width: 60px; height: 60px; border-radius: 50%; background: #eef3ff;
+        display: flex; align-items: center; justify-content: center;
+        ion-icon { font-size: 30px; color: #1a4ed8; }
+      }
+      .verification-badge {
+        position: absolute; bottom: -5px; right: -5px; width: 26px; height: 26px;
+        .verify-img { width: 100%; height: 100%; object-fit: contain; }
+      }
+    }
+
+    .owner-details {
+      flex: 1;
+      .owner-name-row {
+        display: flex; justify-content: space-between; align-items: center;
+        .name-value { font-weight: 700; color: #333; font-size: 1.2rem; }
+        .icon-contact-actions {
+          display: flex; gap: 8px;
+          .icon-btn {
+            width: 35px; height: 35px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; color: #fff;
+            &.call { background: #3880ff; }
+            &.whatsapp { background: #2dd36f; }
+          }
+        }
+      }
+    }
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    border-top: 1px dashed #eee;
+    padding-top: 10px;
+
+    .footer-item {
+      background: #f9f9f9;
+      padding: 6px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+
+      &.status-toggle.active { background: #e7fbf0; color: #2dd36f; }
+      &.status-toggle.inactive { background: #fdeced; color: #eb445a; }
+      
+      &.travel-toggle.active { background: #eef3ff; color: #3880ff; }
+      &.rent-toggle.active { background: #e7fbf0; color: #2dd36f; }
+
+      &.expiry-toggle { background: #fff4e5; color: #ff9800; cursor: pointer; }
+    }
+  }
+
+  .admin-reason-box {
+    background: #fdeced;
+    color: #c5283d;
+    padding: 8px 12px;
+    margin-top: 12px;
+    border-radius: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+    border: 1px solid #f5c6cb;
+    p {
+      margin: 0;
+      strong {
+        font-weight: 800;
+      }
+    }
+  }
+}
+
+.mota7-user-alert {
+  --background: #ffffff;
+  --border-radius: 25px;
+  
+  .alert-wrapper {
+    max-width: 90% !important;
+    border: 1px solid #ff9d00;
+  }
+
+  .alert-head {
+    padding-bottom: 15px;
+    .alert-title { font-weight: 900; color: #ff9d00; font-size: 1.4rem; }
+    .alert-sub-title { color: #666; font-weight: 700; }
+  }
+
+  .alert-message {
+    white-space: pre-line !important; // هذا السطر ضروري جداً لتنفيذ النزول سطر \n
+    text-align: right;
+    direction: rtl;
+    color: #1a1a1a;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 20px;
+  }
+
+  .mota7-modal-btn {
+    color: #ff9d00 !important;
+    font-weight: 800 !important;
+    font-size: 1.2rem;
+  }
+}

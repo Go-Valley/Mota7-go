@@ -1,0 +1,145 @@
+@import '../../../../my-order/shared-order-card.styles.scss';
+
+.mota7-order-card.education-card.provider-order-card {
+  @include order-card-shell;
+  margin-bottom: 28px;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &.completed-state {
+    transform: scale(0.97);
+    border-color: #4caf50;
+    filter: saturate(1.1);
+
+    .accepted-topbar {
+      background: linear-gradient(90deg, #f1f8e9, #dcedc8);
+      color: #2e7d32;
+    }
+
+    .card-header-unified {
+      background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+      transition: background 0.5s ease;
+    }
+
+    .action-row-modern,
+    .finish-btn-3d {
+      display: none !important;
+    }
+  }
+
+  .accepted-topbar {
+    background: linear-gradient(90deg, #e8f5e9, #f1f8e9);
+    color: #1b5e20;
+    font-weight: 800;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-bottom: 1px solid #dcedc8;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 1.2rem;
+    }
+
+    &.provider-ignored-bar {
+      background: linear-gradient(90deg, #fff7ed, #ffedd5);
+      color: #9a3412;
+      border-bottom-color: #fed7aa;
+    }
+  }
+
+  .card-content {
+    padding: 18px 18px 8px;
+    flex: 1;
+
+    .note-text {
+      font-weight: 600;
+      color: #475569;
+      font-style: italic;
+    }
+  }
+
+  .service-type ion-icon {
+    color: #38bdf8;
+  }
+
+  .provider-pending-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .provider-btn-accept {
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.12) inset,
+      0 8px 22px rgba(15, 23, 42, 0.25);
+  }
+
+  .provider-btn-ignore {
+    margin-top: 0;
+    border-top: none;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+    color: #9a3412;
+    border: 1px solid rgba(251, 146, 60, 0.35);
+  }
+
+  .provider-btn-undo {
+    margin-top: 12px;
+    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.35);
+  }
+
+  .confirm-ignore-box {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+
+    p {
+      margin: 0 0 12px;
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.9rem;
+    }
+
+    .confirm-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-confirm-yes,
+    .btn-confirm-no {
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-confirm-yes {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .btn-confirm-no {
+      background: #e2e8f0;
+      color: #334155;
+    }
+  }
+}
+
+.provider-ignored-badge.status-badge-live {
+  filter: saturate(0.85);
+}

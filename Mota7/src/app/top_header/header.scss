@@ -1,0 +1,46 @@
+ion-header {
+    background: transparent; 
+
+    .mota7-header {
+      --background: #ffffff;
+      --border-width: 0;
+      padding-top: env(safe-area-inset-top, 0px);
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;      
+      box-shadow: 0 10px 20px 5px rgba(0, 0, 0, 0.63);
+
+      ion-toolbar {
+        --background: transparent;
+        --color: #f1ecec;
+        display: flex;
+        align-items: center;
+      }
+  
+      .mota7-title {
+        font-weight: 700 !important;
+        font-size: 1.2rem;
+        color: #000000;
+        margin: 0; 
+        padding-top: 0px;
+      }
+  
+      .mota7-back-button {
+        --background: #f1f1f1;
+        --border-radius: 20px;
+        --color: #db0000;
+        width: 46px;
+        height: 46px;
+        margin-right: 8px;
+        
+        ion-icon {
+          font-size: 22px;
+          font-weight: bold;
+        }
+  
+        &:active {
+          transform: scale(0.92);
+          opacity: 0.8;
+        }
+      }
+    }
+  }

@@ -1,0 +1,71 @@
+<ion-tabs>
+  <ion-tab-bar slot="bottom">
+    
+    <ion-tab-button tab="my-account">
+      <ion-icon name="person-outline"></ion-icon>
+      <ion-label>حسابي</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button class="tab-order" (click)="openServiceModal()">
+      <div class="icon-wrapper">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        <span class="tiny-plus">+</span>
+      </div>
+      <ion-label>طلب</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="home">
+      <ion-icon name="home-outline"></ion-icon>
+      <ion-label>الرئيسية</ion-label>
+    </ion-tab-button>
+
+  </ion-tab-bar>
+</ion-tabs>
+
+<ion-modal
+  [isOpen]="isServiceModalOpen"
+  [backdropDismiss]="true"
+  [keepContentsMounted]="false"
+  cssClass="service-request-modal"
+  (didDismiss)="onModalDidDismiss()"
+>
+  <ng-template>
+    <div class="service-modal-wrapper">
+      <div class="service-modal-header">
+        <div class="service-modal-title">طلب خدمة / نشر اعلان</div>
+        <button
+          type="button"
+          class="service-modal-close"
+          (click)="closeServiceModal($event)"
+        >
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="service-modal-body">
+        <div class="service-section">
+          <div class="section-title">لو محتاج تطلب:</div>
+          <div class="section-item">خدمة توصيل</div>
+          <div class="section-item">خدمة تعليمية</div>
+          <div class="section-item">خدمات حرفية ومتنوعة</div>
+          <ion-button expand="block" class="service-action-btn" (click)="goToServiceOrder()">
+            اطلب خدمتك الآن
+          </ion-button>
+        </div>
+
+        <div class="service-divider"></div>
+
+        <div class="service-section">
+          <div class="section-title">لو عايز تعرض إعلانك:</div>
+          <div class="section-item">خدمة</div>
+          <div class="section-item">منتج</div>
+          <div class="section-item">متجر</div>
+          <div class="section-note">افتح حساب جديد أو سجل دخولك , وانشر إعلانك فورا ..</div>
+          <ion-button expand="block" class="service-action-btn" (click)="goToAdvertiseNow()">
+            إعرض إعلانك الآن
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

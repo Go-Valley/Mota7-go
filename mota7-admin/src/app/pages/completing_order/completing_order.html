@@ -1,0 +1,80 @@
+<app-mota7-header [title]="'الطلبات المكتملة'" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="completing-container">
+    <div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+        <input type="tel" placeholder="ابحث برقم الهاتف او الاسم" [(ngModel)]="searchQuery" (input)="filterOrders()">
+      </div>
+    </div>
+
+    <div class="orders-list">
+      <div class="order-card-dual completed-card" *ngFor="let order of filteredOrders">
+        
+        <div class="card-header">
+          <div class="status-badge success">
+            <ion-icon name="checkmark-done-circle"></ion-icon>
+            <span>مهمة مكتملة</span>
+          </div>
+          <div class="order-date">أكتمل في: {{ order.completedAt?.toDate() | date:'hh:mm a - yyyy/MM/dd':'':'ar' }}</div>
+        </div>
+
+        <div class="service-main-info">
+          <div class="service-tag" [ngClass]="order.serviceType">
+            <ion-icon [name]="getServiceIcon(order.serviceType)"></ion-icon>
+            <span>{{ getServiceLabel(order) }}</span>
+          </div>
+          <div class="city-badge">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ order.city }}</span>
+          </div>
+          <div class="price-tag" *ngIf="order.price">
+            <ion-icon name="cash-outline"></ion-icon>
+            <span>{{ order.price }} ج.م</span>
+          </div>
+        </div>
+
+        <div class="dual-parties">
+          <div class="party-box customer">
+            <div class="party-info">
+              <span class="label">طالب الخدمة:</span>
+              <span class="name">{{ order.customerName }}</span>
+              <span class="phone">{{ order.customerPhone }}</span>
+            </div>
+            <div class="party-actions">
+              <button class="icon-btn whatsapp green" (click)="whatsappToCustomer(order)" title="واتساب طالب الخدمة">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="party-box provider">
+            <div class="party-info">
+              <span class="label">منفذ الخدمة:</span>
+              <span class="name">{{ order.providerName || 'مزود خدمة' }}</span>
+              <span class="phone">{{ order.providerPhone || order.providerId }}</span>
+            </div>
+            <div class="party-actions">
+              <button class="icon-btn whatsapp blue" (click)="whatsappToProvider(order)" title="واتساب منفذ الخدمة">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="footer-btn delete-full" (click)="deleteOrder(order)">
+            <ion-icon name="trash-outline"></ion-icon> حذف من السجل
+          </button>
+        </div>
+
+      </div>
+
+      <div class="empty-state" *ngIf="filteredOrders.length === 0">
+        <ion-icon name="time-outline"></ion-icon>
+        <p>لا توجد طلبات مكتملة حالياً</p>
+      </div>
+    </div>
+  </div>
+</ion-content>

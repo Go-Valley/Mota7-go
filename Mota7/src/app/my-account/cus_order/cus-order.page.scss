@@ -1,0 +1,127 @@
+/* --- Animations --- */
+@keyframes pulse-blue {
+  0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
+@keyframes drive {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}
+
+/* --- التنسيق الرئيسي لمنع البهتان والاختفاء --- */
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px); /* يضمن امتداد الخلفية البيضاء */
+  background: #ffffff; 
+  direction: rtl;
+}
+
+.cus-order-container {
+  padding: 20px 15px;
+}
+
+.inbox-new-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(13, 110, 253, 0.35);
+
+  ion-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+}
+
+/* شريط الحالة المباشرة */
+.live-status-bar {
+  background: #f0f9ff;
+  color: #007bff;
+  padding: 12px 16px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  border: 1px solid rgba(0, 123, 255, 0.2);
+  font-size: 0.85rem;
+
+  .pulse-icon {
+    width: 10px; height: 10px;
+    background: #007bff;
+    border-radius: 50%;
+    animation: pulse-blue 2s infinite;
+  }
+}
+
+/* رسالة التتبع */
+.tracking-active-msg {
+    margin: -25px 25px 25px 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    background: #3880ff;
+    border-radius: 0 0 30px 30px;
+    box-shadow: 1px 6px 20px 0px #000;
+    z-index: 1;
+    position: relative;
+
+  ion-icon { 
+    font-size: 1.3rem; 
+    animation: drive 2s linear infinite; 
+  }
+}
+
+.section-title {
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  padding-right: 5px;
+}
+
+/* حالة عدم وجود طلبات */
+.no-orders {
+  text-align: center;
+  padding: 80px 20px;
+  color: #bbb;
+  ion-icon { font-size: 3.5rem; margin-bottom: 10px; color: #eee; }
+  p { font-weight: 600; font-size: 1rem; }
+}
+
+/* الكروت */
+app-delivery-card, 
+app-educational-card, 
+app-other-services-card {
+  display: block;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.04));
+}
+
+.orders-section-spacer {
+  height: 50px; 
+  width: 100%;
+}
+
+/* تأكيد لون المحتوى */
+ion-content {
+  --background: #ffffff;
+  --padding-bottom: 20px;
+}

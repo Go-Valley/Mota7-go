@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mota7 Admin</string>
+    <string name="title_activity_main">Mota7 Admin</string>
+    <string name="package_name">com.mota7.admin</string>
+    <string name="custom_url_scheme">com.mota7.admin</string>
+</resources>

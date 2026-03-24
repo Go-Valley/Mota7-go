@@ -1,0 +1,196 @@
+<ion-content>
+  <div class="dashboard-luxury-container">
+    <header class="dashboard-header">
+      <div class="user-welcome">
+        <h1 class="title-bold">لوحة التحكم</h1>
+        <p class="subtitle-light">إدارة منظومة مُتاح أدمن المركزية</p>
+      </div>
+      <div class="admin-avatar">
+        <ion-icon name="shield-half-outline"></ion-icon>
+      </div>
+    </header>
+
+    <div class="stats-container ads-stats">
+      <div class="stats-header">
+        <ion-icon name="megaphone-outline"></ion-icon>
+        <span>إحصائيات الإعلانات</span>
+      </div>
+      
+      <div class="quick-stats-row">
+        <div class="stat-mini-card pending">
+          <span class="stat-label">معلقة</span>
+          <span class="stat-value">{{ stats.pendingAds }}</span>
+        </div>
+        <div class="stat-mini-card active">
+          <span class="stat-label">مفعلة</span>
+          <span class="stat-value">{{ stats.activeAds }}</span>
+        </div>
+        <div class="stat-mini-card rejected">
+          <span class="stat-label">مرفوضة</span>
+          <span class="stat-value">{{ stats.rejectedAds }}</span>
+        </div>
+        <div class="stat-mini-card expired">
+          <span class="stat-label">منتهية</span>
+          <span class="stat-value">{{ stats.expiredAds }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-container orders-summary">
+      <div class="stats-header">
+        <ion-icon name="cart-outline" class="header-icon-blue"></ion-icon>
+        <span>ملخص حركة الطلبات</span>
+      </div>
+      
+      <div class="quick-stats-row">
+        <div class="stat-mini-card pending">
+          <span class="stat-label">قيد الانتظار</span>
+          <span class="stat-value">{{ stats.pendingRequests }}</span>
+        </div>
+        <div class="stat-mini-card active border-blue">
+          <span class="stat-label">مقبولة</span>
+          <span class="stat-value">{{ stats.acceptedRequests }}</span>
+        </div>
+        <div class="stat-mini-card active border-green">
+          <span class="stat-label">مكتملة</span>
+          <span class="stat-value">{{ stats.completedRequests }}</span>
+        </div>
+        <div class="stat-mini-card total-orders-card">
+          <span class="stat-label dark-text">إجمالي الطلبات</span>
+          <span class="stat-value dark-text">{{ stats.totalOrders }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="admin-grid">
+      <div class="luxury-nav-card" (click)="goTo('users')">
+        <div class="card-icon blue">
+          <ion-icon name="people-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إدارة المستخدمين</h3>
+          <p>تعديل، حذف، وتوثيق الحسابات</p>
+        </div>
+        <div class="badge-count-inline blue-bg">{{ stats.totalUsers }}</div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('blocked-users')">
+        <div class="card-icon red">
+          <ion-icon name="person-remove-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إدارة حظر طالب الخدمة</h3>
+          <p>حظر وفك حظر أرقام الهواتف</p>
+        </div>
+        <div class="badge-count-inline red-bg blocked-users-badge">{{ stats.blockedUsers }}</div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('adv')">
+        <div class="card-icon orange">
+          <ion-icon name="megaphone-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إدارة الإعلانات</h3>
+          <p>قبول، رفض، وتعديل الإعلانات</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('banners')">
+        <div class="card-icon green">
+          <ion-icon name="images-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>البانرات الإعلانية</h3>
+          <p>رفع وتنشيط البانرات المباشرة</p>
+        </div>
+        <div class="badge-count-inline green-bg">{{ stats.activeBanners }}</div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card pulse-border" (click)="goTo('pending-requests')">
+        <div class="card-icon red">
+          <ion-icon name="time-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>الطلبات المعلقة</h3>
+          <p>مراجعة طلبات المستخدمين</p>
+        </div>
+        <div class="badge-count" *ngIf="stats.pendingRequests > 0">
+          {{ stats.pendingRequests }} جديد
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('accepting_order')">
+        <div class="card-icon purple">
+          <ion-icon name="briefcase-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>الطلبات المقبولة</h3>
+          <p>الطلبات التي تم الموافقة عليها</p>
+        </div>
+        <div class="badge-count" *ngIf="stats.acceptedRequests > 0">
+          {{ stats.acceptedRequests }}
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('completing-order')">
+        <div class="card-icon green">
+          <ion-icon name="checkmark-done-circle"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>الطلبات المكتملة</h3>
+          <p>سجل العمليات التي تمت بنجاح</p>
+        </div>
+        <div class="badge-count" *ngIf="stats.completedRequests > 0">
+          {{ stats.completedRequests }}
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('user-total-accepted')">
+        <div class="card-icon indigo">
+          <ion-icon name="list-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إجمالي طلبات المستخدم</h3>
+          <p>سجل كافة طلبات طالب الخدمة</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('provider-total-accepted')">
+        <div class="card-icon gold">
+          <ion-icon name="analytics-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إجمالي طلبات المشترك</h3>
+          <p>سجل كافة طلبات مقدم الخدمة</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" (click)="goTo('click-analytics')">
+        <div class="card-icon dark">
+          <ion-icon name="locate-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>إحداثيات النقر</h3>
+          <p>تحليل بيانات التفاعل والضغطات</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="footer-logout-wrapper">
+        <ion-button expand="block" class="logout-btn-premium" (click)="logout()">
+          <ion-icon name="log-out-outline" slot="start"></ion-icon>
+          تسجيل الخروج من النظام
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

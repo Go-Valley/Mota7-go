@@ -1,0 +1,108 @@
+<app-mota7-header 
+  title="انضمامك يشرفنا" 
+  [showBackButton]="true"
+  (backClick)="goBack()"> 
+</app-mota7-header>
+
+<ion-content>
+  <div class="main-wrapper">
+
+    <div class="login-container">
+      <div class="brand-section">
+        <div class="modern-icon-box floating-icon">
+          <div class="inner-circle">
+            <ion-icon name="person-add-outline"></ion-icon>
+          </div>
+        </div>
+        <h1 class="main-title">إنشاء حساب</h1>
+        <p class="sub-title">مبسوطين بانضمامك معانا</p>
+      </div>
+
+      <div class="form-section">
+        <ion-label class="input-label">الاسم<span class="required">*</span></ion-label>
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="person-outline" slot="start"></ion-icon>
+          <ion-input
+            #inputFullName
+            type="text"
+            maxlength="20"
+            placeholder="اكتب اسمك هنا"
+            class="ion-text-right dark-text"
+            [(ngModel)]="userData.fullName"
+            (beforeinput)="onFullNameBeforeInput($event)"
+            (compositionend)="onFullNameCompositionEnd()"
+            (ionInput)="onFullNameInput($event)"
+          ></ion-input>
+        </ion-item>
+
+        <ion-label class="input-label">رقم الهاتف<span class="required">*</span></ion-label>
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
+          <ion-input
+            #inputPhone
+            type="tel"
+            maxlength="11"
+            inputmode="numeric"
+            placeholder="01xxxxxxxxx"
+            class="ion-text-right dark-text"
+            [(ngModel)]="userData.phone"
+            (ionInput)="onRegisterPhoneInput($event)"
+            (keydown)="onRegisterPhoneKeyDown($event)"
+            (beforeinput)="onRegisterPhoneBeforeInput($event)"
+            (paste)="onRegisterPhonePaste($event)"
+            (compositionend)="onRegisterPhoneCompositionEnd()"
+          >
+          </ion-input>
+        </ion-item>
+        <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
+
+        <ion-label class="input-label">المدينة<span class="required">*</span></ion-label>
+        <ion-item lines="none" class="custom-input custom-select">
+          <ion-icon name="location-outline" slot="start"></ion-icon>
+          <ion-select [(ngModel)]="userData.city" 
+                      interface="popover" 
+                      placeholder="اختر المدينة" 
+                      class="full-width-select dark-text"
+                      toggleIcon="chevron-down-outline">
+            <ion-select-option value="الخارجة">الخارجة</ion-select-option>
+            <ion-select-option value="الداخلة">الداخلة</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-label class="input-label">البريد الإلكتروني</ion-label>
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="mail-outline" slot="start"></ion-icon>
+          <ion-input type="email" placeholder="اكتب ايميلك لو عندك" class="ion-text-right dark-text" 
+                     [(ngModel)]="userData.email"></ion-input>
+        </ion-item>
+
+        <ion-label class="input-label">كلمة المرور الجديدة<span class="required">*</span></ion-label>
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          <ion-input type="password" placeholder="اكتب كلمة السر" class="ion-text-right dark-text" 
+                     [(ngModel)]="userData.password"></ion-input>
+        </ion-item>
+
+        <ion-label class="input-label">تأكيد كلمة المرور<span class="required">*</span></ion-label>
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
+          <ion-input type="password" placeholder="اكد كلمة السر" class="ion-text-right dark-text" 
+                     [(ngModel)]="userData.confirmPassword"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="actions-section">
+        <ion-button expand="block" class="main-login-btn" (click)="performRegister()">
+          تسجيل
+        </ion-button>
+        
+        <div class="register-hint">
+          <span>لديك حساب بالفعل؟</span>
+          <ion-button fill="clear" (click)="goToLogin()">سجل دخول الان</ion-button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-padding"></div>
+  </div>
+</ion-content>

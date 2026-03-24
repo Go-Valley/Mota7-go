@@ -1,0 +1,65 @@
+<app-mota7-header 
+  title="طلبات العملاء" 
+  [showBackButton]="true"
+  (backClick)="goBack()"> 
+</app-mota7-header>
+
+<ion-content>
+  <div class="main-wrapper cus-order-container">
+
+    <div class="inbox-new-banner" *ngIf="inboxBannerText" role="status">
+      <ion-icon name="chatbubble-ellipses-outline" aria-hidden="true"></ion-icon>
+      <span>{{ inboxBannerText }}</span>
+    </div>
+    
+    <div class="live-status-bar" *ngIf="isTracking">
+      <div class="pulse-icon"></div>
+      <span>أنت الآن "متاح" للعميل.. يمكنك التواصل مع طالب الخدمة بشكل مباشر</span>
+    </div>
+
+    <div class="orders-section">
+      <h3 class="section-title">الطلبات الواردة :</h3>
+
+      <div class="no-orders" *ngIf="orders.length === 0">
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+        <p>لا توجد طلبات حالية</p>
+      </div>
+
+<div *ngFor="let order of orders; trackBy: trackByOrderId" class="order-wrapper">
+          
+        <app-delivery-card 
+          *ngIf="order.serviceType === 'delivery'"
+          [order]="order"
+          (acceptOrder)="acceptAndStartTracking(order.id)"
+          (ignoreOrder)="ignoreLocally(order.id)"
+          (finishOrder)="finishFromCard(order.id)">
+        </app-delivery-card>
+
+        <app-educational-card 
+          *ngIf="order.serviceType === 'education'"
+          [order]="order"
+          (acceptOrder)="acceptAndStartTracking(order.id)"
+          (ignoreOrder)="ignoreLocally(order.id)"
+          (finishOrder)="finishFromCard(order.id)">
+        </app-educational-card>
+
+<app-other-services-card 
+  *ngIf="order.serviceType === 'other'"
+  [order]="order"
+  (acceptOrder)="acceptAndStartTracking(order.id)"
+  (ignoreOrder)="ignoreLocally(order.id)"
+  (finishOrder)="finishFromCard(order.id)">
+</app-other-services-card>
+
+        <div class="tracking-active-msg" *ngIf="order.status === 'accepted'">
+          <ion-icon name="bicycle-outline"></ion-icon>
+          <span>جاري مشاركة الطلب .. يمكنك التواصل مع العميل</span>
+        </div>
+
+      </div>
+      
+      <div class="orders-section-spacer"></div>
+    </div>
+
+  </div>
+</ion-content>

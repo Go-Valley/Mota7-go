@@ -1,0 +1,76 @@
+<ion-content [fullscreen]="true" class="login-ion">
+  <div class="login-viewport">
+    <div class="login-bg" aria-hidden="true">
+      <div class="login-bg__mesh"></div>
+      <div class="login-bg__orb login-bg__orb--a"></div>
+      <div class="login-bg__orb login-bg__orb--b"></div>
+      <div class="login-bg__orb login-bg__orb--c"></div>
+    </div>
+
+    <main class="login-main">
+      <section class="login-card" aria-labelledby="login-brand-title">
+        <header class="brand">
+          <div class="logo-mark">
+            <div class="logo-mark__ring" aria-hidden="true"></div>
+            <img
+              class="logo-mark__img"
+              src="assets/admin.png"
+              width="80"
+              height="80"
+              alt="Mota7 Admin"
+            />
+          </div>
+          <p class="brand-eyebrow">Mota7 Admin</p>
+          <h1 id="login-brand-title" class="brand-title">مُتاح أدمن</h1>
+          <p class="brand-tagline">منظومة الإدارة الذكية</p>
+        </header>
+
+        <div class="fields">
+          <div class="field">
+            <ion-label class="field-label">البريد الإلكتروني</ion-label>
+            <ion-item lines="none" class="field-control">
+              <ion-icon name="mail-unread-outline" slot="start" class="field-icon"></ion-icon>
+              <ion-input
+                [(ngModel)]="email"
+                type="email"
+                inputmode="email"
+                autocomplete="username"
+                placeholder="name@organization.com"
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="field">
+            <ion-label class="field-label">كلمة المرور</ion-label>
+            <ion-item lines="none" class="field-control">
+              <ion-icon name="key-outline" slot="start" class="field-icon"></ion-icon>
+              <ion-input
+                [(ngModel)]="pass"
+                type="password"
+                autocomplete="current-password"
+                placeholder="••••••••"
+              ></ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <ion-button expand="block" class="btn-signin" shape="round" (click)="login()">
+          تسجيل الدخول
+        </ion-button>
+
+        <div class="divider" role="separator">
+          <span class="divider__line"></span>
+          <span class="divider__text">أو</span>
+          <span class="divider__line"></span>
+        </div>
+
+        <button type="button" class="btn-bio" (click)="checkBiometricLogin()">
+          <span class="btn-bio__icon-wrap" aria-hidden="true">
+            <ion-icon name="finger-print-outline" class="btn-bio__icon"></ion-icon>
+          </span>
+          <span class="btn-bio__text">دخول سريع بالبصمة</span>
+        </button>
+      </section>
+    </main>
+  </div>
+</ion-content>

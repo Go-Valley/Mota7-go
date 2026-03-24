@@ -1,0 +1,62 @@
+<div class="mota7-card-wrapper" *ngIf="ad" [class.is-unavailable]="!ad.is_available">
+  <div class="service-title-header">
+    {{ getCategoryName(ad.category_id) }}
+  </div>
+
+  <div class="provider-info-row">
+    <div class="name-section">
+      <div class="avatar-container">
+        <div class="logo-circle">
+          <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+        </div>
+        
+        <div class="verification-badge" 
+        *ngIf="ad.is_verified && ad.is_verified !== 'none'" 
+        [ngClass]="ad.verification_level">
+     <img 
+       loading="lazy" decoding="async"
+       src="assets/gold.avif"
+       *ngIf="ad.is_verified=== 'gold'"
+       class="verify-img"
+       alt="شارة التحقق الذهبية"
+       title="متجر موثَّق - ذهبية">
+     <img 
+       loading="lazy" decoding="async"
+       src="assets/blue.webp"
+       *ngIf="ad.is_verified=== 'blue'"
+       class="verify-img"
+       alt="شارة التحقق الزرقاء"
+       title="متجر موثَّق - زرقاء">
+   </div>
+ </div>
+ 
+ <div class="provider-name-wrapper">
+        <span class="provider-name">{{ ad.details?.provider_name || ad.owner_name || 'مقدم خدمة متاح' }}</span>
+      </div>
+    </div>
+
+    <div class="contact-icons" *ngIf="ad.is_available">
+      <div class="icon-btn call" (click)="trackContactClick(ad, 'call'); contactAction('call', $event)">
+        <ion-icon name="call"></ion-icon>
+      </div>
+      <div class="icon-btn whatsapp" (click)="trackContactClick(ad, 'whatsapp'); contactAction('whatsapp', $event)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="grid-item city-box">
+      <ion-icon name="location-outline"></ion-icon>
+      <span>{{ ad.city || 'غير محدد' }}</span>
+    </div>
+
+    <div class="grid-item status-toggle" 
+         [class.active]="ad.is_available"
+         [class.inactive]="!ad.is_available">
+      <ion-icon [name]="ad.is_available ? 'checkmark-done-circle' : 'close-circle'"></ion-icon>
+      <span>{{ ad.is_available ? 'متاح الآن' : 'غير متاح' }}</span>
+    </div>
+  </div>
+  
+  </div>

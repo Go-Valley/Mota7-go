@@ -1,0 +1,124 @@
+<app-mota7-header title="إدارة الإعلانات" [showBackButton]="true" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="admin-main-container">
+
+    <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" class="status-tabs">
+      <ion-segment-button value="pending">
+        <ion-label>قيد المراجعة</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="active">
+        <ion-label>مفعل</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="expired">
+        <ion-label>منتهي</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="rejected">
+        <ion-label>مرفوض</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <ion-segment [value]="selectedType" (ionChange)="onTypeChange($event)" mode="ios" class="type-tabs">
+      <ion-segment-button value="all">
+        <ion-label>الكل</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="delivery">
+        <ion-label>توصيل</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="education">
+        <ion-label>تعليمية</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="other">
+        <ion-label>أخرى</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="product">
+        <ion-label>منتج</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="store">
+        <ion-label>متجر</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="loading-box" *ngIf="isLoading">
+      <ion-spinner name="crescent" color="warning"></ion-spinner>
+      <p>جاري جلب بيانات مُتاح برو...</p>
+    </div>
+
+    <ng-container *ngIf="!isLoading">
+      
+      <ng-container *ngIf="selectedTab === 'pending'">
+        <ng-container *ngIf="getFilteredAds('pending') as pendingAds">
+          <div class="cards-grid" *ngIf="pendingAds.length > 0">
+            <div *ngFor="let ad of pendingAds" class="card-wrapper">
+              <app-delivery-card *ngIf="ad.ad_type === 'delivery'" [ad]="ad" (manage)="openAdActions($event)"></app-delivery-card>
+              <app-education-card *ngIf="ad.ad_type === 'education'" [ad]="ad" (manage)="openAdActions($event)"></app-education-card>
+              <app-other-card *ngIf="ad.ad_type === 'other'" [ad]="ad" (manage)="openAdActions($event)"></app-other-card>
+              <app-product-card *ngIf="ad.ad_type === 'product'" [ad]="ad" (manage)="openAdActions($event)"></app-product-card>
+              <app-store-card *ngIf="ad.ad_type === 'store'" [ad]="ad" (manage)="openAdActions($event)"></app-store-card>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="pendingAds.length === 0">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <p>لا توجد إعلانات حالياً في هذا القسم</p>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="selectedTab === 'active'">
+        <ng-container *ngIf="getFilteredAds('active') as activeAds">
+          <div class="cards-grid" *ngIf="activeAds.length > 0">
+            <div *ngFor="let ad of activeAds" class="card-wrapper">
+              <app-delivery-card *ngIf="ad.ad_type === 'delivery'" [ad]="ad" (manage)="openAdActions($event)"></app-delivery-card>
+              <app-education-card *ngIf="ad.ad_type === 'education'" [ad]="ad" (manage)="openAdActions($event)"></app-education-card>
+              <app-other-card *ngIf="ad.ad_type === 'other'" [ad]="ad" (manage)="openAdActions($event)"></app-other-card>
+              <app-product-card *ngIf="ad.ad_type === 'product'" [ad]="ad" (manage)="openAdActions($event)"></app-product-card>
+              <app-store-card *ngIf="ad.ad_type === 'store'" [ad]="ad" (manage)="openAdActions($event)"></app-store-card>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="activeAds.length === 0">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <p>لا توجد إعلانات حالياً في هذا القسم</p>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="selectedTab === 'expired'">
+        <ng-container *ngIf="getFilteredAds('expired') as expiredAds">
+          <div class="cards-grid" *ngIf="expiredAds.length > 0">
+            <div *ngFor="let ad of expiredAds" class="card-wrapper">
+              <app-delivery-card *ngIf="ad.ad_type === 'delivery'" [ad]="ad" (manage)="openAdActions($event)"></app-delivery-card>
+              <app-education-card *ngIf="ad.ad_type === 'education'" [ad]="ad" (manage)="openAdActions($event)"></app-education-card>
+              <app-other-card *ngIf="ad.ad_type === 'other'" [ad]="ad" (manage)="openAdActions($event)"></app-other-card>
+              <app-product-card *ngIf="ad.ad_type === 'product'" [ad]="ad" (manage)="openAdActions($event)"></app-product-card>
+              <app-store-card *ngIf="ad.ad_type === 'store'" [ad]="ad" (manage)="openAdActions($event)"></app-store-card>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="expiredAds.length === 0">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <p>لا توجد إعلانات حالياً في هذا القسم</p>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="selectedTab === 'rejected'">
+        <ng-container *ngIf="getFilteredAds('rejected') as rejectedAds">
+          <div class="cards-grid" *ngIf="rejectedAds.length > 0">
+            <div *ngFor="let ad of rejectedAds" class="card-wrapper">
+              <app-delivery-card *ngIf="ad.ad_type === 'delivery'" [ad]="ad" (manage)="openAdActions($event)"></app-delivery-card>
+              <app-education-card *ngIf="ad.ad_type === 'education'" [ad]="ad" (manage)="openAdActions($event)"></app-education-card>
+              <app-other-card *ngIf="ad.ad_type === 'other'" [ad]="ad" (manage)="openAdActions($event)"></app-other-card>
+              <app-product-card *ngIf="ad.ad_type === 'product'" [ad]="ad" (manage)="openAdActions($event)"></app-product-card>
+              <app-store-card *ngIf="ad.ad_type === 'store'" [ad]="ad" (manage)="openAdActions($event)"></app-store-card>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="rejectedAds.length === 0">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <p>لا توجد إعلانات حالياً في هذا القسم</p>
+          </div>
+        </ng-container>
+      </ng-container>
+
+    </ng-container>
+
+  </div>
+</ion-content>

@@ -1,0 +1,237 @@
+<app-mota7-header 
+  *ngIf="selectedCategory" 
+  [title]="selectedCategoryName"
+  (backClick)="backToHome()"> 
+</app-mota7-header>
+ 
+<div class="city-widget" *ngIf="selectedCategory">
+  <button
+    type="button"
+    class="city-capsule-btn"
+    (click)="toggleCityPopover()"
+    aria-label="اختيار المدينة"
+    [attr.aria-expanded]="showCityPopover">
+    <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+    <span class="city-label">{{ selectedCityLabel }}</span>
+  </button>
+  
+  <div class="city-popover" *ngIf="showCityPopover" (click)="$event.stopPropagation()">
+    <button type="button" class="city-option" (click)="selectCity('الكل')">
+      <ion-icon name="globe-outline"></ion-icon>
+      <span>الكل</span>
+    </button>
+    <button type="button" class="city-option" (click)="selectCity('الخارجة')">
+      <ion-icon name="location-outline"></ion-icon>
+      <span>الخارجة</span>
+    </button>
+    <button type="button" class="city-option" (click)="selectCity('الداخلة')">
+      <ion-icon name="location-outline"></ion-icon>
+      <span>الداخلة</span>
+    </button>
+  </div>
+</div>
+
+<div class="city-popover-backdrop" 
+     *ngIf="showCityPopover && selectedCategory" 
+     (click)="closeCityPopover()">
+</div>
+
+<ion-content [fullscreen]="true" (click)="onGlobalClick()">
+  
+  <!-- ميزة سحب الشاشة لأسفل لعمل refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب لأسفل للتحديث"
+      refreshingSpinner="crescent"
+      refreshingText="جاري التحديث...">
+    </ion-refresher-content>
+  </ion-refresher>
+  
+  <div class="main-wrapper">
+    
+    <div class="search-section" *ngIf="!selectedCategory" (click)="$event.stopPropagation()">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+        <input 
+          type="text" 
+          placeholder="ابحث عن الخدمات , المنتجات , المتاجر ..." 
+          [(ngModel)]="searchText"
+          (input)="onSearchInput()"
+          aria-label="البحث العام"
+        >
+        <ion-icon
+          name="close-outline"
+          *ngIf="searchText"
+          (click)="clearSearch()"
+          class="search-clear-icon">
+        </ion-icon>
+      </div>
+
+      <div class="search-empty" *ngIf="searchText && (searchResults$ | async)?.length === 0">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <p>لا توجد نتائج مطابقة لبحثك</p>
+      </div>
+    </div>
+
+    <app-banners *ngIf="!selectedCategory"></app-banners>
+
+    <div class="section-header" [class.selected-header]="selectedCategory">
+      <h3 *ngIf="!selectedCategory">بتدور على ايه ؟</h3>
+      <div class="underline" *ngIf="!selectedCategory"></div>
+    </div>
+
+    <div class="delivery-tabs" *ngIf="selectedCategory === 'transportation'">
+      <button type="button" class="delivery-tab" [class.active]="selectedDeliveryCategory === 'all'" (click)="selectDeliveryCategory('all')">الكل</button>
+      <button type="button" class="delivery-tab" *ngFor="let item of deliveryCategories" [class.active]="selectedDeliveryCategory === item.id" (click)="selectDeliveryCategory(item.id)">{{ item.nameAr }}</button>
+    </div>
+
+    <div class="education-tabs" *ngIf="selectedCategory === 'education'">
+      <button type="button" class="edu-tab" [class.active]="selectedEducationStage === 'all'" (click)="selectEducationStage('all')">الكل</button>
+      <button type="button" class="edu-tab" *ngFor="let stage of educationStages" [class.active]="selectedEducationStage === stage.id" (click)="selectEducationStage(stage.id)">{{ stage.nameAr }}</button>
+    </div>
+
+    <div class="education-subjects" *ngIf="selectedCategory === 'education' && selectedEducationStage !== 'all'">
+      <button type="button" class="edu-tab" [class.active]="selectedEducationSubject === 'all'" (click)="selectEducationSubject('all')">الكل</button>
+      <button type="button" class="edu-tab" *ngFor="let sub of educationSubjects" [class.active]="selectedEducationSubject === sub" (click)="selectEducationSubject(sub)">{{ sub }}</button>
+    </div>
+
+    <div class="other-tabs" *ngIf="selectedCategory === 'other_services'">
+      <button type="button" class="other-tab" [class.active]="selectedOtherService === 'all'" (click)="selectOtherService('all')">الكل</button>
+      <button type="button" class="other-tab" *ngFor="let item of otherServices" [class.active]="selectedOtherService === item.id" (click)="selectOtherService(item.id)">{{ item.nameAr }}</button>
+    </div>
+
+    <div class="product-tabs" *ngIf="selectedCategory === 'products'">
+      <button type="button" class="product-tab" [class.active]="selectedProductCategory === 'all'" (click)="selectProductCategory('all')">الكل</button>
+      <button type="button" class="product-tab" *ngFor="let item of productCategories" [class.active]="selectedProductCategory === item.id" (click)="selectProductCategory(item.id)">{{ item.nameAr }}</button>
+    </div>
+
+    <div class="product-subtabs" *ngIf="selectedCategory === 'products' && selectedProductCategory !== 'all'">
+      <button type="button" class="product-tab" [class.active]="selectedProductSubcategory === 'all'" (click)="selectProductSubcategory('all')">الكل</button>
+      <button type="button" class="product-tab" *ngFor="let sub of productSubcategories" [class.active]="selectedProductSubcategory === sub" (click)="selectProductSubcategory(sub)">{{ sub }}</button>
+    </div>
+
+    <div class="search-results" *ngIf="!selectedCategory && searchText" (click)="$event.stopPropagation()">
+      <div class="ads-display-container">
+        <ng-container *ngFor="let ad of searchList">
+          <ng-container [ngSwitch]="ad.ad_type">
+            <app-delivery-home-card *ngSwitchCase="'delivery'" [ad]="ad"></app-delivery-home-card>
+            <app-education-home-card *ngSwitchCase="'education'" [ad]="ad"></app-education-home-card>
+            <app-other-services-home-card *ngSwitchCase="'other'" [ad]="ad"></app-other-services-home-card>
+            <app-product-home-card *ngSwitchCase="'product'" [ad]="ad"></app-product-home-card>
+            <app-store-home-card *ngSwitchCase="'store'" [ad]="ad"></app-store-home-card>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+
+    <ion-infinite-scroll
+      *ngIf="!selectedCategory && searchText"
+      threshold="100px"
+      (ionInfinite)="loadMoreSearch($event)"
+      [disabled]="!searchHasMore">
+      <ion-infinite-scroll-content loadingSpinner="crescent" loadingText="جاري التحميل...">
+      </ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+
+    <div class="services-grid" *ngIf="!selectedCategory && (!searchText || !(searchResults$ | async)?.length)">
+      <ng-container *ngIf="(categories$ | async) as categories; else defaultView">
+        <div class="service-card" *ngFor="let category of categories" (click)="openService(category)">
+          <div class="icon-circle">
+            <ion-icon [name]="category.icon"></ion-icon>
+          </div>
+          <span class="service-label">{{ category.nameAr }}</span>
+        </div>
+      </ng-container>
+
+      <ng-template #defaultView>
+        <div class="service-card" (click)="openService('transportation')">
+          <div class="icon-circle">
+            <ion-icon name="car-sport"></ion-icon>
+          </div>
+          <span class="service-label">النقل و التوصيل</span>
+        </div>
+
+        <div class="service-card" (click)="openService('education')">
+          <div class="icon-circle">
+            <ion-icon name="school"></ion-icon>
+          </div>
+          <span class="service-label">الخدمات التعليمية</span>
+        </div>
+
+        <div class="service-card" (click)="openService('other_services')">
+          <div class="icon-circle">
+            <ion-icon name="grid"></ion-icon>
+          </div>
+          <span class="service-label">خدمات أخرى</span>
+        </div>
+        
+        <div class="service-card" (click)="openService('stores_types')">
+          <div class="icon-circle">
+            <ion-icon name="storefront"></ion-icon>
+          </div>
+          <span class="service-label">المتاجر</span>
+        </div>
+
+        <div class="service-card" (click)="openService('products')">
+          <div class="icon-circle">
+            <ion-icon name="cart"></ion-icon>
+          </div>
+          <span class="service-label">المنتجات</span>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="ads-display-container" *ngIf="selectedCategory">
+      <ng-container *ngIf="selectedCategory === 'transportation'">
+        <app-delivery-home-card 
+          *ngFor="let ad of adsList" 
+          [ad]="ad">
+        </app-delivery-home-card>
+      </ng-container>
+
+      <ng-container *ngIf="selectedCategory === 'education'">
+        <app-education-home-card
+          *ngFor="let ad of adsList"
+          [ad]="ad">
+        </app-education-home-card>
+      </ng-container>
+
+      <ng-container *ngIf="selectedCategory === 'other_services'">
+        <app-other-services-home-card
+          *ngFor="let ad of adsList"
+          [ad]="ad">
+        </app-other-services-home-card>
+      </ng-container>
+
+      <ng-container *ngIf="selectedCategory === 'products'">
+        <app-product-home-card
+          *ngFor="let ad of adsList"
+          [ad]="ad">
+        </app-product-home-card>
+      </ng-container>
+
+      <ng-container *ngIf="selectedCategory === 'stores_types'">
+        <app-store-home-card
+          *ngFor="let ad of adsList"
+          [ad]="ad">
+        </app-store-home-card>
+      </ng-container>
+
+      <div class="empty-state" *ngIf="adsList.length === 0">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <p>لا توجد إعلانات متاحة حالياً</p>
+      </div>
+    </div>
+
+    <ion-infinite-scroll
+      *ngIf="selectedCategory"
+      threshold="100px"
+      (ionInfinite)="loadMore($event)"
+      [disabled]="!hasMore">
+      <ion-infinite-scroll-content loadingSpinner="crescent" loadingText="جاري التحميل...">
+      </ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+
+  </div>
+</ion-content>

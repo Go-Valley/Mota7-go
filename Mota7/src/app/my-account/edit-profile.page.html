@@ -1,0 +1,96 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="custom-header">
+    <div class="header-content">
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack()" class="back-btn-styled">
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      
+      <ion-title>تعديل الملف الشخصي</ion-title>
+      
+      <div class="spacer" slot="end"></div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="edit-wrapper">
+    <div class="profile-image-section">
+      <div class="abstract-avatar-container">
+        <div class="orbit-particle p1"></div>
+        <div class="orbit-particle p2"></div>
+        <div class="orbit-particle p3"></div>
+        
+        <div class="main-identity-core">
+          <div class="identity-icon">
+            <div class="head-blob"></div>
+            <div class="body-arc"></div>
+          </div>
+        </div>
+        
+        <div class="pulse-rings">
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-container">
+      <ion-label class="input-label">الاسم الكامل</ion-label>
+      <ion-item lines="none" class="custom-input">
+        <ion-icon name="person-outline" slot="start"></ion-icon>
+        <ion-input
+          #inputFullName
+          [(ngModel)]="userData.fullName"
+          (beforeinput)="onFullNameBeforeInput($event)"
+          (compositionend)="onFullNameCompositionEnd()"
+          (ionInput)="onFullNameInput($event)"
+          maxlength="20"
+          type="text"
+          placeholder="اكتب اسمك"
+        ></ion-input>
+      </ion-item>
+
+      <ion-label class="input-label">رقم الهاتف (لا يمكن تغييره)</ion-label>
+      <ion-item lines="none" class="custom-input disabled">
+        <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
+        <ion-input [value]="userData.phone" readonly></ion-input>
+      </ion-item>
+
+      <ion-label class="input-label">المدينة</ion-label>
+      <ion-item lines="none" class="custom-input city-select-item">
+        <ion-icon name="location-outline" slot="start"></ion-icon>
+        <ion-select [(ngModel)]="userData.city" 
+                    interface="action-sheet" 
+                    placeholder="اختر المدينة">
+          <ion-select-option value="الخارجة">الخارجة</ion-select-option>
+          <ion-select-option value="الداخلة">الداخلة</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-label class="input-label">البريد الإلكتروني</ion-label>
+      <ion-item lines="none" class="custom-input">
+        <ion-icon name="mail-outline" slot="start"></ion-icon>
+        <ion-input [(ngModel)]="userData.personalEmail" type="email" placeholder="بريدك الإلكتروني"></ion-input>
+      </ion-item>
+
+      <div class="change-pass-wrapper">
+        <ion-button fill="clear" (click)="changePasswordViaWA()" class="change-password-btn">
+          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          تغيير كلمة المرور
+        </ion-button>
+      </div>
+
+      <ion-button
+        expand="block"
+        class="save-btn"
+        [disabled]="!acct.accountUsable()"
+        (click)="saveProfile()"
+      >
+        <ion-icon name="save-outline" slot="end"></ion-icon>
+        حفظ التعديلات
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

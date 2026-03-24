@@ -1,0 +1,144 @@
+/* هيدر متاح الموحد */
+.mota7-header {
+  --background: #ffffff;
+  .mota7-title {
+    font-weight: 800 !important;
+    color: #1a1a1a !important;
+    font-size: 1.1rem;
+  }
+  .mota7-back-button {
+    --background: #f8f9fa;
+    --border-radius: 12px;
+    --color: #1a1a1a;
+    width: 40px; height: 40px;
+  }
+}
+
+.details-container {
+  background: #ffffff;
+  
+  .image-gallery-wrapper {
+    width: 100%;
+    height: 380px; 
+    background: #fcfcfc;
+    position: relative;
+    
+    .product-swiper {
+      width: 100%;
+      height: 100%;
+      --swiper-pagination-color: #3880ff;
+      --swiper-pagination-bullet-inactive-color: #ffffff;
+      --swiper-pagination-bullet-inactive-opacity: 0.8;
+      --swiper-pagination-bullet-size: 7px;
+      --swiper-pagination-bullet-horizontal-gap: 4px;
+    }
+
+    .slide-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; 
+    }
+  }
+
+  .content-padding {
+    padding: 24px 20px;
+
+    .product-main-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin: 0 0 10px 0;
+    }
+
+    .divider {
+      height: 1px;
+      background: #f0f0f0;
+      margin: 15px 0;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+      &.mt-10 { margin-top: 15px; }
+    }
+
+    /* تنسيق الوصف المطلوب */
+    .custom-short-desc {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin: 0 0 10px 0;
+    }
+
+    .custom-full-details {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .info-list-modern {
+      background: #f9f9f9;
+      border-radius: 24px;
+      padding: 8px 16px;
+      margin-top: 10px;
+
+      .info-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid #eee;
+        &:last-child { border-bottom: none; }
+
+        ion-icon { 
+          color: #3880ff; 
+          font-size: 1.3rem;
+          background: #ffffff;
+          padding: 8px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .info-label { color: #8a8a8a; font-size: 0.9rem; width: 60px; }
+        .info-value { color: #1a1a1a; font-size: 1rem; font-weight: 700; flex: 1; }
+        
+        &.price-row .info-value { 
+          color: #2dd36f; 
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px calc(16px + var(--ion-safe-area-bottom));
+  background: #ffffff;
+  border-top: 1px solid #f0f0f0;
+
+  .action-btn {
+    flex: 1;
+    height: 56px;
+    border-radius: 18px;
+    border: none;
+    font-weight: 800;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    &.call { background: #3880ff; }
+    &.whatsapp { background: #2dd36f; }
+    
+    &:active { transform: scale(0.96); transition: 0.1s; }
+  }
+}

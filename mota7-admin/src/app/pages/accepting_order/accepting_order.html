@@ -1,0 +1,119 @@
+<app-mota7-header [title]="'الطلبات المقبولة'" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="accepting-container">
+    <div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+        <input 
+          type="tel" 
+          placeholder="ابحث برقم الهاتف او الاسم" 
+          [(ngModel)]="searchQuery"
+          (input)="filterOrders()"
+          aria-label="البحث برقم الهاتف"
+        >
+      </div>
+    </div>
+
+    <div class="orders-list">
+      <div class="order-card-dual" *ngFor="let order of filteredOrders">
+        
+        <div class="card-header">
+          <div class="status-badge">
+            <ion-icon name="checkmark-circle"></ion-icon>
+            <span>طلب مقبول</span>
+          </div>
+          <div class="order-date">{{ order.acceptedAt?.toDate() | date:'yyyy/MM/dd - hh:mm a':'':'ar' }}</div>
+        </div>
+
+        <div class="service-main-info">
+          <div class="service-tag" [ngClass]="order.serviceType">
+            <ion-icon [name]="getServiceIcon(order.serviceType)"></ion-icon>
+            <span>{{ getServiceLabel(order) }}</span>
+          </div>
+          <div class="city-badge">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ order.city }}</span>
+          </div>
+<div class="price-tag-wrapper" *ngIf="order.serviceType === 'delivery' && order.price">
+    <ion-icon name="cash-outline"></ion-icon>
+    <span>سعر التوصيل: {{ order.price }} جنيه</span>
+  </div>
+</div>
+        <div class="party-container customer-box">
+          <div class="party-header">
+            <span class="role-label">طالب الخدمة (العميل)</span>
+          </div>
+          <div class="party-content">
+            <div class="info">
+              <div class="name">{{ order.customerName }}</div>
+              <div class="phone">{{ order.customerPhone }}</div>
+            </div>
+            <div class="party-actions">
+              <a [href]="'tel:' + order.customerPhone" 
+                 class="icon-btn call" 
+                 title="اتصال هاتفي بالعميل" 
+                 aria-label="اتصال هاتفي">
+                <ion-icon name="call"></ion-icon>
+              </a>
+              <button class="icon-btn whatsapp green" 
+                      (click)="contactWhatsApp('customer', order)" 
+                      title="واتساب العميل" 
+                      aria-label="واتساب">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="party-container provider-box">
+          <div class="party-header">
+            <span class="role-label">مستقبل الخدمة (المزود)</span>
+          </div>
+          <div class="party-content">
+            <div class="info">
+              <div class="name">{{ order.providerName || 'مقدم خدمة مُتاح' }}</div>
+              <div class="phone">{{ order.providerId }}</div>
+              <div class="extra-info" *ngIf="order.providerPhone && order.providerPhone !== order.providerId">
+                هاتف بديل: {{ order.providerPhone }}
+              </div>
+            </div>
+            <div class="party-actions">
+              <a [href]="'tel:' + (order.providerPhone || order.providerId)" 
+                 class="icon-btn call" 
+                 title="اتصال هاتفي بالمزود" 
+                 aria-label="اتصال هاتفي">
+                <ion-icon name="call"></ion-icon>
+              </a>
+              <button class="icon-btn whatsapp blue" 
+                      (click)="contactWhatsApp('provider', order)" 
+                      title="واتساب المزود" 
+                      aria-label="واتساب">
+                <ion-icon name="logo-whatsapp"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-notes" *ngIf="order.shortNote">
+          <strong>ملاحظة:</strong> {{ order.shortNote }}
+        </div>
+
+        <div class="card-footer">
+          <button class="footer-btn edit" (click)="editOrder(order)" aria-label="تعديل الطلب">
+            <ion-icon name="create-outline"></ion-icon> تعديل
+          </button>
+          <button class="footer-btn delete" (click)="deleteOrder(order)" aria-label="حذف الطلب">
+            <ion-icon name="trash-outline"></ion-icon> حذف
+          </button>
+        </div>
+
+      </div>
+
+      <div class="empty-state" *ngIf="filteredOrders.length === 0">
+        <ion-icon name="search-outline"></ion-icon>
+        <p>لا توجد طلبات مقبولة مطابقة للبحث</p>
+      </div>
+    </div>
+  </div>
+</ion-content>

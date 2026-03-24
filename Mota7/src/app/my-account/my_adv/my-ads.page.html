@@ -1,0 +1,99 @@
+<app-mota7-header 
+  title="إدارة إعلاناتي" 
+  [showBackButton]="true"
+  (backClick)="goBack()"> 
+</app-mota7-header>
+
+<ion-content>
+  <div class="main-wrapper">
+    
+    <div class="user-profile-card premium-profile-card">
+      <div class="premium-card-glow" aria-hidden="true"></div>
+      <div class="premium-card-shine" aria-hidden="true"></div>
+      <div class="premium-card-inner">
+        <div class="profile-icon-orbit" aria-hidden="true">
+          <span class="orbit-ring"></span>
+          <span class="orbit-dot orbit-dot--1"></span>
+          <span class="orbit-dot orbit-dot--2"></span>
+          <div class="profile-icon-badge">
+            <ion-icon name="sparkles-outline"></ion-icon>
+          </div>
+        </div>
+        <h2 class="user-name">{{ userName }}</h2>
+        <p class="user-role-label">لوحة تحكم اعلاناتك</p>
+        <div class="user-details-box">
+          <div class="info-pill phone">
+            <ion-icon name="call-outline"></ion-icon>
+            <span>{{ userPhone }}</span>
+          </div>
+          <div class="info-pill city">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ userCity }}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="edit-profile-premium"
+          [disabled]="!acct.accountUsable()"
+          (click)="goToEditProfile()"
+        >
+          <ion-icon name="create-outline"></ion-icon>
+          <span>تعديل الملف الشخصي</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="cta-container">
+      <button class="modern-add-btn" [disabled]="!acct.accountUsable()" (click)="openAddAdModal()">
+        <div class="btn-inner">
+          <ion-icon name="add-circle-outline"></ion-icon>
+          <span>إضافة إعلان جديد</span>
+        </div>
+      </button>
+    </div>
+
+    <ion-segment [(ngModel)]="selectedTab" mode="ios" class="custom-segment">
+      <ion-segment-button value="commercial">
+        <ion-label>متاجر ومنتجات</ion-label>
+        <ion-icon name="grid-outline"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="services">
+        <ion-label>خدمات متاح</ion-label>
+        <ion-icon name="car-sport-outline"></ion-icon>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="ads-section" *ngIf="!isLoading">
+      
+      <div *ngIf="selectedTab === 'commercial'">
+        <div *ngFor="let ad of storesAndProducts" class="ad-item">
+          <app-store-card *ngIf="ad.ad_type === 'store'" [ad]="ad" [userNameFromParent]="userName" (delete)="deleteAd($event)" (edit)="editAd($event)"></app-store-card>
+          <app-product-card *ngIf="ad.ad_type === 'product'" [ad]="ad" [userNameFromParent]="userName" (delete)="deleteAd($event)" (edit)="editAd($event)"></app-product-card>
+        </div>
+        <div class="empty-state" *ngIf="storesAndProducts.length === 0">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <p>لا توجد متاجر أو منتجات منشورة</p>
+        </div>
+      </div>
+
+      <div *ngIf="selectedTab === 'services'">
+        <div *ngFor="let ad of servicesAds" class="ad-item">
+          <app-delivery-card *ngIf="ad.ad_type === 'delivery'" [ad]="ad" (delete)="deleteAd($event)" (edit)="editAd($event)"></app-delivery-card>
+          <app-education-card *ngIf="ad.ad_type === 'education'" [ad]="ad" (delete)="deleteAd($event)" (edit)="editAd($event)"></app-education-card>
+          <app-other-services-card *ngIf="ad.ad_type === 'other_services' || ad.ad_type === 'other'" [ad]="ad" (delete)="deleteAd($event)" (edit)="editAd($event)"></app-other-services-card>
+        </div>
+        <div class="empty-state" *ngIf="servicesAds.length === 0">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <p>لا توجد خدمات توصيل أو تعليم منشورة</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent" color="warning"></ion-spinner>
+      <p>جاري جلب إعلاناتك...</p>
+    </div>
+
+  </div>
+</ion-content>

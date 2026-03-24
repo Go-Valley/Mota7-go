@@ -1,0 +1,78 @@
+<app-mota7-header title="البانرات الإعلانية" [showBackButton]="true" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content>
+  <div class="add-action-area">
+    <ion-button (click)="isAdding = !isAdding" fill="clear" class="toggle-add-btn">
+      <ion-icon [name]="isAdding ? 'close-circle-outline' : 'add-outline'" slot="start"></ion-icon>
+      {{ isAdding ? 'إلغاء الإضافة' : 'إضافة بانر جديد' }}
+    </ion-button>
+  </div>
+
+  <div class="upload-section" *ngIf="isAdding">
+    <div class="preview-container" (click)="fileInput.click()">
+      <img *ngIf="previewImage" [src]="previewImage" alt="معاينة البانر" />
+      <div *ngIf="!previewImage" class="placeholder">
+        <ion-icon name="cloud-upload-outline"></ion-icon>
+        <p>اضغط لاختيار صورة البانر</p>
+      </div>
+      <input type="file" #fileInput (change)="selectImage($event)" hidden accept="image/*">
+    </div>
+
+    <div class="input-group">
+      <ion-item lines="none" class="mota7-input">
+        <ion-label position="stacked">عنوان البانر</ion-label>
+        <ion-input [(ngModel)]="bannerData.title" placeholder="مثلاً: عروض رمضان"></ion-input>
+      </ion-item>
+
+      <div class="date-row">
+        <ion-item lines="none" class="mota7-input half">
+          <ion-label position="stacked">تاريخ البدء</ion-label>
+          <ion-input type="date" [(ngModel)]="bannerData.startDate"></ion-input>
+        </ion-item>
+        <ion-item lines="none" class="mota7-input half">
+          <ion-label position="stacked">تاريخ الانتهاء</ion-label>
+          <ion-input type="date" [(ngModel)]="bannerData.endDate"></ion-input>
+        </ion-item>
+      </div>
+
+      <ion-button expand="block" (click)="uploadBanner()" class="upload-btn">
+        تنشيط ورفع البانر الآن
+      </ion-button>
+    </div>
+  </div>
+
+  <div class="banners-list">
+    <h3 class="section-title">البانرات النشطة ({{ (banners$ | async)?.length || 0 }})</h3>
+    
+    <ion-card class="banner-card" *ngFor="let banner of banners$ | async">
+      <div class="banner-img-wrapper">
+        <img [src]="banner.imageUrl" alt="صورة الإعلان" />
+        <div class="status-badge" [class.active]="banner.status === 'active'">
+          {{ banner.status === 'active' ? 'نشط' : 'متوقف' }}
+        </div>
+      </div>
+      
+      <ion-card-content>
+        <div class="banner-info">
+          <h3>{{ banner.title }}</h3>
+          <div class="date-info">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>من: {{ banner.startDate || 'بدون' }} - إلى: {{ banner.endDate || 'بدون' }}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <ion-button fill="clear" color="primary" (click)="toggleStatus(banner)">
+            <ion-icon slot="start" [name]="banner.status === 'active' ? 'power-outline' : 'checkmark-circle-outline'"></ion-icon>
+            {{ banner.status === 'active' ? 'إيقاف' : 'تنشيط' }}
+          </ion-button>
+          
+          <ion-button fill="clear" color="danger" (click)="deleteBanner(banner)">
+            <ion-icon slot="start" name="trash-outline"></ion-icon>
+            حذف
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>
