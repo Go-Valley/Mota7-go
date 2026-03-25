@@ -8,8 +8,8 @@ export const ORDER_ACCEPTED_WINDOW_MS = 30 * 60 * 1000;
 /** مدة إظهار وضع الأرشفة على الشاشة بعد إنهاء المهمة */
 export const ORDER_ARCHIVE_UI_MS = 10 * 60 * 1000;
 
-/** بقاء المستند في orders بعد اختفائه من الواجهات حتى الحذف النهائي */
-export const ORDER_DB_RETENTION_AFTER_UI_MS = 24 * 60 * 60 * 1000;
+/** بقاء المستند في orders بعد اختفائه من الواجهات حتى الحذف النهائي (30 يوماً) */
+export const ORDER_DB_RETENTION_AFTER_UI_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** صلاحية منع التكرار لطلب معلّق (ساعة) */
 export const ORDER_PENDING_HOLD_MS = 60 * 60 * 1000;

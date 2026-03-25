@@ -6,6 +6,8 @@ import {
   inject,
   OnInit,
   OnDestroy,
+  OnChanges,
+  SimpleChanges,
   CUSTOM_ELEMENTS_SCHEMA,
   EnvironmentInjector,
   runInInjectionContext
@@ -13,7 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc, Timestamp, getDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { addIcons } from 'ionicons';
@@ -42,8 +44,9 @@ import {
 } from 'src/app/core/utils/order-lifecycle.util';
 import {
   finalizeOrderRemovedFromUi,
-  markAcceptedOrderTimedOut
+  completeAcceptedOrderWhenWindowElapsed
 } from 'src/app/core/utils/order-lifecycle.firestore';
+import { presentProviderRatesCustomerModal } from '../../provider-completion-notice-modal/provider-rates-customer-modal.presenter';
 
 @Component({
   selector: 'app-delivery-card',
@@ -53,7 +56,7 @@ import {
   imports: [CommonModule, IonicModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class DeliveryCardComponent implements OnInit, OnDestroy {
+export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
   @Input() order: any;
   @Output() ignoreOrder = new EventEmitter<string>();
   @Output() acceptOrder = new EventEmitter<string>();
@@ -62,6 +65,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private auth = inject(Auth);
   private toastController = inject(ToastController);
+  private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
 
   private watchId: any;
@@ -76,6 +80,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
   private endTime: number = 0;
   private acceptedEndTime: number = 0;
   private onCountdownDone: (() => void) | null = null;
+  private presentingRateCustomer = false;
 
   constructor() {
     addIcons({
@@ -114,6 +119,52 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['order'] &&
+      !changes['order'].firstChange &&
+      this.order?.status === 'completed'
+    ) {
+      void this.maybePresentProviderRatesCustomerModal();
+    }
+  }
+
+  private isAssignedProviderForOrder(): boolean {
+    const user = this.auth.currentUser;
+    if (!user || !this.order) return false;
+    return (
+      this.order.providerId === this.providerId ||
+      this.order.providerId === user.uid ||
+      this.order.providerPhone === this.providerId
+    );
+  }
+
+  private async maybePresentProviderRatesCustomerModal(): Promise<void> {
+    if (this.presentingRateCustomer) return;
+    const o = this.order;
+    if (!o?.id || o.status !== 'completed' || !this.isAssignedProviderForOrder()) return;
+    if (typeof o.providerCustomerRating === 'number' && o.providerCustomerRating >= 1) return;
+    if (o.providerRatedCustomerAt) return;
+    let skip = false;
+    let prompted = false;
+    try {
+      skip = !!localStorage.getItem(`mota7_prov_cust_rating_skip_${o.id}`);
+      prompted = !!sessionStorage.getItem(`mota7_prov_cust_rating_prompted_${o.id}`);
+    } catch {
+      /* ignore */
+    }
+    if (skip || prompted) return;
+
+    this.presentingRateCustomer = true;
+    try {
+      await presentProviderRatesCustomerModal(this.modalCtrl, o.id, { ...o });
+    } catch (e) {
+      console.error('maybePresentProviderRatesCustomerModal', e);
+    } finally {
+      this.presentingRateCustomer = false;
+    }
+  }
+
   private checkInitialStatus() {
     if (this.order?.status === 'completed') {
       const now = Date.now();
@@ -125,6 +176,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
       if (remaining > 0) {
         this.isVisible = true;
         this.startCountdown(remaining, () => void this.afterArchiveDone());
+        void this.maybePresentProviderRatesCustomerModal();
       } else {
         this.isVisible = false;
       }
@@ -248,8 +300,36 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
   }
 
   private async fireAcceptedExpired() {
-    await markAcceptedOrderTimedOut(this.injector, this.firestore, this.order.id);
-    this.isVisible = false;
+    this.stopLiveTracking();
+    this.stopAcceptedTimer();
+    const id = this.order?.id;
+    if (!id) return;
+    try {
+      await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', id))
+      );
+      const d = snap.data();
+      if (!d || d['status'] !== 'completed') return;
+      Object.assign(this.order, d);
+      this.order.id = id;
+      this.isVisible = true;
+      const now = Date.now();
+      const completedAt = orderFieldToMs(this.order.completedAt, now);
+      const until = this.order.uiArchiveUntil
+        ? orderFieldToMs(this.order.uiArchiveUntil, completedAt + ORDER_ARCHIVE_UI_MS)
+        : completedAt + ORDER_ARCHIVE_UI_MS;
+      const remaining = until - now;
+      if (remaining > 0) {
+        this.startCountdown(remaining, () => void this.afterArchiveDone());
+      } else {
+        void this.afterArchiveDone();
+      }
+      this.finishOrder.emit(this.order.id);
+      await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+    } catch (e) {
+      console.error('fireAcceptedExpired delivery', e);
+    }
   }
 
   async openMap(lat: any, lng: any) {
@@ -443,6 +523,11 @@ export class DeliveryCardComponent implements OnInit, OnDestroy {
       this.order.uiArchiveUntil = uiArchiveUntil;
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());
       this.finishOrder.emit(this.order.id);
+      await presentProviderRatesCustomerModal(
+        this.modalCtrl,
+        this.order.id,
+        { ...this.order }
+      );
     } catch (e) {
       console.error(e);
     }

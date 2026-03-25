@@ -338,3 +338,45 @@ ion-modal.mota7-thank-you-modal::part(backdrop) {
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
+
+/* مودال تقييم مقدم الخدمة بعد إنهاء المهمة */
+ion-modal.mota7-provider-rating-modal {
+  --width: 96%;
+  --max-width: 440px;
+  --height: auto;
+  --border-radius: 22px;
+  --background: transparent;
+  --box-shadow: none;
+}
+
+ion-modal.mota7-provider-rating-modal::part(content) {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+ion-modal.mota7-provider-rating-modal::part(backdrop) {
+  background: rgba(15, 23, 42, 0.42);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* مودال تقييم طالب الخدمة من مقدم الخدمة */
+ion-modal.mota7-provider-rates-customer-modal {
+  --width: 96%;
+  --max-width: 440px;
+  --height: auto;
+  --border-radius: 22px;
+  --background: transparent;
+  --box-shadow: none;
+}
+
+ion-modal.mota7-provider-rates-customer-modal::part(content) {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+ion-modal.mota7-provider-rates-customer-modal::part(backdrop) {
+  background: rgba(15, 23, 42, 0.42);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}

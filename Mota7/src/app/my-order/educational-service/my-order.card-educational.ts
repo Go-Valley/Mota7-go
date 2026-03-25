@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { Firestore, doc, deleteDoc, getDoc, Timestamp, updateDoc } from '@angular/fire/firestore';
 import { AlertController, ModalController } from '@ionic/angular';
-import { presentMota7ThankYouModal } from '../thank-you-modal/thank-you-modal.presenter';
+import { presentProviderRatingModal } from '../provider-rating-modal/provider-rating-modal.presenter';
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
@@ -22,7 +22,7 @@ import {
 } from '../../core/utils/order-lifecycle.util';
 import {
   finalizeOrderRemovedFromUi,
-  markAcceptedOrderTimedOut
+  completeAcceptedOrderWhenWindowElapsed
 } from '../../core/utils/order-lifecycle.firestore';
 
 @Component({
@@ -209,8 +209,19 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
     const id = this.order?.id;
     if (!id || this.isArchiving) return;
     try {
-      await markAcceptedOrderTimedOut(this.injector, this.firestore, id);
-      this.orderDeleted.emit();
+      await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', id))
+      );
+      const d = snap.data();
+      if (!d || d['status'] !== 'completed') return;
+      Object.assign(this.order, d);
+      this.order.id = id;
+      this.clearMainCountdown();
+      this.archivingStarted.emit();
+      this.isArchiving = true;
+      this.startArchiveTimer();
+      await presentProviderRatingModal(this.modalCtrl, id, { ...this.order });
     } catch (e) {
       console.error('expireAcceptedSoftRemove educational:', e);
     }
@@ -285,7 +296,7 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
                 })
               );
 
-              await presentMota7ThankYouModal(this.modalCtrl);
+              await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
             } catch (e) {
               console.error('Error finishing task:', e);
             }

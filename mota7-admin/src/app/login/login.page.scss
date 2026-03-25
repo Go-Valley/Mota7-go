@@ -123,15 +123,16 @@ ion-content.login-ion {
 .logo-mark__img {
   position: relative;
   z-index: 1;
-  width: 72%;
-  height: 72%;
-  max-width: 64px;
-  max-height: 64px;
+  width: 85%;
+  height: 85%;
+  max-width: 85px;
+  max-height: 85px;
   object-fit: contain;
   object-position: center;
   border-radius: 14px;
-  filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.12));
+  filter: drop-shadow(0 2px 8px rgb(255, 255, 255));
   pointer-events: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 

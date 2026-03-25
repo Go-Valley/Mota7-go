@@ -16,7 +16,7 @@ import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { addIcons } from 'ionicons';
 import { AlertController, ModalController, ToastController } from '@ionic/angular';
-import { presentMota7ThankYouModal } from '../thank-you-modal/thank-you-modal.presenter';
+import { presentProviderRatingModal } from '../provider-rating-modal/provider-rating-modal.presenter';
 import {
   checkmarkCircle,
   carSportOutline,
@@ -38,7 +38,7 @@ import {
 import { hasOrderLocationCoordinates } from '../../core/utils/order-form-fields.util';
 import {
   finalizeOrderRemovedFromUi,
-  markAcceptedOrderTimedOut
+  completeAcceptedOrderWhenWindowElapsed
 } from '../../core/utils/order-lifecycle.firestore';
 
 @Component({
@@ -172,17 +172,24 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
     this.stopTimer();
   }
 
-  /** انتهاء المهلة بعد القبول: إخفاء من الواجهات + بقاء 24 ساعة ثم حذف */
+  /** انتهاء مهلة الطلب المقبول: إكمال تلقائي كطلب مكتمل + مودال تقييم مقدم الخدمة */
   private async expireAcceptedSoftRemove() {
     const id = this.order?.id;
     if (!id) return;
     try {
-      await markAcceptedOrderTimedOut(this.injector, this.firestore, id);
-      this.orderDeleted.emit();
+      await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', id))
+      );
+      const d = snap.data();
+      if (!d || d['status'] !== 'completed') return;
+      Object.assign(this.order, d);
+      this.order.id = id;
+      this.checkStatusAndTimer();
+      await presentProviderRatingModal(this.modalCtrl, id, { ...this.order });
     } catch (e) {
       console.error('expireAcceptedSoftRemove delivery:', e);
     }
-    this.isVisible = false;
     this.stopTimer();
   }
 
@@ -253,7 +260,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
                 })
               );
 
-              await presentMota7ThankYouModal(this.modalCtrl);
+              await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
             } catch (e) {
               console.error('Error finishing delivery task:', e);
               this.presentToast('عذراً، حدث خطأ أثناء إنهاء الطلب');

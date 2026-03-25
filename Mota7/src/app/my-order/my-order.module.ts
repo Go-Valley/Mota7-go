@@ -18,6 +18,7 @@ import { MyOrderCardDeliveryComponent } from './delivery-service/my-order.card-d
 import { MyOrderCardEducationalComponent } from './educational-service/my-order.card-educational';
 import { MyOrderCardOtherComponent } from './other-service/my-order.card-other';
 import { ThankYouModalComponent } from './thank-you-modal/thank-you-modal.component';
+import { ProviderRatingModalComponent } from './provider-rating-modal/provider-rating-modal.component';
 import { Mota7HeaderComponent } from '../top_header/header';
 
 
@@ -40,7 +41,8 @@ import { Mota7HeaderComponent } from '../top_header/header';
     MyOrderCardDeliveryComponent,
     MyOrderCardEducationalComponent,
     MyOrderCardOtherComponent,
-    ThankYouModalComponent
+    ThankYouModalComponent,
+    ProviderRatingModalComponent
   ]
 })
 export class MyOrderPageModule {}

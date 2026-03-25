@@ -33,6 +33,7 @@ import {
   finalizeOrderRemovedFromUi,
   purgeFirestoreOrdersPastExpiresAt
 } from '../core/utils/order-lifecycle.firestore';
+import { presentProviderRatingModal } from './provider-rating-modal/provider-rating-modal.presenter';
 
 @Component({
   selector: 'app-my-order',
@@ -49,6 +50,7 @@ export class MyOrderPage implements OnInit, OnDestroy {
   unsubscribeOrders: any;
 
   private injector = inject(EnvironmentInjector);
+  private pendingCustomerRatingModal = false;
 
   constructor(
     private navCtrl: NavController,
@@ -126,6 +128,7 @@ export class MyOrderPage implements OnInit, OnDestroy {
         this.hasActiveRequest = this.activeOrders.length > 0;
 
         void purgeFirestoreOrdersPastExpiresAt(this.injector, this.firestore);
+        void this.tryPresentCustomerRatingModalForUnratedCompleted();
       },
       (error) => {
         console.error('Snapshot error:', error);
@@ -195,5 +198,40 @@ export class MyOrderPage implements OnInit, OnDestroy {
 
   onOrderDeleted() {
     this.hasActiveRequest = this.activeOrders.length > 0;
+  }
+
+  /**
+   * عند اكتمال الطلب من مقدم الخدمة (أو من شاشة أخرى) يظهر مودال التقييم لطالب الخدمة مرة واحدة
+   * حتى لا يفوته التقييم.
+   */
+  private async tryPresentCustomerRatingModalForUnratedCompleted(): Promise<void> {
+    if (this.pendingCustomerRatingModal || !this.customerPhone) return;
+
+    for (const o of this.activeOrders) {
+      if (o.status !== 'completed') continue;
+      if (o.customerRatedAt) continue;
+      const prevRating = o.customerProviderRating;
+      if (typeof prevRating === 'number' && prevRating >= 1) continue;
+      let skipped = false;
+      let alreadyPrompted = false;
+      try {
+        skipped = !!localStorage.getItem(`mota7_rating_skip_${o.id}`);
+        alreadyPrompted = !!sessionStorage.getItem(`mota7_rating_prompted_${o.id}`);
+      } catch {
+        /* ignore */
+      }
+      if (skipped || alreadyPrompted) continue;
+      if (!o.providerName && !o.providerId && !o.providerPhone) continue;
+
+      this.pendingCustomerRatingModal = true;
+      try {
+        await presentProviderRatingModal(this.modalCtrl, o.id, { ...o });
+      } catch (e) {
+        console.error('tryPresentCustomerRatingModalForUnratedCompleted', e);
+      } finally {
+        this.pendingCustomerRatingModal = false;
+      }
+      break;
+    }
   }
 }

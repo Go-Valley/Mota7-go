@@ -1,17 +1,26 @@
-import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, OnDestroy, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
+import { IonicModule, ToastController } from '@ionic/angular';
 import { CommonModule, registerLocaleData } from '@angular/common'; // أضف registerLocaleData
 import localeAr from '@angular/common/locales/ar'; // استيراد بيانات اللغة العربية
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Firestore, collection, collectionData, query, where, deleteDoc, doc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, query, where, deleteDoc, doc, getDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import {
+  ORDER_ACCEPTED_WINDOW_MS,
+  buildGoogleMapsDirectionsUrl,
+  formatAcceptedRemainingMs,
+  hasValidLatLng,
+  openMapsUrlWithFallback,
+  orderFieldToMs,
+} from '../../core/utils/delivery-maps-admin.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkCircle, logoWhatsapp, createOutline, 
   trashOutline, bookOutline, carOutline, call, locationOutline, 
-  timeOutline, informationCircleOutline, hammerOutline, cubeOutline
+  timeOutline, informationCircleOutline, hammerOutline, cubeOutline,
+  navigateOutline, cashOutline
 } from 'ionicons/icons';
 
 // تسجيل اللغة العربية للعمل مع الـ Pipes
@@ -24,25 +33,38 @@ registerLocaleData(localeAr);
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule, Mota7HeaderComponent]
 })
-export class AcceptingOrderPage implements OnInit {
+export class AcceptingOrderPage implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private router = inject(Router);
+  private toastCtrl = inject(ToastController);
 
   allOrders: any[] = [];
   filteredOrders: any[] = [];
   searchQuery: string = '';
+  /** متبقي لكل طلب توصيل مقبول (مفتاح: id الطلب) */
+  deliveryAcceptedRemaining: Record<string, string> = {};
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     addIcons({ 
       searchOutline, checkmarkCircle, logoWhatsapp, createOutline, 
       trashOutline, bookOutline, carOutline, call, locationOutline, 
-      timeOutline, informationCircleOutline, hammerOutline, cubeOutline 
+      timeOutline, informationCircleOutline, hammerOutline, cubeOutline,
+      navigateOutline, cashOutline
     });
   }
 
   ngOnInit() {
     this.loadAcceptedOrders();
+    this.countdownInterval = setInterval(() => this.refreshDeliveryAcceptedCountdowns(), 1000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
   }
 
   loadAcceptedOrders() {
@@ -58,10 +80,23 @@ export class AcceptingOrderPage implements OnInit {
     });
   }
 
+  private refreshDeliveryAcceptedCountdowns(): void {
+    const now = Date.now();
+    const merged: Record<string, string> = {};
+    for (const order of this.filteredOrders) {
+      if (order.serviceType !== 'delivery' || order.status !== 'accepted') continue;
+      const acceptedAt = orderFieldToMs(order.acceptedAt, now);
+      const diff = ORDER_ACCEPTED_WINDOW_MS - (now - acceptedAt);
+      merged[order.id] = formatAcceptedRemainingMs(diff);
+    }
+    this.deliveryAcceptedRemaining = merged;
+  }
+
 filterOrders() {
   // إذا كان حقل البحث فارغاً، نعرض كل الطلبات
   if (!this.searchQuery || this.searchQuery.trim() === '') {
     this.filteredOrders = [...this.allOrders];
+    this.refreshDeliveryAcceptedCountdowns();
     return;
   }
 
@@ -80,6 +115,7 @@ filterOrders() {
       customerName.includes(query)
     );
   });
+  this.refreshDeliveryAcceptedCountdowns();
 }
 
   getServiceIcon(type: string) {
@@ -132,5 +168,67 @@ filterOrders() {
 
   goBack() {
     this.router.navigate(['/dashboard']);
+  }
+
+  /**
+   * في كل ضغطة: جلب أحدث الإحداثيات من Firestore ثم فتح المسار
+   * من مقدم الخدمة → طالب الخدمة (يُحدَّث عند كل فتح للخرائط).
+   */
+  async navigateDeliveryAdmin(order: any): Promise<void> {
+    const id = order?.id;
+    if (!id) {
+      await this.presentToast('تعذّر التتبع');
+      return;
+    }
+    try {
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', id))
+      );
+      if (!snap.exists()) {
+        await this.presentToast('الطلب غير موجود');
+        return;
+      }
+      const d = snap.data();
+      Object.assign(order, d);
+      const i = this.allOrders.findIndex((o) => o.id === id);
+      if (i >= 0) Object.assign(this.allOrders[i], d);
+    } catch (e) {
+      console.error('navigateDeliveryAdmin fetch', e);
+      await this.presentToast('تعذّر جلب أحدث مواقع الطرفين');
+      return;
+    }
+
+    const pLat = order?.providerLat;
+    const pLng = order?.providerLng;
+    if (!hasValidLatLng(pLat, pLng)) {
+      await this.presentToast(
+        'موقع مقدم الخدمة غير متاح بعد — انتظر التحديث من تطبيق المندوب بعد القبول'
+      );
+      return;
+    }
+    const cLat = order?.lat;
+    const cLng = order?.lng;
+    if (!hasValidLatLng(cLat, cLng)) {
+      await this.presentToast('موقع طالب الخدمة (من الطلب) غير محدد على الخريطة');
+      return;
+    }
+    const url = buildGoogleMapsDirectionsUrl(
+      Number(pLat),
+      Number(pLng),
+      Number(cLat),
+      Number(cLng)
+    );
+    await openMapsUrlWithFallback(url);
+  }
+
+  private async presentToast(message: string): Promise<void> {
+    const t = await this.toastCtrl.create({
+      message,
+      duration: 2800,
+      position: 'bottom',
+      mode: 'ios',
+      color: 'dark',
+    });
+    await t.present();
   }
 }

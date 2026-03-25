@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, OnInit, QueryList, ViewChildren, inject, Injector, runInInjectionContext } from '@angular/core';
+import { AlertController, IonicModule, IonItemSliding, ToastController } from '@ionic/angular';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import localeAr from '@angular/common/locales/ar';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +11,7 @@ import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkDoneCircle, logoWhatsapp, 
   trashOutline, bookOutline, carOutline, call, locationOutline, 
-  timeOutline, hammerOutline, cubeOutline, cashOutline
+  timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline
 } from 'ionicons/icons';
 
 registerLocaleData(localeAr);
@@ -24,19 +24,25 @@ registerLocaleData(localeAr);
   imports: [IonicModule, CommonModule, FormsModule, Mota7HeaderComponent]
 })
 export class CompletingOrderPage implements OnInit {
+  @ViewChildren(IonItemSliding) private itemSlidings!: QueryList<IonItemSliding>;
+
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private router = inject(Router);
+  private alertCtrl = inject(AlertController);
+  private toastCtrl = inject(ToastController);
 
   allOrders: any[] = [];
   filteredOrders: any[] = [];
   searchQuery: string = '';
+  /** 1..5 لعرض النجوم في بطاقة التقييم */
+  readonly ratingStarSlots = [1, 2, 3, 4, 5];
 
   constructor() {
     addIcons({ 
       searchOutline, checkmarkDoneCircle, logoWhatsapp, 
       trashOutline, bookOutline, carOutline, call, locationOutline, 
-      timeOutline, hammerOutline, cubeOutline, cashOutline 
+      timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline
     });
   }
 
@@ -113,12 +119,44 @@ export class CompletingOrderPage implements OnInit {
 
   // ---------------------------------
 
-  async deleteOrder(order: any) {
-    if (confirm('هل أنت متأكد من حذف سجل هذا الطلب نهائياً؟')) {
-      await runInInjectionContext(this.injector, () =>
-        deleteDoc(doc(this.firestore, 'orders', order.id))
-      );
-    }
+  closeOpenSlidings(ev: Event): void {
+    const t = ev.target as HTMLElement | undefined;
+    if (t?.closest?.('ion-item-option')) return;
+    this.itemSlidings?.forEach((s) => void s.close());
+  }
+
+  async confirmDeleteOrder(order: any, sliding?: IonItemSliding) {
+    await sliding?.close();
+
+    const alert = await this.alertCtrl.create({
+      header: 'تأكيد الحذف',
+      message: 'هل أنت متأكد من حذف سجل هذا الطلب نهائياً من Firestore؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'حذف',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await runInInjectionContext(this.injector, () =>
+                deleteDoc(doc(this.firestore, 'orders', order.id))
+              );
+              const toast = await this.toastCtrl.create({
+                message: 'تم حذف الطلب',
+                duration: 2000,
+                color: 'success',
+                mode: 'ios',
+              });
+              await toast.present();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   goBack() {

@@ -1,0 +1,47 @@
+<div class="rating-shell" dir="rtl">
+  <div class="rating-card">
+    <p class="line line--primary">قم بتقييم طالب الخدمة</p>
+    <p class="line line--name">أ/ {{ customerName }}</p>
+
+    <ion-textarea
+      #ratingComment
+      class="rating-textarea"
+      [(ngModel)]="commentText"
+      (ionInput)="onCommentInput($event)"
+      placeholder="اضف تعليقك هنا (اختياري)"
+      [maxlength]="maxComment"
+      rows="3"
+      inputmode="text"
+      autocapitalize="sentences"
+    ></ion-textarea>
+
+    <div class="stars-row" role="group" aria-label="تقييم من 1 إلى 5">
+      <button
+        type="button"
+        *ngFor="let n of starSlots"
+        class="star-btn"
+        [class.star-btn--active]="n <= selectedStars"
+        (click)="setStars(n)"
+        [attr.aria-pressed]="n <= selectedStars"
+        [attr.aria-label]="'نجمة ' + n"
+      >
+        <ion-icon [name]="n <= selectedStars ? 'star' : 'star-outline'"></ion-icon>
+      </button>
+    </div>
+
+    <p class="line line--thanks">شكرا لاستخدامك تطبيق "مُتاح"</p>
+
+    <div class="actions">
+      <button type="button" class="btn btn--ghost" (click)="cancel()">إلغاء</button>
+      <ion-button
+        class="btn-done"
+        expand="block"
+        color="danger"
+        [disabled]="selectedStars < 1 || isSubmitting"
+        (click)="submit()"
+      >
+        {{ isSubmitting ? 'جاري الإرسال...' : 'تم' }}
+      </ion-button>
+    </div>
+  </div>
+</div>

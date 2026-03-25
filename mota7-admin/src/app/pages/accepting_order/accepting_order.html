@@ -40,6 +40,23 @@
     <span>سعر التوصيل: {{ order.price }} جنيه</span>
   </div>
 </div>
+
+        <div class="delivery-admin-track" *ngIf="order.serviceType === 'delivery' && order.status === 'accepted'">
+          <div class="delivery-timer-block">
+            <span class="timer-label">متبقي قبل انتهاء صلاحية الطلب (30 دقيقة):</span>
+            <span class="countdown-value">{{ deliveryAcceptedRemaining[order.id] || '--:--' }}</span>
+          </div>
+          <button
+            type="button"
+            class="delivery-track-only-btn"
+            (click)="navigateDeliveryAdmin(order)"
+            aria-label="تتبع: جلب أحدث المواقع ثم فتح المسار من مقدم الخدمة إلى طالب الخدمة"
+          >
+            <ion-icon name="navigate-outline" aria-hidden="true"></ion-icon>
+            <span>تتبع</span>
+          </button>
+        </div>
+
         <div class="party-container customer-box">
           <div class="party-header">
             <span class="role-label">طالب الخدمة (العميل)</span>

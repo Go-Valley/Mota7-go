@@ -12,7 +12,11 @@ import {
   Timestamp
 } from '@angular/fire/firestore';
 import { EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { ORDER_DB_RETENTION_AFTER_UI_MS } from './order-lifecycle.util';
+import {
+  ORDER_ARCHIVE_UI_MS,
+  ORDER_DB_RETENTION_AFTER_UI_MS,
+  timestampPlusMs,
+} from './order-lifecycle.util';
 
 export async function finalizeOrderRemovedFromUi(
   injector: EnvironmentInjector,
@@ -36,27 +40,31 @@ export async function finalizeOrderRemovedFromUi(
   });
 }
 
-export async function markAcceptedOrderTimedOut(
+/**
+ * انتهت مهلة الطلب المقبول دون ضغط «إنهاء المهمة» — يُعامل كطلب مكتمل بنفس حقول الإكمال اليدوي.
+ * يُرجع true إذا تم التحديث من accepted → completed.
+ */
+export async function completeAcceptedOrderWhenWindowElapsed(
   injector: EnvironmentInjector,
   firestore: Firestore,
   orderId: string
-): Promise<void> {
-  await runInInjectionContext(injector, async () => {
+): Promise<boolean> {
+  return await runInInjectionContext(injector, async () => {
     const ref = doc(firestore, 'orders', orderId);
     const snap = await getDoc(ref);
-    if (!snap.exists()) return;
+    if (!snap.exists()) return false;
     const d = snap.data();
-    if (d['removedFromUiAt']) return;
-    if (d['status'] !== 'accepted') return;
-    const nowMs = Date.now();
-    const now = Timestamp.fromMillis(nowMs);
-    const expiresAt = Timestamp.fromMillis(nowMs + ORDER_DB_RETENTION_AFTER_UI_MS);
+    if (d['removedFromUiAt']) return false;
+    if (d['status'] !== 'accepted') return false;
+    const now = Timestamp.now();
+    const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
     await updateDoc(ref, {
-      status: 'accept_expired',
-      acceptExpiredAt: now,
-      removedFromUiAt: now,
-      expiresAt
+      status: 'completed',
+      completedAt: now,
+      isArchiving: true,
+      uiArchiveUntil,
     });
+    return true;
   });
 }
 

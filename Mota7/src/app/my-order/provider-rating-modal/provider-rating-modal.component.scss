@@ -1,0 +1,122 @@
+.rating-shell {
+  padding: 20px 16px 28px;
+  background: linear-gradient(165deg, #f8fafc 0%, #eef2ff 45%, #fff 100%);
+  min-height: 100%;
+}
+
+.rating-card {
+  max-width: 420px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 22px;
+  padding: 22px 18px 18px;
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+.line {
+  margin: 0 0 10px;
+  text-align: center;
+  line-height: 1.55;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.line--primary {
+  font-size: 1.05rem;
+  color: #c2410c;
+}
+
+.line--question {
+  font-size: 0.95rem;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.provider-name {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.rating-textarea {
+  --background: #f8fafc;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+}
+
+.stars-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 22px;
+  flex-direction: row-reverse;
+}
+
+.star-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+
+  ion-icon {
+    font-size: 26px;
+    color: #94a3b8;
+  }
+
+  &--active ion-icon {
+    color: #f59e0b;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+}
+
+.btn {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  border: none;
+  cursor: pointer;
+}
+
+.btn--ghost {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.35);
+
+  &:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
