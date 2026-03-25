@@ -28,6 +28,7 @@ import { StoreHomeCardComponent } from './home_page_cards/store-home-card.compon
 
 import { BannersComponent } from './banners/banners.component';
 import { Mota7HeaderComponent } from '../top_header/header';
+import { slimAdForHomeFeed } from '../core/utils/ad-home-feed-slim.util';
 import { DELIVERY_CATEGORY } from '../core/constants/delivery-data';
 import { EDUCATION_CATEGORY } from '../core/constants/educational-data';
 import { OTHER_SERVICES_DATA } from '../core/constants/other-services-data';
@@ -530,17 +531,6 @@ export class HomePage implements OnInit {
     };
   }
 
-  private shuffleFisherYates<T>(arr: T[], rnd: () => number): T[] {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(rnd() * (i + 1));
-      const t = a[i];
-      a[i] = a[j];
-      a[j] = t;
-    }
-    return a;
-  }
-
   private getStaticName(id: string): string {
     const names: { [key: string]: string } = {
       'transportation': 'نقل وتوصيل',
@@ -574,7 +564,7 @@ export class HomePage implements OnInit {
         return;
       }
       this.searchLastVisible = pageDocs[pageDocs.length - 1];
-      const pageAds = pageDocs.map(d => {
+      const pageAds = pageDocs.map((d) => {
         const data: any = d.data() as any;
         return Object.assign({ id: d.id }, data || {});
       });
@@ -636,10 +626,9 @@ export class HomePage implements OnInit {
         return;
       }
       this.lastVisible = pageDocs[pageDocs.length - 1];
-      const pageAds = pageDocs.map(d => {
-        const data: any = d.data() as any;
-        return Object.assign({ id: d.id }, data || {});
-      });
+      const pageAds = pageDocs.map((d) =>
+        slimAdForHomeFeed(Object.assign({ id: d.id }, d.data() || {}), adType)
+      );
       const filtered = pageAds.filter((ad: any) => {
         if (ad.status !== 'active') return false;
         if (!this.isCityMatch(ad.city)) return false;
@@ -685,6 +674,34 @@ export class HomePage implements OnInit {
     await this.fetchAdsPage(adType, event);
   }
 
+  /** عدد مشاهدات الإعلان في القائمة (للترتيب والعرض). */
+  private adImpressionCount(a: any): number {
+    const ic = a?.impression_count;
+    const sv = a?.stats?.views;
+    const na = typeof ic === 'number' && Number.isFinite(ic) && ic >= 0 ? ic : 0;
+    const nb = typeof sv === 'number' && Number.isFinite(sv) && sv >= 0 ? sv : 0;
+    return Math.max(na, nb);
+  }
+
+  /** متوسط تقييم خدمة المزود؛ ‎-1‎ إن لم يوجد. */
+  private adAvgServiceRating(a: any): number {
+    const c = a?.provider_service_rating_count;
+    const s = a?.provider_service_rating_sum;
+    if (typeof c !== 'number' || c <= 0 || typeof s !== 'number' || !Number.isFinite(s)) return -1;
+    const x = s / c;
+    return Number.isFinite(x) ? x : -1;
+  }
+
+  private compareEngagementThenRand(a: any, b: any, tieRand: (x: any) => number): number {
+    const ia = this.adImpressionCount(a);
+    const ib = this.adImpressionCount(b);
+    if (ib !== ia) return ib - ia;
+    const ra = this.adAvgServiceRating(a);
+    const rb = this.adAvgServiceRating(b);
+    if (rb !== ra) return rb - ra;
+    return tieRand(a) - tieRand(b);
+  }
+
   private sortForDisplay(ads: any[]): any[] {
     const getSort = (a: any) => Number.isFinite(a?.sort_order) ? a.sort_order : 999;
     const getVer = (a: any) => a?.verification_level || 'none';
@@ -704,17 +721,16 @@ export class HomePage implements OnInit {
       if (sa !== sb) return sa - sb;
       const va = verRank(getVer(a)), vb = verRank(getVer(b));
       if (va !== vb) return va - vb;
-      return tieRand(a) - tieRand(b);
+      return this.compareEngagementThenRand(a, b, tieRand);
     });
     const verifiedDefault = ads.filter(a => getSort(a) === 999 && verRank(getVer(a)) < 2)
       .sort((a, b) => {
         const va = verRank(getVer(a)), vb = verRank(getVer(b));
         if (va !== vb) return va - vb;
-        return tieRand(a) - tieRand(b);
+        return this.compareEngagementThenRand(a, b, tieRand);
       });
     const normal = ads.filter(a => getSort(a) === 999 && verRank(getVer(a)) === 2);
-    const rng = this.makeRng(seed);
-    const shuffled = this.shuffleFisherYates(normal, rng);
-    return [...manual, ...verifiedDefault, ...shuffled];
+    const sortedNormal = [...normal].sort((a, b) => this.compareEngagementThenRand(a, b, tieRand));
+    return [...manual, ...verifiedDefault, ...sortedNormal];
   }
 }

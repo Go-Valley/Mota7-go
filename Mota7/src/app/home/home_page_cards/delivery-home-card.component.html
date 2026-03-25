@@ -1,8 +1,11 @@
-<div class="mota7-card-wrapper" *ngIf="ad" [class.mota7-faded]="!ad.details?.is_available">
+<div class="mota7-card-wrapper" *ngIf="ad" [class.mota7-faded]="!ad.details?.is_available"
+     [appAdImpressionTrack]="ad.id || ad.ad_id">
 
   <div class="vehicle-title-header">
     {{ getCategoryName(ad.category_id) }}
   </div>
+
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="true"></app-ad-card-engagement-row>
 
   <div class="main-info-row">
     <div class="image-wrapper">

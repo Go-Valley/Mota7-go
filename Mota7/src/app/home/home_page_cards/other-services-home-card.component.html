@@ -1,7 +1,10 @@
-<div class="mota7-card-wrapper" *ngIf="ad" [class.is-unavailable]="!ad.is_available">
+<div class="mota7-card-wrapper" *ngIf="ad" [class.is-unavailable]="!ad.is_available"
+     [appAdImpressionTrack]="ad.id || ad.ad_id">
   <div class="service-title-header">
     {{ getCategoryName(ad.category_id) }}
   </div>
+
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="true"></app-ad-card-engagement-row>
 
   <div class="provider-info-row">
     <div class="name-section">

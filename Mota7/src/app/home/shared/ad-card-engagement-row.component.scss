@@ -1,0 +1,70 @@
+.ad-engagement-row {
+  display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5.5rem;
+    margin: 0.35rem 0 0.55rem;
+    padding: 0 10px;
+}
+
+.ad-engagement-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+
+  ion-icon {
+    font-size: 0.95rem;
+    opacity: 0.92;
+  }
+}
+
+.ad-engagement-pill--views {
+  color: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(99, 102, 241, 0.28));
+}
+
+.ad-engagement-pill--rating {
+  color: rgb(0 0 0);
+    background: linear-gradient(135deg, rgb(109 182 255 / 73%), rgb(133 185 255 / 88%));
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.ad-engagement-label {
+  opacity: 0.88;
+  font-weight: 900;
+  font-size: 0.95rem
+}
+
+.ad-engagement-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.25ch;
+  font-size: 0.8rem
+}
+
+:host-context(.mota7-card-wrapper) .ad-engagement-pill--views {
+  color: rgba(20, 20, 20, 0.92);
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.55), rgba(251, 191, 36, 0.42));
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+:host-context(.store-icon-card) .ad-engagement-row {
+  justify-content: center;
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+}
+
+:host-context(.store-icon-card) .ad-engagement-pill--views {
+  color: rgba(20, 20, 20, 0.92);
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.55), rgba(251, 191, 36, 0.42));
+  border-color: rgba(250, 204, 21, 0.35);
+}

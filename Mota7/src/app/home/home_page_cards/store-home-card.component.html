@@ -1,6 +1,6 @@
-<div class="store-icon-card" *ngIf="ad">
+<div class="store-icon-card" *ngIf="ad" [appAdImpressionTrack]="ad.id || ad.ad_id">
   <div class="store-circle" (click)="toggleProducts($event)">
-    <img [src]="ad.logo || 'assets/mota7.png'"
+    <img [src]="storeLogoThumb()"
          loading="lazy"
          decoding="async"
          (error)="$any($event.target).src = 'assets/mota7.png'"
@@ -30,7 +30,15 @@
 
   <div class="store-name">{{ ad.store_name }}</div>
 
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
+
   <div class="products-panel" *ngIf="showProducts">
-    <app-product-home-card *ngFor="let p of (products$ | async)" [ad]="p"></app-product-home-card>
+    <div class="store-products-loading" *ngIf="productsLoading">
+      <ion-spinner name="crescent" aria-label="جاري التحميل"></ion-spinner>
+    </div>
+    <app-product-home-card *ngFor="let p of products" [ad]="p"></app-product-home-card>
+    <p class="empty-store-products" *ngIf="!productsLoading && products.length === 0">
+      لا توجد منتجات معروضة لهذا المتجر
+    </p>
   </div>
 </div>

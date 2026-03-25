@@ -1,0 +1,15 @@
+<div class="ad-engagement-row" *ngIf="ad" role="group" [attr.aria-label]="'إحصائيات الإعلان'">
+  <div class="ad-engagement-pill ad-engagement-pill--views">
+    <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+    <span class="ad-engagement-label">مشاهدات</span>
+    <span class="ad-engagement-value">{{ viewCount | number }}</span>
+  </div>
+  <div
+    class="ad-engagement-pill ad-engagement-pill--rating"
+    *ngIf="showServiceRating && avgRating != null"
+  >
+    <ion-icon name="star" aria-hidden="true"></ion-icon>
+    <span class="ad-engagement-label" title="متوسط تقييم الخدمة بعد الطلبات">التقييم</span>
+    <span class="ad-engagement-value">{{ avgRating | number : '1.1-1' }}</span>
+  </div>
+</div>

@@ -1,4 +1,5 @@
-<div class="mota7-card-wrapper" *ngIf="ad">
+<div class="mota7-card-wrapper" *ngIf="ad" [appAdImpressionTrack]="ad.id || ad.ad_id">
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
   <div class="clickable-content" (click)="openProductDetails()">
     <div class="product-description-header">
       {{ ad.details?.short_desc || ad.details?.title }}
@@ -6,7 +7,7 @@
 
     <div class="main-info-row">
       <div class="image-wrapper">
-        <img [src]="(ad.details?.images && ad.details.images.length > 0) ? ad.details.images[0] : 'assets/mota7.png'" 
+        <img [src]="productThumbSrc()"
              loading="lazy" decoding="async"
              (error)="$any($event.target).src = 'assets/mota7.png'" 
              alt="صورة المنتج" 

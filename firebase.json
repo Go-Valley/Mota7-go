@@ -1,5 +1,9 @@
 {
   "functions": {
     "source": "firebase/functions"
+  },
+  "firestore": {
+    "rules": "Mota7/firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

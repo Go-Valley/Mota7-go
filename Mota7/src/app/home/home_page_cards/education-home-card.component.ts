@@ -19,13 +19,15 @@ import { Analytics } from '@angular/fire/analytics';
 import { logEvent } from 'firebase/analytics';
 import { Firestore } from '@angular/fire/firestore';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
+import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
+import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 
 @Component({
   selector: 'app-education-home-card',
   templateUrl: './education-home-card.component.html',
   styleUrls: ['./education-home-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
 })
 export class EducationHomeCardComponent implements OnInit {
   @Input() ad: any;

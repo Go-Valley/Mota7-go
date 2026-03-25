@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { cloudinaryGalleryImageUrl } from 'src/app/core/utils/cloudinary-list-image.util';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { addIcons } from 'ionicons';
@@ -35,6 +36,12 @@ export class ProductDetailsComponent implements OnInit {
 
   ngOnInit() {
     // لا يوجد استدعاء لـ Firebase/AngularFire هنا؛ لا حاجة لـ runInInjectionContext
+  }
+
+  galleryImgSrc(url: string | undefined): string {
+    if (!url) return '';
+    const o = cloudinaryGalleryImageUrl(url);
+    return o || url;
   }
 
   close() {

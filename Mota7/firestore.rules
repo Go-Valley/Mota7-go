@@ -63,7 +63,7 @@ service cloud.firestore {
 
     function isStatsOnlyAdUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['stats', 'call_clicks', 'whatsapp_clicks']);
+        .hasOnly(['stats', 'call_clicks', 'whatsapp_clicks', 'impression_count']);
     }
 
     match /blocked_users/{phone} {

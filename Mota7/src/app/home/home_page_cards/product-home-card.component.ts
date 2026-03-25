@@ -1,6 +1,7 @@
-import { Component, Input, OnInit, inject, EnvironmentInjector } from '@angular/core';
+import { Component, Input, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { addIcons } from 'ionicons';
 import {
   locationOutline, checkmarkCircle, call, logoWhatsapp, cashOutline,
@@ -9,15 +10,17 @@ import {
 import { ProductDetailsComponent } from 'src/app/my-account/my_adv/components/product-form/product-details.component';
 import { Analytics } from '@angular/fire/analytics';
 import { logEvent } from 'firebase/analytics';
-import { Firestore } from '@angular/fire/firestore';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
+import { cloudinaryListThumbnailUrl } from 'src/app/core/utils/cloudinary-list-image.util';
+import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
+import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 
 @Component({
   selector: 'app-product-home-card',
   templateUrl: './product-home-card.component.html',
   styleUrls: ['./product-home-card.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule]
+  imports: [CommonModule, IonicModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
 })
 export class ProductHomeCardComponent implements OnInit {
   @Input() ad: any;
@@ -43,6 +46,13 @@ export class ProductHomeCardComponent implements OnInit {
     this.setDisplayName();
   }
 
+  /** صورة الكرت: Cloudinary مضغوطة للقائمة */
+  productThumbSrc(): string {
+    const raw = this.ad?.details?.images?.[0];
+    const u = cloudinaryListThumbnailUrl(typeof raw === 'string' ? raw : '');
+    return u || 'assets/mota7.png';
+  }
+
   setDisplayName() {
     if (this.ad?.owner_name && this.ad.owner_name !== 'مستخدم متاح') {
       this.displayName = this.ad.owner_name;
@@ -56,14 +66,28 @@ export class ProductHomeCardComponent implements OnInit {
   }
 
   async openProductDetails() {
+    const id = this.ad?.id;
+    let adForModal = this.ad;
+    if (id && this.ad?._feedSlim) {
+      try {
+        const snap = await runInInjectionContext(this.injector, () =>
+          getDoc(doc(this.firestore, 'ads', id))
+        );
+        if (snap.exists()) {
+          adForModal = Object.assign({ id: snap.id }, snap.data());
+        }
+      } catch (e) {
+        console.error('openProductDetails fetch full ad', e);
+      }
+    }
     const modal = await this.modalCtrl.create({
       component: ProductDetailsComponent,
-      componentProps: { 
-        ad: this.ad, 
-        ownerName: this.displayName 
+      componentProps: {
+        ad: adForModal,
+        ownerName: this.displayName,
       },
       mode: 'ios',
-      cssClass: 'mota7-global-modal' 
+      cssClass: 'mota7-global-modal',
     });
     return await modal.present();
   }

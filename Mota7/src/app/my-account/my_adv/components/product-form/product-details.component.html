@@ -20,7 +20,7 @@
         [attr.loop]="(ad.details?.images?.length || 0) > 3">
         
         <swiper-slide *ngFor="let img of ad.details?.images; let i = index">
-          <img [src]="img" 
+          <img [src]="galleryImgSrc(img)" 
                class="slide-img" 
                alt="صورة المنتج"
                title="صورة المنتج"
