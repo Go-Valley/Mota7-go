@@ -2,7 +2,7 @@
   display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 5.5rem;
+    gap: 5.7rem;
     margin: 0.35rem 0 0.55rem;
     padding: 0 10px;
 }
@@ -20,7 +20,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0px 0px 8px 1px #1a1a1a;
 
   ion-icon {
     font-size: 0.95rem;
