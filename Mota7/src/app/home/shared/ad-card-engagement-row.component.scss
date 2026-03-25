@@ -2,7 +2,10 @@
   display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 5.7rem;
+    justify-content: center;
+    width: 100%;
+    // خلي المسافة بين الزرين متوازنة لتظهر مجموعة الأزرار في المنتصف
+    gap: 0.9rem;
     margin: 0.35rem 0 0.55rem;
     padding: 0 10px;
 }

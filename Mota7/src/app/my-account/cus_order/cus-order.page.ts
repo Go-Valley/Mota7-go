@@ -164,11 +164,11 @@ export class CusOrderPage implements OnInit, OnDestroy {
   }
 
   initRealtimeOrders() {
-    const ordersRef = collection(this.firestore, 'orders');
-    const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(30));
+    this.unsubscribe = runInInjectionContext(this.injector, () => {
+      const ordersRef = collection(this.firestore, 'orders');
+      const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(30));
 
-    this.unsubscribe = runInInjectionContext(this.injector, () =>
-      onSnapshot(q, (snapshot) => {
+      return onSnapshot(q, (snapshot) => {
         const allOrders = snapshot.docs.map(d => ({ id: d.id, ...d.data() as any }));
 
         for (const o of allOrders) {
@@ -225,7 +225,7 @@ export class CusOrderPage implements OnInit, OnDestroy {
 
         void purgeFirestoreOrdersPastExpiresAt(this.injector, this.firestore);
       })
-    );
+    });
   }
 
   async acceptAndStartTracking(id: string) {
