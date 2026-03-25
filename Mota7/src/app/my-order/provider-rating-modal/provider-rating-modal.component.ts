@@ -105,7 +105,7 @@ export class ProviderRatingModalComponent implements OnInit {
       );
 
       const toast = await this.toastCtrl.create({
-        message: 'شكرا لتقييمك .. نورتنا بوجودك على "مُتاح"',
+        message: 'شكرا لاستخدامك تطبيق "مُتاح"',
         duration: RATING_THANKS_MS,
         position: 'bottom',
         mode: 'ios',

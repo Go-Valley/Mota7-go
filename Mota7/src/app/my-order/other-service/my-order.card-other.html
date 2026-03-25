@@ -61,6 +61,15 @@
     <button type="button" class="finish-btn-3d" *ngIf="order?.status === 'accepted' && !isArchiving" (click)="finishTask(order?.id)">
       إنهاء المهمة
     </button>
+
+    <button
+      type="button"
+      class="finish-btn-3d"
+      *ngIf="order?.status === 'completed'"
+      (click)="reRateProvider(order?.id)"
+    >
+      اعادة تقييم مقدم الخدمة
+    </button>
   </div>
 
   <div class="timer-section-unified" *ngIf="!isArchiving">

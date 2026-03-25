@@ -75,6 +75,15 @@
     <button type="button" class="finish-btn-3d" *ngIf="order.status === 'accepted'" (click)="finishTask(order.id)">
       إنهاء المهمة
     </button>
+
+    <button
+      type="button"
+      class="finish-btn-3d"
+      *ngIf="order.status === 'completed'"
+      (click)="reRateProvider(order.id)"
+    >
+      اعادة تقييم مقدم الخدمة
+    </button>
   </div>
 
   <div

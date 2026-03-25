@@ -6,8 +6,9 @@ export async function presentProviderRatesCustomerModal(
   orderId: string,
   order: any
 ): Promise<void> {
+  const promptedKey = `mota7_prov_cust_rating_prompted_${orderId}`;
   try {
-    sessionStorage.setItem(`mota7_prov_cust_rating_prompted_${orderId}`, '1');
+    sessionStorage.setItem(promptedKey, '1');
   } catch {
     /* ignore */
   }
@@ -19,5 +20,12 @@ export async function presentProviderRatesCustomerModal(
     showBackdrop: true,
   });
   await modal.present();
-  await modal.onDidDismiss();
+  const dismissal = await modal.onDidDismiss();
+  if (dismissal?.role !== 'confirm') {
+    try {
+      sessionStorage.removeItem(promptedKey);
+    } catch {
+      /* ignore */
+    }
+  }
 }

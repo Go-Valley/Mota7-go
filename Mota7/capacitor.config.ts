@@ -15,7 +15,9 @@ const config: CapacitorConfig = {
       launchShowDuration: 3000,
       launchAutoHide: true, // مهم للـ Live Reload على أندرويد عبر الشبكة المحلية (بدون هيك يظهر شاشة البداية ويغلقها بعد 3 ثوان)   
       backgroundColor: "#ffffffff",
-      androidScaleType: "FIT_XY",
+      // FIT_XY يشوّه نسبة الصورة على أحجام/أبعاد مختلفة (يتمدد بشكل كامل).
+      // FIT_CENTER يحافظ على aspect ratio ويُقلل مشاكل الأجهزة ذات نسبة أبعاد مختلفة.
+      androidScaleType: "FIT_CENTER",
       splashFullScreen: true,
       splashImmersive: true,
     },

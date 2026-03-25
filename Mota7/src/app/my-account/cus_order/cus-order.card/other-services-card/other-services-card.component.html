@@ -75,6 +75,15 @@
       إنهاء المهمة
     </button>
 
+    <button
+      type="button"
+      class="finish-btn-3d"
+      *ngIf="order?.status === 'completed'"
+      (click)="reRateCustomer(order?.id)"
+    >
+      اعادة تقييم طالب الخدمة
+    </button>
+
     <div class="provider-pending-actions" *ngIf="order?.status === 'pending' && !isIgnoredView && !showConfirmIgnore">
       <button type="button" class="finish-btn-3d provider-btn-accept" (click)="onAcceptClick()">قبول الطلب فوراً</button>
       <button type="button" class="delete-full-width-btn-unified provider-btn-ignore" (click)="showConfirmIgnore = true">تجاهل الطلب</button>

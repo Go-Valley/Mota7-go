@@ -60,6 +60,9 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
   private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
   private injector = inject(EnvironmentInjector);
+  private presentingReRateProvider = false;
+  private presentingCustomerProviderRatingModal = false;
+  private suppressCustomerProviderRatingModal = false;
 
   constructor() {
     addIcons({
@@ -107,6 +110,11 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
         ? orderFieldToMs(order.uiArchiveUntil, completedAt + ORDER_ARCHIVE_UI_MS)
         : completedAt + ORDER_ARCHIVE_UI_MS;
       const diff = until - now;
+
+      // إذا الطلب اكتمل من جهة مقدم الخدمة ولم يتم تقييمه بعد،
+      // نعرض مودال تقييم مقدم الخدمة من داخل الكرت نفسها (مع نفس حمايات التكرار).
+      void this.maybePresentCustomerProviderRatingModal();
+
       if (diff > 0) {
         this.startTimer(diff, () => {
           void this.afterArchiveUiElapsed();
@@ -185,10 +193,13 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
       if (!d || d['status'] !== 'completed') return;
       Object.assign(this.order, d);
       this.order.id = id;
+      this.suppressCustomerProviderRatingModal = true;
       this.checkStatusAndTimer();
       await presentProviderRatingModal(this.modalCtrl, id, { ...this.order });
+      this.suppressCustomerProviderRatingModal = false;
     } catch (e) {
       console.error('expireAcceptedSoftRemove delivery:', e);
+      this.suppressCustomerProviderRatingModal = false;
     }
     this.stopTimer();
   }
@@ -235,12 +246,12 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
   async finishTask(orderId: string) {
     const alert = await this.alertCtrl.create({
       header: 'إنهاء المهمة',
-      message: 'هل أنت متأكد من إنهاء المهمة والإلغاء؟',
+      message: 'هل انت متأكد من انهاء المهمة؟',
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
         {
-          text: 'تأكيد وإنهاء',
+          text: 'تأكيد',
           cssClass: 'confirm-button',
           handler: async () => {
             try {
@@ -249,6 +260,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
               this.order.status = 'completed';
               this.order.completedAt = now;
               this.order.uiArchiveUntil = uiArchiveUntil;
+              this.suppressCustomerProviderRatingModal = true;
               this.checkStatusAndTimer();
 
               await runInInjectionContext(this.injector, () =>
@@ -261,8 +273,10 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
               );
 
               await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
+              this.suppressCustomerProviderRatingModal = false;
             } catch (e) {
               console.error('Error finishing delivery task:', e);
+              this.suppressCustomerProviderRatingModal = false;
               this.presentToast('عذراً، حدث خطأ أثناء إنهاء الطلب');
             }
           }
@@ -271,6 +285,49 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
     });
 
     await alert.present();
+  }
+
+  async reRateProvider(orderId: string): Promise<void> {
+    if (!orderId || this.presentingReRateProvider) return;
+    this.presentingReRateProvider = true;
+    try {
+      await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
+    } catch (e) {
+      console.error('reRateProvider delivery:', e);
+    } finally {
+      this.presentingReRateProvider = false;
+    }
+  }
+
+  private async maybePresentCustomerProviderRatingModal(): Promise<void> {
+    if (
+      this.presentingCustomerProviderRatingModal ||
+      this.suppressCustomerProviderRatingModal ||
+      !this.order?.id
+    ) return;
+    const o = this.order;
+    if (o.status !== 'completed') return;
+    if (o.customerRatedAt) return;
+    const prevRating = o.customerProviderRating;
+    if (typeof prevRating === 'number' && prevRating >= 1) return;
+    if (!o.providerName && !o.providerId && !o.providerPhone) return;
+
+    let skipped = false;
+    let alreadyPrompted = false;
+    try {
+      skipped = !!localStorage.getItem(`mota7_rating_skip_${o.id}`);
+      alreadyPrompted = !!sessionStorage.getItem(`mota7_rating_prompted_${o.id}`);
+    } catch {
+      /* ignore */
+    }
+    if (skipped || alreadyPrompted) return;
+
+    this.presentingCustomerProviderRatingModal = true;
+    try {
+      await presentProviderRatingModal(this.modalCtrl, o.id, { ...o });
+    } finally {
+      this.presentingCustomerProviderRatingModal = false;
+    }
   }
 
   callProvider() {

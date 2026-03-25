@@ -13,7 +13,7 @@ import {
   runInInjectionContext
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, ModalController } from '@ionic/angular';
+import { AlertController, IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc, Timestamp, getDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { addIcons } from 'ionicons';
@@ -60,6 +60,7 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
   private auth = inject(Auth);
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
+  private alertCtrl = inject(AlertController);
 
   providerId: string = '';
   isIgnoredView: boolean = false;
@@ -285,8 +286,17 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
       } else {
         void this.afterArchiveDone();
       }
+      let weSetPresentingFlag = false;
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
       this.finishOrder.emit(this.order.id);
-      await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+      try {
+        await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+      } finally {
+        if (weSetPresentingFlag) this.presentingRateCustomer = false;
+      }
     } catch (e) {
       console.error('fireAcceptedExpired other', e);
     }
@@ -358,7 +368,8 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
     }
   }
 
-  async onFinishClick() {
+  private async finishOrderNow(): Promise<void> {
+    let weSetPresentingFlag = false;
     try {
       this.stopAcceptedTimer();
       const now = Timestamp.now();
@@ -368,7 +379,7 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
           status: 'completed',
           completedAt: now,
           isArchiving: true,
-          uiArchiveUntil
+          uiArchiveUntil,
         })
       );
       this.order.status = 'completed';
@@ -376,14 +387,55 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
       this.order.uiArchiveUntil = uiArchiveUntil;
       this.isVisible = true;
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());
+
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
+
       this.finishOrder.emit(this.order.id);
-      await presentProviderRatesCustomerModal(
-        this.modalCtrl,
-        this.order.id,
-        { ...this.order }
-      );
+
+      await presentProviderRatesCustomerModal(this.modalCtrl, this.order.id, { ...this.order });
     } catch (e) {
       console.error(e);
+    } finally {
+      if (weSetPresentingFlag) this.presentingRateCustomer = false;
+    }
+  }
+
+  async onFinishClick() {
+    const alert = await this.alertCtrl.create({
+      header: 'إنهاء المهمة',
+      message: 'هل انت متأكد من انهاء المهمة؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد',
+          cssClass: 'confirm-button',
+          handler: async () => {
+            await this.finishOrderNow();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async reRateCustomer(orderId: string): Promise<void> {
+    if (!orderId) return;
+    if (this.presentingRateCustomer) return;
+
+    let weSetPresentingFlag = false;
+    if (!this.presentingRateCustomer) {
+      this.presentingRateCustomer = true;
+      weSetPresentingFlag = true;
+    }
+
+    try {
+      await presentProviderRatesCustomerModal(this.modalCtrl, orderId, { ...this.order });
+    } finally {
+      if (weSetPresentingFlag) this.presentingRateCustomer = false;
     }
   }
 

@@ -2,6 +2,7 @@ import {
   Firestore,
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   query,
@@ -65,6 +66,11 @@ export async function submitOrderProviderRating(
   const s = Math.min(5, Math.max(1, Math.round(stars)));
 
   await runInInjectionContext(injector, async () => {
+    const prevSnap = await getDoc(doc(firestore, 'orders', orderId));
+    const prevData = prevSnap.exists() ? prevSnap.data() : undefined;
+    const prevStars = prevData?.['customerProviderRating'];
+    const hadPreviousRating = typeof prevStars === 'number' && prevStars >= 1;
+
     await updateDoc(doc(firestore, 'orders', orderId), {
       customerProviderRating: s,
       customerProviderRatingComment: comment,
@@ -74,16 +80,36 @@ export async function submitOrderProviderRating(
     const adId = await findProviderAdId(firestore, order);
     if (!adId) return;
 
-    await updateDoc(doc(firestore, 'ads', adId), {
-      provider_service_rating_count: increment(1),
-      provider_service_rating_sum: increment(s),
-      last_provider_rating: {
-        stars: s,
-        comment,
-        ratedAt: now,
-        orderId,
-        customerPhone: order['customerPhone'] ?? '',
-      },
-    });
+    const adUpdate = hadPreviousRating
+      ? {
+          // إعادة التقييم: لا نزيد عدد التقييمات، فقط نعدّل مجموع النجوم.
+          provider_service_rating_sum: increment(s - (prevStars as number)),
+          last_provider_rating: {
+            stars: s,
+            comment,
+            ratedAt: now,
+            orderId,
+            customerPhone: order['customerPhone'] ?? '',
+          },
+        }
+      : {
+          // أول تقييم: نزيد العدد والمجموع.
+          provider_service_rating_count: increment(1),
+          provider_service_rating_sum: increment(s),
+          last_provider_rating: {
+            stars: s,
+            comment,
+            ratedAt: now,
+            orderId,
+            customerPhone: order['customerPhone'] ?? '',
+          },
+        };
+
+    // إذا فشل تحديث `ads` (صلاحيات/خلاف قواعد) لا نعتبر التقييم فاشلًا نفسه.
+    try {
+      await updateDoc(doc(firestore, 'ads', adId), adUpdate as any);
+    } catch (e) {
+      console.error('submitOrderProviderRating: ads update failed', e);
+    }
   });
 }

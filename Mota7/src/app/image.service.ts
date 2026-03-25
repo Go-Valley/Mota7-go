@@ -22,7 +22,7 @@ export class ImageService {
       maxSizeMB: 0.34,
       fileType: 'image/webp' as const,
       useWebWorker: true,
-      initialQuality: 0.78,
+      initialQuality: 0.85,
     };
 
     const compressedFile = await imageCompression(file, options);

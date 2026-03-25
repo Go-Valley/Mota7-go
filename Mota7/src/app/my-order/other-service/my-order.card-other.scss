@@ -13,7 +13,8 @@
     .accepted-topbar {
       background: linear-gradient(90deg, #f1f8e9, #dcedc8);
       color: #2e7d32;
-      animation: slideInDown 0.5s both;
+      // بدون حركة حتى يبقى الهيدر ثابتاً أثناء عداد الأرشفة
+      animation: none;
     }
 
     .card-header-unified {
@@ -33,7 +34,9 @@
     font-weight: 800;
     padding: 10px 16px;
     font-size: 0.9rem;
-    animation: fadein 0.3s ease;
+    font-variant-numeric: tabular-nums;
+    // بدون حركة حتى لا يتأثر بتحديثات العداد
+    animation: none;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -246,15 +246,10 @@ export class CusOrderPage implements OnInit, OnDestroy {
   }
 
   async finishFromCard(id: string) {
-    try {
-      await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, 'orders', id), {
-          status: 'completed',
-          completedAt: Timestamp.now()
-        })
-      );
-      this.isTracking = false;
-    } catch (e) { console.error(e); }
+    // ملاحظة: كل كروت الخدمة تقوم بالفعل بتحديث المستند إلى "completed" وبدء مؤقت الأرشفة
+    // ثم تستدعي emit هنا لإيقاف حالة التتبع فقط. منعنا updateDoc المكرر لتفادي تكرار مودال التقييم.
+    void id;
+    this.isTracking = false;
   }
 
   private async showInboxNewOrderNotice(): Promise<void> {

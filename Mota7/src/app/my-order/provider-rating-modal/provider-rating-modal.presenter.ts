@@ -6,8 +6,9 @@ export async function presentProviderRatingModal(
   orderId: string,
   order: any
 ): Promise<void> {
+  const promptedKey = `mota7_rating_prompted_${orderId}`;
   try {
-    sessionStorage.setItem(`mota7_rating_prompted_${orderId}`, '1');
+    sessionStorage.setItem(promptedKey, '1');
   } catch {
     /* storage غير متاح */
   }
@@ -19,5 +20,14 @@ export async function presentProviderRatingModal(
     showBackdrop: true,
   });
   await modal.present();
-  await modal.onDidDismiss();
+  const dismissal = await modal.onDidDismiss();
+  // إذا لم يتم إرسال التقييم (cancel / dismiss) نسمح بظهور المودال مرة أخرى لاحقاً
+  // (لكن إذا كان التقييم تم بنجاح role = 'confirm' سنحتفظ بالمفتاح لمنع التكرار الفوري).
+  if (dismissal?.role !== 'confirm') {
+    try {
+      sessionStorage.removeItem(promptedKey);
+    } catch {
+      /* ignore */
+    }
+  }
 }

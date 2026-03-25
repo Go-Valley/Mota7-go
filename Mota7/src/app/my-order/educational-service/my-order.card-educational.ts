@@ -40,6 +40,8 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
   archiveTimer: string = '10:00';
   providerFullName: string = '';
   isArchiving: boolean = false;
+  private presentingReRateProvider = false;
+  private presentingCustomerProviderRatingModal = false;
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private archiveInterval: ReturnType<typeof setInterval> | null = null;
@@ -55,15 +57,29 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
     }
     this.startCountdown();
     this.fetchProviderName();
+    void this.maybePresentCustomerProviderRatingModal();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (
-      changes['order']?.currentValue &&
-      !changes['order'].firstChange &&
-      !this.isArchiving
-    ) {
+    if (!changes['order']?.currentValue || changes['order'].firstChange) return;
+
+    // إذا وصلنا إلى completed من جهة مقدم الخدمة يجب تفعيل وضع الأرشفة داخل الكرت أيضاً.
+    if (this.order?.status === 'completed' && this.order?.isArchiving && !this.isArchiving) {
+      this.isArchiving = true;
+      this.archivingStarted.emit();
+      this.startArchiveTimerFromServer();
+      void this.maybePresentCustomerProviderRatingModal();
+      return;
+    }
+
+    if (!this.isArchiving) {
       this.startCountdown();
+    }
+
+    // عند تغيّر بيانات الطلب أثناء الأرشفة (أو لو isArchiving كان مفعل مسبقاً)
+    // نراجع إذا كانت هناك حاجة لفتح مودال التقييم.
+    if (this.order?.status === 'completed') {
+      void this.maybePresentCustomerProviderRatingModal();
     }
   }
 
@@ -267,12 +283,12 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
   async finishTask(orderId: string) {
     const alert = await this.alertCtrl.create({
       header: 'إنهاء المهمة',
-      message: 'هل أنت متأكد من إنهاء المهمة والإلغاء؟',
+      message: 'هل انت متأكد من انهاء المهمة؟',
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
         {
-          text: 'تأكيد وإنهاء',
+          text: 'تأكيد',
           cssClass: 'confirm-button',
           handler: async () => {
             try {
@@ -306,6 +322,44 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
     });
 
     await alert.present();
+  }
+
+  async reRateProvider(orderId: string): Promise<void> {
+    if (!orderId || this.presentingReRateProvider) return;
+    this.presentingReRateProvider = true;
+    try {
+      await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
+    } catch (e) {
+      console.error('reRateProvider educational:', e);
+    } finally {
+      this.presentingReRateProvider = false;
+    }
+  }
+
+  private async maybePresentCustomerProviderRatingModal(): Promise<void> {
+    if (this.presentingCustomerProviderRatingModal) return;
+    if (!this.order?.id || this.order?.status !== 'completed') return;
+    if (this.order?.customerRatedAt) return;
+    const prevRating = this.order?.customerProviderRating;
+    if (typeof prevRating === 'number' && prevRating >= 1) return;
+    if (!this.order?.providerName && !this.order?.providerId && !this.order?.providerPhone) return;
+
+    let skipped = false;
+    let alreadyPrompted = false;
+    try {
+      skipped = !!localStorage.getItem(`mota7_rating_skip_${this.order.id}`);
+      alreadyPrompted = !!sessionStorage.getItem(`mota7_rating_prompted_${this.order.id}`);
+    } catch {
+      /* ignore */
+    }
+    if (skipped || alreadyPrompted) return;
+
+    this.presentingCustomerProviderRatingModal = true;
+    try {
+      await presentProviderRatingModal(this.modalCtrl, this.order.id, { ...this.order });
+    } finally {
+      this.presentingCustomerProviderRatingModal = false;
+    }
   }
 
   callProvider() {

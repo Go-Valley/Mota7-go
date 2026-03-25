@@ -15,7 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
-import { IonicModule, ToastController, ModalController } from '@ionic/angular';
+import { AlertController, IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc, Timestamp, getDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { addIcons } from 'ionicons';
@@ -66,6 +66,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
   private auth = inject(Auth);
   private toastController = inject(ToastController);
   private modalCtrl = inject(ModalController);
+  private alertCtrl = inject(AlertController);
   private injector = inject(EnvironmentInjector);
 
   private watchId: any;
@@ -326,7 +327,18 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
         void this.afterArchiveDone();
       }
       this.finishOrder.emit(this.order.id);
-      await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+
+      // منع تكرار مودال التقييم عند ظهور/تحديثات ngOnChanges أثناء فتح المودال
+      let weSetPresentingFlag = false;
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
+      try {
+        await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+      } finally {
+        if (weSetPresentingFlag) this.presentingRateCustomer = false;
+      }
     } catch (e) {
       console.error('fireAcceptedExpired delivery', e);
     }
@@ -504,32 +516,80 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  async onFinishClick() {
+  private async finishOrderNow(): Promise<void> {
+    let weSetPresentingFlag = false;
     try {
       this.stopLiveTracking();
       this.stopAcceptedTimer();
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'orders', this.order.id), {
           status: 'completed',
           completedAt: now,
           isArchiving: true,
-          uiArchiveUntil
+          uiArchiveUntil,
         })
       );
+
       this.order.status = 'completed';
       this.order.completedAt = now;
       this.order.uiArchiveUntil = uiArchiveUntil;
+
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());
+
+      // منع فتح مودال التقييم مرتين بسبب ngOnChanges بعد حدث emit.
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
+
       this.finishOrder.emit(this.order.id);
-      await presentProviderRatesCustomerModal(
-        this.modalCtrl,
-        this.order.id,
-        { ...this.order }
-      );
+      try {
+        await presentProviderRatesCustomerModal(this.modalCtrl, this.order.id, { ...this.order });
+      } finally {
+        if (weSetPresentingFlag) this.presentingRateCustomer = false;
+      }
     } catch (e) {
       console.error(e);
+      if (weSetPresentingFlag) this.presentingRateCustomer = false;
+    }
+  }
+
+  async onFinishClick() {
+    const alert = await this.alertCtrl.create({
+      header: 'إنهاء المهمة',
+      message: 'هل انت متأكد من انهاء المهمة؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد',
+          cssClass: 'confirm-button',
+          handler: async () => {
+            await this.finishOrderNow();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async reRateCustomer(orderId: string): Promise<void> {
+    if (!orderId) return;
+    if (this.presentingRateCustomer) return;
+
+    let weSetPresentingFlag = false;
+    if (!this.presentingRateCustomer) {
+      this.presentingRateCustomer = true;
+      weSetPresentingFlag = true;
+    }
+
+    try {
+      await presentProviderRatesCustomerModal(this.modalCtrl, orderId, { ...this.order });
+    } finally {
+      if (weSetPresentingFlag) this.presentingRateCustomer = false;
     }
   }
 

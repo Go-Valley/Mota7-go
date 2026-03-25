@@ -102,6 +102,15 @@ export class ProviderRatesCustomerModalComponent implements OnInit {
         this.selectedStars,
         this.commentText
       );
+
+      const toast = await this.toastCtrl.create({
+        message: 'شكرا لاستخدامك تطبيق "مُتاح"',
+        duration: 3000,
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await toast.present();
+
       await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
     } catch (e) {
       console.error('submitProviderRatesCustomer', e);
