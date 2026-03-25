@@ -9,16 +9,66 @@
       </div>
     </div>
 
+    <div class="multi-select-bar" *ngIf="selectionMode">
+      <ion-checkbox
+        mode="ios"
+        [checked]="isAllVisibleSelected"
+        (ionChange)="toggleSelectAll($event.detail.checked)"
+      ></ion-checkbox>
+      <span class="multi-select-label">اختيار الكل</span>
+
+      <button
+        type="button"
+        class="multi-delete-btn"
+        [disabled]="selectedCount === 0"
+        (click)="confirmDeleteSelectedOrders()"
+      >
+        <ion-icon name="trash-outline"></ion-icon>
+        <span>حذف</span>
+      </button>
+    </div>
+
     <ion-list *ngIf="filteredOrders.length > 0" class="orders-ion-list" lines="none">
       <ion-item-sliding *ngFor="let order of filteredOrders" #sliding class="order-sliding-wrap">
-        <ion-item class="order-slide-item" lines="none">
-          <div class="order-card-dual completed-card">
+        <ion-item
+          class="order-slide-item"
+          lines="none"
+          (click)="onOrderClick(order.id, $event)"
+        >
+        <div
+          class="order-card-dual completed-card"
+          (pointerdown)="onOrderPointerDown(order.id, $event)"
+          (pointerup)="onOrderPointerUp()"
+          (pointerleave)="onOrderPointerCancel()"
+          (pointercancel)="onOrderPointerCancel()"
+        >
             <div class="card-header">
               <div class="status-badge success">
                 <ion-icon name="checkmark-done-circle"></ion-icon>
                 <span>مهمة مكتملة</span>
               </div>
-              <div class="order-date">أكتمل في: {{ order.completedAt?.toDate() | date:'hh:mm a - yyyy/MM/dd':'':'ar' }}</div>
+              <div class="header-meta">
+                <div class="order-date">
+                  أكتمل في: {{ order.completedAt?.toDate() | date:'hh:mm a - yyyy/MM/dd':'':'ar' }}
+                </div>
+
+                <button
+                  type="button"
+                  class="expires-btn"
+                  (click)="editExpiresAt(order, $event)"
+                >
+                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  <span>expiresAt: {{ getExpiresAtDisplay(order) }}</span>
+                </button>
+              </div>
+
+              <ion-checkbox
+                *ngIf="selectionMode"
+                mode="ios"
+                class="order-select-checkbox"
+                [checked]="isSelected(order.id)"
+                (ionChange)="toggleSelectedOrder(order.id); $event.stopPropagation()"
+              ></ion-checkbox>
             </div>
 
             <div class="service-main-info">
@@ -114,8 +164,12 @@
           </div>
         </ion-item>
 
-        <ion-item-options side="end">
-          <ion-item-option color="danger" class="delete-slide-option" (click)="confirmDeleteOrder(order, sliding); $event.stopPropagation()">
+        <ion-item-options side="end" *ngIf="!selectionMode">
+          <ion-item-option
+            color="danger"
+            class="delete-slide-option"
+            (click)="confirmDeleteOrder(order, sliding); $event.stopPropagation()"
+          >
             <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
           </ion-item-option>
         </ion-item-options>

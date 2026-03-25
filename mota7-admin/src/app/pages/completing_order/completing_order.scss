@@ -5,6 +5,46 @@
   direction: rtl;
 }
 
+.multi-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+
+.multi-select-label {
+  flex: 1;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.multi-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 900;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
 .orders-ion-list {
   background: transparent;
   padding: 0;
@@ -67,6 +107,7 @@
     align-items: center;
     padding: 12px 18px; 
     background: #f1f5f9;
+    gap: 10px;
     
     .status-badge.success { 
         display: flex; 
@@ -76,7 +117,38 @@
         font-weight: 800;
         ion-icon { font-size: 18px; }
     }
+
+    .header-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+      min-width: 140px;
+    }
+
     .order-date { font-size: 0.75rem; color: #64748b; font-weight: 600; }
+
+    .expires-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 900;
+      border-radius: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+
+    .order-select-checkbox {
+      --size: 20px;
+    }
   }
 
   .service-main-info {

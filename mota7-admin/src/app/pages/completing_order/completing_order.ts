@@ -4,7 +4,7 @@ import { CommonModule, registerLocaleData } from '@angular/common';
 import localeAr from '@angular/common/locales/ar';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Firestore, collection, collectionData, query, where, deleteDoc, doc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, query, where, deleteDoc, doc, updateDoc, Timestamp } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { addIcons } from 'ionicons';
@@ -38,6 +38,29 @@ export class CompletingOrderPage implements OnInit {
   /** 1..5 لعرض النجوم في بطاقة التقييم */
   readonly ratingStarSlots = [1, 2, 3, 4, 5];
 
+  // ----------------------------
+  // Multi-select (long press)
+  // ----------------------------
+  readonly longPressMs = 500;
+  selectionMode = false;
+  selectedOrderIds = new Set<string>();
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressOrderId: string | null = null;
+  private longPressTriggered = false;
+
+  get selectedCount(): number {
+    return this.selectedOrderIds.size;
+  }
+
+  get isAllVisibleSelected(): boolean {
+    if (!this.filteredOrders.length) return false;
+    return this.selectedOrderIds.size === this.filteredOrders.length;
+  }
+
+  isSelected(orderId: string): boolean {
+    return this.selectedOrderIds.has(orderId);
+  }
+
   constructor() {
     addIcons({ 
       searchOutline, checkmarkDoneCircle, logoWhatsapp, 
@@ -68,6 +91,7 @@ export class CompletingOrderPage implements OnInit {
   filterOrders() {
     if (!this.searchQuery || this.searchQuery.trim() === '') {
       this.filteredOrders = [...this.allOrders];
+      this.pruneSelectionToVisible();
       return;
     }
     const q = this.searchQuery.trim().toLowerCase();
@@ -77,6 +101,129 @@ export class CompletingOrderPage implements OnInit {
       (order.providerId?.toString().includes(q)) ||
       (order.customerName?.toLowerCase().includes(q))
     );
+    this.pruneSelectionToVisible();
+  }
+
+  private pruneSelectionToVisible() {
+    if (!this.selectionMode) return;
+    const visible = new Set(this.filteredOrders.map(o => o.id).filter(Boolean));
+    const next = new Set<string>();
+    for (const id of this.selectedOrderIds) {
+      if (visible.has(id)) next.add(id);
+    }
+    this.selectedOrderIds = next;
+    if (this.selectedOrderIds.size === 0) {
+      this.selectionMode = false;
+    }
+  }
+
+  private enterSelectionForOrder(orderId: string) {
+    this.selectionMode = true;
+    this.selectedOrderIds = new Set(this.selectedOrderIds);
+    this.selectedOrderIds.add(orderId);
+  }
+
+  toggleSelectedOrder(orderId: string) {
+    if (!this.selectionMode) return;
+    const next = new Set(this.selectedOrderIds);
+    if (next.has(orderId)) next.delete(orderId);
+    else next.add(orderId);
+    this.selectedOrderIds = next;
+    if (this.selectedOrderIds.size === 0) this.selectionMode = false;
+  }
+
+  toggleSelectAll(checked: boolean) {
+    if (!checked) {
+      this.selectedOrderIds = new Set();
+      this.selectionMode = false;
+      return;
+    }
+    this.selectionMode = true;
+    this.selectedOrderIds = new Set(this.filteredOrders.map(o => o.id).filter(Boolean));
+  }
+
+  onOrderPointerDown(orderId: string, ev: PointerEvent) {
+    if (ev.pointerType === 'mouse' && ev.buttons !== 1) return;
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressOrderId = orderId;
+    this.longPressTriggered = false;
+    this.longPressTimer = setTimeout(() => {
+      this.longPressTriggered = true;
+      // أغلق أي سلايدات مفتوحة ثم ادخل وضع التحديد
+      this.itemSlidings?.forEach((s) => void s.close());
+      this.enterSelectionForOrder(orderId);
+    }, this.longPressMs);
+  }
+
+  onOrderPointerUp() {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+    this.longPressOrderId = null;
+  }
+
+  onOrderPointerCancel() {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+    this.longPressOrderId = null;
+  }
+
+  onOrderClick(orderId: string, ev: Event) {
+    if (!this.selectionMode) return;
+    // منع تفعيل toggle مرتين عند release بعد long-press
+    if (this.longPressTriggered) {
+      this.longPressTriggered = false;
+      return;
+    }
+    ev.stopPropagation();
+    this.toggleSelectedOrder(orderId);
+  }
+
+  async confirmDeleteSelectedOrders() {
+    const count = this.selectedCount;
+    if (count <= 0) return;
+
+    this.itemSlidings?.forEach((s) => void s.close());
+
+    const ids = Array.from(this.selectedOrderIds);
+    const alert = await this.alertCtrl.create({
+      header: 'تأكيد الحذف',
+      message: `هل انت متأكد من حذف عدد (${count}) طلب مكتمل - تأكيد/الغاء`,
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await runInInjectionContext(this.injector, async () => {
+                for (const id of ids) {
+                  await deleteDoc(doc(this.firestore, 'orders', id));
+                }
+              });
+
+              // حدّث الواجهة محلياً
+              const remaining = (o: any) => !ids.includes(o.id);
+              this.allOrders = this.allOrders.filter(remaining);
+              this.filteredOrders = this.filteredOrders.filter(remaining);
+              this.selectedOrderIds = new Set();
+              this.selectionMode = false;
+
+              const toast = await this.toastCtrl.create({
+                message: 'تم حذف الطلبات',
+                duration: 2000,
+                color: 'success',
+                mode: 'ios',
+              });
+              await toast.present();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   getServiceIcon(type: string): string {
@@ -152,6 +299,75 @@ export class CompletingOrderPage implements OnInit {
             } catch (e) {
               console.error(e);
             }
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  // ----------------------------
+  // expiresAt (date only)
+  // ----------------------------
+  private toDateInputValue(d: Date): string {
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  getExpiresAtDisplay(order: any): string {
+    const v = order?.expiresAt;
+    const d: Date | null =
+      v?.toDate && typeof v.toDate === 'function' ? v.toDate() :
+      v instanceof Date ? v :
+      null;
+    if (!d) return '--';
+    return d.toLocaleDateString('ar', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+
+  async editExpiresAt(order: any, ev: Event) {
+    ev.stopPropagation();
+    const v = order?.expiresAt;
+    const currentDate: Date | null =
+      v?.toDate && typeof v.toDate === 'function' ? v.toDate() :
+      v instanceof Date ? v :
+      null;
+
+    const defaultValue = currentDate ? this.toDateInputValue(currentDate) : '';
+
+    const alert = await this.alertCtrl.create({
+      header: 'تعديل تاريخ انتهاء الطلب',
+      mode: 'ios',
+      inputs: [
+        {
+          name: 'expiresDate',
+          type: 'date',
+          value: defaultValue,
+        },
+      ],
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'حفظ',
+          handler: async (data) => {
+            const expiresDate = data?.expiresDate;
+            if (!expiresDate) return false;
+            const d = new Date(`${expiresDate}T00:00:00`);
+            if (isNaN(d.getTime())) return false;
+            const ts = Timestamp.fromDate(d);
+
+            try {
+              await runInInjectionContext(this.injector, async () => {
+                await updateDoc(doc(this.firestore, 'orders', order.id), { expiresAt: ts });
+              });
+
+              // حدّث القيم محلياً
+              order.expiresAt = ts;
+            } catch (e) {
+              console.error(e);
+            }
+            return true;
           },
         },
       ],
