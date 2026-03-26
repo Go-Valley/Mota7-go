@@ -45,6 +45,32 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+def splashSource = file('../../src/assets/splash.png')
+def splashTargetDir = file('src/main/res/drawable-nodpi')
+def splashTarget = file("${splashTargetDir}/splash.png")
+
+tasks.register('syncSplashFromAssets') {
+    inputs.file(splashSource)
+    outputs.file(splashTarget)
+    doLast {
+        if (!splashSource.exists()) {
+            logger.lifecycle("[splash] src/assets/splash.png not found, keeping current Android splash resource.")
+            return
+        }
+        splashTargetDir.mkdirs()
+        copy {
+            from splashSource
+            into splashTargetDir
+            rename { 'splash.png' }
+        }
+        logger.lifecycle("[splash] Copied splash.png to android/app/src/main/res/drawable-nodpi/")
+    }
+}
+
+tasks.matching { it.name == 'preBuild' }.configureEach {
+    dependsOn tasks.named('syncSplashFromAssets')
+}
+
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.exists()) {

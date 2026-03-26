@@ -1,10 +1,14 @@
-import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
+import { App } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import { AppLauncher } from '@capacitor/app-launcher';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
@@ -20,7 +24,7 @@ import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutlin
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule]
 })
-export class DeliveryFormComponent implements OnInit {
+export class DeliveryFormComponent implements OnInit, OnDestroy {
   @Input() editAdData: any; 
   @Input() locationFunc: any; // استقبال دالة الموقع من الصفحة الأب
 
@@ -55,6 +59,8 @@ export class DeliveryFormComponent implements OnInit {
   private newAdNtfy = inject(NewAdNtfyService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private locationListenerHandles: PluginListenerHandle[] = [];
+  private locationResumeRetryInFlight = false;
 
   constructor() {
     addIcons({ chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline });
@@ -70,6 +76,10 @@ export class DeliveryFormComponent implements OnInit {
     } else {
       await this.loadUserProfile();
     }
+  }
+
+  ngOnDestroy(): void {
+    void this.clearLocationResumeListener();
   }
 
   initEditData(ad: any) {
@@ -111,14 +121,142 @@ export class DeliveryFormComponent implements OnInit {
   }
 
   async requestLocation() {
-    if (this.locationFunc) {
-      const coords = await this.locationFunc();
-      if (coords) {
-        this.deliveryData.lat = coords.lat;
-        this.deliveryData.lng = coords.lng;
-        console.log('Location Updated:', coords);
+    const loader = await this.loadingCtrl.create({
+      message: 'جارى تحديث موقعك',
+      mode: 'ios'
+    });
+    await loader.present();
+
+    try {
+      if (this.locationFunc) {
+        const coords = await this.locationFunc();
+        if (coords) {
+          this.deliveryData.lat = coords.lat;
+          this.deliveryData.lng = coords.lng;
+          console.log('Location Updated:', coords);
+          return;
+        }
+      } else {
+        const permission = await Geolocation.checkPermissions();
+        if (permission.location !== 'granted') {
+          const requested = await Geolocation.requestPermissions();
+          if (requested.location !== 'granted') {
+            await this.presentGpsEnableAlert();
+            return;
+          }
+        }
+
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 30000
+        });
+        this.deliveryData.lat = pos.coords.latitude;
+        this.deliveryData.lng = pos.coords.longitude;
+        return;
+      }
+
+      await this.presentGpsEnableAlert();
+    } catch (error) {
+      const msg = String((error as { message?: string; code?: string | number })?.message || (error as { code?: string | number })?.code || '').toLowerCase();
+      const isGpsDisabled =
+        msg.includes('location disabled') ||
+        msg.includes('location services') ||
+        msg.includes('gps') ||
+        msg.includes('unavailable');
+
+      if (isGpsDisabled) {
+        await this.presentGpsEnableAlert();
+      } else {
+        await this.presentToast('تعذر تحديد موقعك الآن، حاول مرة أخرى');
+      }
+    } finally {
+      await loader.dismiss();
+    }
+  }
+
+  private async presentGpsEnableAlert(): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'تنبيه الموقع',
+      message: 'عفوا, تأكد من تفعيل ال gps في هاتفك',
+      mode: 'ios',
+      buttons: [
+        {
+          text: 'إلغاء',
+          role: 'cancel'
+        },
+        {
+          text: 'تفعيل',
+          role: 'confirm',
+          handler: () => {
+            void this.openLocationSettings();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async openLocationSettings(): Promise<void> {
+    await this.registerRetryGetLocationOnNextResume();
+    const candidates = [
+      'android.settings.LOCATION_SOURCE_SETTINGS',
+      'intent://settings/location#Intent;scheme=android-app;end',
+      'app-settings:'
+    ];
+
+    for (const url of candidates) {
+      try {
+        const can = await AppLauncher.canOpenUrl({ url });
+        if (can.value) {
+          await AppLauncher.openUrl({ url });
+          return;
+        }
+      } catch {
+        // try next candidate
       }
     }
+  }
+
+  private async registerRetryGetLocationOnNextResume(): Promise<void> {
+    await this.clearLocationResumeListener();
+
+    const onForeground = () => {
+      void this.runLocationRetryAfterForeground();
+    };
+
+    const h1 = await App.addListener('resume', onForeground);
+    const h2 = await App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        onForeground();
+      }
+    });
+    this.locationListenerHandles.push(h1, h2);
+  }
+
+  private async runLocationRetryAfterForeground(): Promise<void> {
+    if (this.locationResumeRetryInFlight) {
+      return;
+    }
+    this.locationResumeRetryInFlight = true;
+    try {
+      await this.clearLocationResumeListener();
+      // Give the OS a moment to apply location settings before retry.
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      await this.requestLocation();
+    } finally {
+      this.locationResumeRetryInFlight = false;
+    }
+  }
+
+  private async clearLocationResumeListener(): Promise<void> {
+    for (const handle of this.locationListenerHandles) {
+      try {
+        await handle.remove();
+      } catch {
+        // ignore
+      }
+    }
+    this.locationListenerHandles = [];
   }
 
   onWhatsappPhoneInput(ev: Event): void {

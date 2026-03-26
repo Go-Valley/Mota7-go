@@ -75,7 +75,10 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   metaNameAr = '';
   metaIcon = '';
   loading = false;
+  savingNameIndex: number | null = null;
   private live = true;
+  private nameDraftCache: Record<number, string> = {};
+  private lastLoadedHash = '';
 
   constructor() {
     addIcons({
@@ -131,6 +134,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
       this.items = Array.isArray(d.items) ? JSON.parse(JSON.stringify(d.items)) : [];
       this.metaNameAr = d.nameAr ?? '';
       this.metaIcon = d.icon ?? '';
+      this.lastLoadedHash = this.buildCurrentHash();
     } catch (e) {
       console.error(e);
       await this.presentToast('تعذر القراءة من Firestore', 'danger');
@@ -140,6 +144,16 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   }
 
   async saveAll(): Promise<void> {
+    if (!this.hasUnsavedChanges()) {
+      await this.presentToast('لا توجد تغييرات للحفظ', 'medium');
+      return;
+    }
+
+    const ok = await this.presentSaveConfirm('تم العثور على تغييرات، هل تريد حفظها؟');
+    if (!ok) {
+      return;
+    }
+
     const loader = await this.loadingCtrl.create({ message: 'جاري الحفظ...', mode: 'ios' });
     await loader.present();
     try {
@@ -150,6 +164,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
           icon: this.metaIcon || null,
         } as any)
       );
+      this.lastLoadedHash = this.buildCurrentHash();
       await this.presentToast('تم حفظ القائمة بنجاح', 'success');
     } catch (e) {
       console.error(e);
@@ -303,6 +318,56 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
 
   itemPreview(row: any): string {
     return row?.nameAr || row?.id || '—';
+  }
+
+  onNameInputFocus(index: number): void {
+    const row = this.items[index];
+    this.nameDraftCache[index] = String(row?.nameAr ?? '');
+  }
+
+  async onInlineNameBlur(index: number): Promise<void> {
+    const row = this.items[index];
+    if (!row) return;
+
+    const previous = (this.nameDraftCache[index] ?? '').trim();
+    const next = String(row.nameAr ?? '').trim();
+    row.nameAr = next;
+    delete this.nameDraftCache[index];
+
+    if (!next) {
+      row.nameAr = previous;
+      await this.presentToast('الاسم لا يمكن أن يكون فارغاً', 'warning');
+      return;
+    }
+
+    if (next === previous) {
+      return;
+    }
+
+    const ok = await this.presentSaveConfirm('تم تعديل الاسم، هل تريد حفظ التغيير؟');
+    if (!ok) {
+      row.nameAr = previous;
+      return;
+    }
+
+    this.savingNameIndex = index;
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'Categories', this.selectedDocId), {
+          items: this.items,
+        } as any)
+      );
+      this.lastLoadedHash = this.buildCurrentHash();
+      await this.presentToast('تم تحديث الاسم', 'success');
+    } catch (e) {
+      console.error(e);
+      row.nameAr = previous;
+      await this.presentToast('تعذر تحديث الاسم، حاول مرة أخرى', 'danger');
+    } finally {
+      if (this.savingNameIndex === index) {
+        this.savingNameIndex = null;
+      }
+    }
   }
 
   private async promptSimpleDialog(
@@ -528,6 +593,33 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   private async presentToast(message: string, color: string): Promise<void> {
     const t = await this.toastCtrl.create({ message, duration: 2600, position: 'bottom', color, mode: 'ios' });
     await t.present();
+  }
+
+  private hasUnsavedChanges(): boolean {
+    return this.buildCurrentHash() !== this.lastLoadedHash;
+  }
+
+  private buildCurrentHash(): string {
+    return JSON.stringify({
+      items: this.items,
+      nameAr: this.metaNameAr || null,
+      icon: this.metaIcon || null,
+    });
+  }
+
+  private async presentSaveConfirm(message: string): Promise<boolean> {
+    const a = await this.alertCtrl.create({
+      header: 'تأكيد الحفظ',
+      message,
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        { text: 'تأكيد', role: 'confirm' },
+      ],
+    });
+    await a.present();
+    const res = await a.onDidDismiss();
+    return res.role === 'confirm';
   }
 
   goDashboard(): void {

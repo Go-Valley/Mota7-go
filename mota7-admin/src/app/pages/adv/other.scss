@@ -131,11 +131,17 @@
     padding: 8px 12px;
     margin-top: 12px;
     border-radius: 15px;
-    text-align: center;
+    text-align: right;
     font-size: 0.9rem;
     border: 1px solid #f5c6cb;
+    width: 100%;
+    box-sizing: border-box;
     p {
       margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.6;
       strong {
         font-weight: 800;
       }

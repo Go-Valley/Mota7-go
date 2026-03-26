@@ -8,7 +8,7 @@ export const STORES_CATEGORIES_DATA = {
   items: [
     { id: 'grocery_food', nameAr: 'سوبر ماركت ومواد غذائية', nameEn: 'Grocery & Food', icon: 'shopping_cart' },
     { id: 'food_beverages', nameAr: 'مطاعم وكافيهات', nameEn: 'Restaurants & Cafes', icon: 'utensils' },
-    { id: 'fashion_beauty', nameAr: 'ملابس، أحذية، وتجميل', nameEn: 'Fashion & Beauty', icon: 'checkroom' },
+    { id: 'fashion_beauty', nameAr: 'ملابس، أحذية، مفروشات وتجميل', nameEn: 'Fashion & Beauty', icon: 'checkroom' },
     { id: 'health_care', nameAr: 'صيدليات وعناية طبية', nameEn: 'Health & Care', icon: 'medical_services' },
     { id: 'tech_home', nameAr: 'موبايلات، إلكترونيات، وأجهزة', nameEn: 'Mobiles & Electronics', icon: 'devices' },
     { id: 'furniture_decor', nameAr: 'أثاث، موبيليا، وديكور', nameEn: 'Furniture & Decor', icon: 'weekend' },

@@ -25,6 +25,9 @@
         <item name="android:windowNoTitle">true</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowBackground">@drawable/splash_launch</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
         <!-- لون خلفية طبقة Splash API (يُنصح أن يطابق حواف تصميم splash.png) -->

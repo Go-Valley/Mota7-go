@@ -123,17 +123,33 @@
 
 .taxonomy-item {
   --background: rgba(255, 255, 255, 0.03);
-  --color: #f1f5f9;
-  h3 {
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: #f8fafc;
-  }
+  --color: #000000;
   .sub-id {
     font-size: 0.78rem;
-    color: #64748b;
+    color: #111111;
     margin-top: 4px;
   }
+}
+
+.name-inline-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.name-inline-input {
+  --color: #000000;
+  --placeholder-color: #555555;
+  --padding-start: 0;
+  --padding-end: 0;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.inline-save-spinner {
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 8px;
+  color: #22c55e;
 }
 
 .order-chips ion-button {

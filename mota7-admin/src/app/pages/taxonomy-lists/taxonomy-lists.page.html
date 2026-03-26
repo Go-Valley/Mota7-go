@@ -67,10 +67,23 @@
       <ion-list class="taxonomy-list" lines="full">
         <ion-item-sliding *ngFor="let row of items; let i = index">
           <ion-item class="taxonomy-item">
-            <ion-label>
-              <h3>{{ itemPreview(row) }}</h3>
+            <div class="name-inline-wrap">
+              <ion-input
+                class="name-inline-input"
+                [(ngModel)]="row.nameAr"
+                placeholder="اسم البند"
+                (ionFocus)="onNameInputFocus(i)"
+                (ionBlur)="onInlineNameBlur(i)"
+                [disabled]="savingNameIndex === i"
+              ></ion-input>
               <p class="sub-id">{{ row.id }}</p>
-            </ion-label>
+            </div>
+            <ion-spinner
+              slot="end"
+              name="crescent"
+              class="inline-save-spinner"
+              *ngIf="savingNameIndex === i"
+            ></ion-spinner>
             <div class="order-chips" slot="end">
               <ion-button fill="clear" size="small" (click)="moveUp(i)" [disabled]="i === 0">
                 ↑
