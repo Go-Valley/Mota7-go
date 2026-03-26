@@ -1,10 +1,12 @@
-import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data';
+import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
@@ -21,7 +23,7 @@ import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline,
 export class EducationFormComponent implements OnInit {
   @Input() editAdData: any; 
 
-  eduCategories = EDUCATION_CATEGORY.items;
+  eduCategories: any[] = [...EDUCATION_CATEGORY.items];
   availableSubjects: string[] = [];
   isSubmitting = false;
   isEditMode = false;
@@ -47,6 +49,8 @@ export class EducationFormComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -59,6 +63,11 @@ export class EducationFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b: TaxonomyBundle) => {
+      this.eduCategories = b.educationItems;
+      this.onCategoryChange();
+    });
+
     if (this.editAdData) {
       this.setupEditData(this.editAdData);
     } else {

@@ -2,10 +2,17 @@ import { Component, Input, OnInit, Output, EventEmitter, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { 
-  logoWhatsapp, call, checkmarkCircle, ribbon, 
-  shieldCheckmark, ellipsisVerticalOutline, chevronDownOutline, chevronUpOutline,
-  calendarOutline
+import {
+  logoWhatsapp,
+  call,
+  checkmarkCircle,
+  ribbon,
+  shieldCheckmark,
+  ellipsisVerticalOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+  calendarOutline,
+  locationOutline,
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
@@ -29,10 +36,16 @@ export class StoreCard implements OnInit {
 
   constructor() {
     addIcons({
-      logoWhatsapp, call, checkmarkCircle, ribbon, 
-      shieldCheckmark, ellipsisVerticalOutline,
-      chevronDownOutline, chevronUpOutline,
-      calendarOutline
+      logoWhatsapp,
+      call,
+      checkmarkCircle,
+      ribbon,
+      shieldCheckmark,
+      ellipsisVerticalOutline,
+      chevronDownOutline,
+      chevronUpOutline,
+      calendarOutline,
+      locationOutline,
     });
   }
 

@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, IonInput, IonTextarea, LoadingController, ToastController, NavController, ModalController, AlertController, ActionSheetController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, limit, getDocs } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { PRODUCTS_CATEGORY } from '../../../../core/constants/products-data';
+import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import { addIcons } from 'ionicons';
 import { 
   cameraOutline, trashOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline,
@@ -31,7 +33,7 @@ export class ProductFormComponent implements OnInit {
   @ViewChild('inputShortDesc', { read: IonInput }) private inputShortDesc?: IonInput;
   @ViewChild('inputFullDetails', { read: IonTextarea }) private inputFullDetails?: IonTextarea;
 
-  mainCategories = PRODUCTS_CATEGORY.items;
+  mainCategories: any[] = [...PRODUCTS_CATEGORY.items];
   subCategories: string[] = [];
   isSubmitting = false; 
   isEditMode = false;
@@ -71,6 +73,8 @@ export class ProductFormComponent implements OnInit {
   private newAdNtfy = inject(NewAdNtfyService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private cdr = inject(ChangeDetectorRef);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   private currentStore: any = null; 
 
@@ -89,6 +93,12 @@ export class ProductFormComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b) => {
+      this.mainCategories = b.productItems;
+      this.onMainCategoryChange(false);
+      this.cdr.markForCheck();
+    });
+
     if (this.editAdData) {
       this.isEditMode = true;
       this.fillFormForEdit();

@@ -1,0 +1,138 @@
+<app-mota7-header title="تعديل قوائم التطبيق" (backClick)="goDashboard()"></app-mota7-header>
+
+<ion-content class="taxonomy-ion-content">
+  <div class="taxonomy-shell">
+    <div class="hero-panel">
+      <div class="hero-icon-wrap">
+        <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+      </div>
+      <div class="hero-text">
+        <h2>إدارة التصنيفات المباشرة</h2>
+        <p>تعديل فوري على Firestore — يظهر في تطبيق العملاء بدون إعادة نشر</p>
+      </div>
+      <ion-button
+        fill="outline"
+        size="small"
+        class="seed-btn"
+        (click)="openSeedPicker()"
+      >
+        <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+        تهيئة من القيم الافتراضية
+      </ion-button>
+    </div>
+
+    <ion-segment
+      class="section-segment"
+      [value]="selectedDocId"
+      (ionChange)="onSegmentChange($event)"
+      scrollable="true"
+      mode="ios"
+    >
+      <ion-segment-button *ngFor="let s of sections" [value]="s.docId">
+        <ion-label>{{ s.label }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="meta-card" *ngIf="!loading">
+      <ion-item lines="none" class="meta-field">
+        <ion-label position="stacked">اسم القسم (nameAr) — اختياري</ion-label>
+        <ion-input [(ngModel)]="metaNameAr" placeholder="يظهر في واجهات إن وُجد"></ion-input>
+      </ion-item>
+      <ion-item lines="none" class="meta-field">
+        <ion-label position="stacked">أيقونة القسم (icon)</ion-label>
+        <ion-input [(ngModel)]="metaIcon" placeholder="مثل car أو storefront"></ion-input>
+      </ion-item>
+    </div>
+
+    <div class="loading-wrap" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>جاري التحميل...</span>
+    </div>
+
+    <div class="items-panel" *ngIf="!loading">
+      <div class="items-toolbar">
+        <span class="items-count">{{ items.length }} بند</span>
+        <ion-button size="small" (click)="addItem()">
+          <ion-icon slot="start" name="add-outline"></ion-icon>
+          إضافة
+        </ion-button>
+        <ion-button size="small" color="success" (click)="saveAll()">
+          حفظ على Firestore
+        </ion-button>
+        <ion-button size="small" fill="clear" (click)="loadCurrentDoc()">
+          <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+        </ion-button>
+      </div>
+
+      <ion-list class="taxonomy-list" lines="full">
+        <ion-item-sliding *ngFor="let row of items; let i = index">
+          <ion-item class="taxonomy-item">
+            <ion-label>
+              <h3>{{ itemPreview(row) }}</h3>
+              <p class="sub-id">{{ row.id }}</p>
+            </ion-label>
+            <div class="order-chips" slot="end">
+              <ion-button fill="clear" size="small" (click)="moveUp(i)" [disabled]="i === 0">
+                ↑
+              </ion-button>
+              <ion-button
+                fill="clear"
+                size="small"
+                (click)="moveDown(i)"
+                [disabled]="i === items.length - 1"
+              >
+                ↓
+              </ion-button>
+            </div>
+          </ion-item>
+          <ion-item-options side="start">
+            <ion-item-option color="primary" (click)="editItem(i)">
+              <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item-options side="end">
+            <ion-item-option color="danger" (click)="deleteItem(i)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+
+      <div class="empty-hint" *ngIf="items.length === 0">
+        لا توجد عناصر — أضف بنداً أو نفّذ التهيئة الافتراضية.
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-modal
+  [isOpen]="seedPickerOpen"
+  (didDismiss)="onSeedPickerDismiss()"
+  class="seed-picker-modal"
+>
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>اختر الأقسام</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="seedPickerOpen = false">إغلاق</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding seed-picker-content">
+      <p class="seed-picker-hint">
+        حدد الأقسام التي تريد إعادة تعيينها من القيم الافتراضية فقط (دون باقي مستندات Categories).
+      </p>
+      <ion-list lines="full" class="seed-picker-list">
+        <ion-item *ngFor="let row of seedPickerRows">
+          <ion-checkbox slot="start" [(ngModel)]="seedPick[row.docId]"></ion-checkbox>
+          <ion-label>{{ row.label }}</ion-label>
+        </ion-item>
+      </ion-list>
+      <div class="seed-picker-actions">
+        <ion-button expand="block" fill="outline" (click)="seedPickerOpen = false">إلغاء</ion-button>
+        <ion-button expand="block" color="primary" (click)="proceedSeedAfterPick()">متابعة</ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -18,7 +18,8 @@ import {
   locateOutline,
   logOutOutline,
   personRemoveOutline,
-  checkmarkDoneCircle
+  checkmarkDoneCircle,
+  layersOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -64,7 +65,8 @@ export class DashboardPage implements OnInit {
       locateOutline,
       logOutOutline,
       personRemoveOutline,
-      checkmarkDoneCircle
+      checkmarkDoneCircle,
+      layersOutline
     });
   }
 

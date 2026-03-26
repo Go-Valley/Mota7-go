@@ -20,6 +20,9 @@
     "module": "es2020",
     "lib": ["es2018", "dom"],
     "skipLibCheck": true,
+    "paths": {
+      "@mota7-app/*": ["../Mota7/src/app/*"]
+    },
     "useDefineForClassFields": false
   },
   "angularCompilerOptions": {

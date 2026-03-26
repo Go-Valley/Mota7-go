@@ -95,22 +95,24 @@ export class StoreHomeCardComponent implements OnInit {
     try {
       const storeId = this.ad?.id || this.ad?.ad_id;
       const storeName = this.ad?.store_name;
-      const adsRef = collection(this.firestore, 'ads');
 
       let snap: Awaited<ReturnType<typeof getDocs>> | null = null;
 
       if (storeId) {
         try {
-          const q = query(
-            adsRef,
-            where('ad_type', '==', 'product'),
-            where('storeId', '==', storeId),
-            where('status', '==', 'active'),
-            where('isStoreProduct', '==', true),
-            orderBy('created_at', 'desc'),
-            limit(24)
-          );
-          snap = await runInInjectionContext(this.injector, () => getDocs(q));
+          snap = await runInInjectionContext(this.injector, () => {
+            const adsRef = collection(this.firestore, 'ads');
+            const q = query(
+              adsRef,
+              where('ad_type', '==', 'product'),
+              where('storeId', '==', storeId),
+              where('status', '==', 'active'),
+              where('isStoreProduct', '==', true),
+              orderBy('created_at', 'desc'),
+              limit(24)
+            );
+            return getDocs(q);
+          });
         } catch (e) {
           console.warn('store products query by storeId (قد تحتاج فهرساً مركباً في Firebase):', e);
         }
@@ -118,16 +120,19 @@ export class StoreHomeCardComponent implements OnInit {
 
       if ((!snap || snap.empty) && storeName) {
         try {
-          const q = query(
-            adsRef,
-            where('ad_type', '==', 'product'),
-            where('storeName', '==', storeName),
-            where('status', '==', 'active'),
-            where('isStoreProduct', '==', true),
-            orderBy('created_at', 'desc'),
-            limit(24)
-          );
-          snap = await runInInjectionContext(this.injector, () => getDocs(q));
+          snap = await runInInjectionContext(this.injector, () => {
+            const adsRef = collection(this.firestore, 'ads');
+            const q = query(
+              adsRef,
+              where('ad_type', '==', 'product'),
+              where('storeName', '==', storeName),
+              where('status', '==', 'active'),
+              where('isStoreProduct', '==', true),
+              orderBy('created_at', 'desc'),
+              limit(24)
+            );
+            return getDocs(q);
+          });
         } catch (e) {
           console.warn('store products query by storeName:', e);
         }

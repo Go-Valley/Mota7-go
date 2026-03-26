@@ -1,10 +1,12 @@
-import { Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, IonInput, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { STORES_CATEGORIES_DATA } from '../../../../core/constants/stores-data';
+import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
@@ -28,7 +30,7 @@ export class StoreFormComponent implements OnInit {
   @ViewChild('inputStoreName', { read: IonInput }) private inputStoreName?: IonInput;
   isEditMode = false;
 
-  storeCategories = STORES_CATEGORIES_DATA.items;
+  storeCategories: any[] = [...STORES_CATEGORIES_DATA.items];
   isSubmitting = false; 
   ownerRealName: string = '';
   userVerificationStatus: string = 'none'; // متغير حالة التوثيق
@@ -54,6 +56,8 @@ export class StoreFormComponent implements OnInit {
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -66,6 +70,10 @@ export class StoreFormComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b: TaxonomyBundle) => {
+      this.storeCategories = b.storeItems;
+    });
+
     if (this.editAdData) {
       this.isEditMode = true;
       this.fillFormForEdit();
@@ -163,48 +171,50 @@ export class StoreFormComponent implements OnInit {
     }
   }
 
-async saveStore() {
-  await this.syncStoreNameFromNativeInput();
-  this.storeData.storeName = normalizeUserFreeText(this.storeData.storeName);
-  if (!this.storeData.storeName || !this.storeData.category_id) {
-    this.presentToast('يرجى إكمال البيانات الأساسية');
-    return;
-  }
+  async saveStore() {
+    await this.syncStoreNameFromNativeInput();
+    this.storeData.storeName = normalizeUserFreeText(this.storeData.storeName);
+    if (!this.storeData.storeName || !this.storeData.category_id) {
+      this.presentToast('يرجى إكمال البيانات الأساسية');
+      return;
+    }
 
-  const user = this.auth.currentUser;
-  if (!user) {
-    this.presentToast('يرجى تسجيل الدخول أولاً');
-    return;
-  }
+    const user = this.auth.currentUser;
+    if (!user) {
+      this.presentToast('يرجى تسجيل الدخول أولاً');
+      return;
+    }
 
-  const loader = await this.loadingCtrl.create({ 
-    message: this.isEditMode ? 'جاري تحديث البيانات...' : 'جاري إنشاء المتجر...', 
-    mode: 'ios' 
-  });
-  await loader.present();
+    const loader = await this.loadingCtrl.create({
+      message: this.isEditMode ? 'جاري تحديث البيانات...' : 'جاري إنشاء المتجر...',
+      mode: 'ios',
+    });
+    await loader.present();
 
-  try {
-    let ntfySnapshot: Record<string, unknown> | null = null;
-    const outcome = await runInInjectionContext(this.injector, async (): Promise<'duplicate' | 'ok'> => {
+    try {
+      let ntfySnapshot: Record<string, unknown> | null = null;
+
       if (!this.isEditMode) {
-        const adsRef = collection(this.firestore, 'ads');
-        const q = query(
-          adsRef,
-          where('owner_phone', '==', this.storeData.contactPhone),
-          where('category_id', '==', this.storeData.category_id),
-          where('ad_type', '==', 'store')
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          return 'duplicate';
+        const duplicate = await runInInjectionContext(this.injector, async () => {
+          const adsRef = collection(this.firestore, 'ads');
+          const q = query(
+            adsRef,
+            where('owner_phone', '==', this.storeData.contactPhone),
+            where('category_id', '==', this.storeData.category_id),
+            where('ad_type', '==', 'store')
+          );
+          const querySnapshot = await getDocs(q);
+          return !querySnapshot.empty;
+        });
+        if (duplicate) {
+          await loader.dismiss();
+          this.presentToast('لقد قمت بإضافة متجر بنفس النشاط مسبقاً');
+          return;
         }
       }
 
       const adId = this.isEditMode ? (this.editAdData.ad_id || this.editAdData.id) : `store_${this.storeData.contactPhone}_${Date.now()}`;
-      const adRef = doc(this.firestore, 'ads', adId);
-
       const finalStatus = 'pending';
-
       const logoUrl = this.storeData.logo || 'assets/mota7.png';
       const adPayload: any = {
         ad_id: adId,
@@ -229,7 +239,7 @@ async saveStore() {
         admin_reason: this.isEditMode ? (this.editAdData.admin_reason || '') : '',
         created_at: this.isEditMode ? this.editAdData.created_at : serverTimestamp(),
         updated_at: serverTimestamp(),
-        stats: this.isEditMode ? this.editAdData.stats : { views: 0, calls: 0, ratings: 0 }
+        stats: this.isEditMode ? this.editAdData.stats : { views: 0, calls: 0, ratings: 0 },
       };
 
       if (!this.isEditMode) {
@@ -246,34 +256,28 @@ async saveStore() {
         adPayload.expiry_date = this.editAdData.expiry_date;
       }
 
-      await setDoc(adRef, adPayload);
-      return 'ok';
-    });
+      await runInInjectionContext(this.injector, async () => {
+        const adRef = doc(this.firestore, 'ads', adId);
+        await setDoc(adRef, adPayload);
+      });
 
-    if (outcome === 'duplicate') {
       await loader.dismiss();
-      this.presentToast('لقد قمت بإضافة متجر بنفس النشاط مسبقاً');
-      return;
-    }
+      this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال متجرك للمراجعة بنجاح');
+      await this.modalCtrl.dismiss({ saved: true }, 'confirm');
 
-    await loader.dismiss();
-    this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال متجرك للمراجعة بنجاح');
-    await this.modalCtrl.dismiss({ saved: true }, 'confirm');
-
-    if (!this.isEditMode) {
-      if (ntfySnapshot && user) {
-        void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+      if (!this.isEditMode) {
+        if (ntfySnapshot && user) {
+          void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+        }
+        this.navCtrl.navigateRoot('/my-ads');
       }
-      this.navCtrl.navigateRoot('/my-ads');
+    } catch (e: any) {
+      if (loader) await loader.dismiss();
+      console.error('Error saving store:', e);
+      this.presentToast('حدث خطأ أثناءالحفظ - تواصل مع الادارة');
     }
-    
-  } catch (e: any) {
-    if (loader) await loader.dismiss();
-    console.error("Error saving store:", e);
-    this.presentToast('حدث خطأ أثناءالحفظ - تواصل مع الادارة');
   }
-}
-  
+
   async close() {
     await this.modalCtrl.dismiss(null, 'cancel');
   }

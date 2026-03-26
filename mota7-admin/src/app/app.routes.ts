@@ -15,6 +15,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/dashboard/dashboard.page').then( m => m.DashboardPage)
   },
   {
+    path: 'taxonomy-lists',
+    loadComponent: () =>
+      import('./pages/taxonomy-lists/taxonomy-lists.page').then((m) => m.TaxonomyListsPage),
+  },
+  {
     path: 'users',
     loadComponent: () => import('./pages/users/users.page').then(m => m.UsersPage)
   },

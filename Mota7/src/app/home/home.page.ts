@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, EnvironmentInjector, runInInjectionContext, HostBinding } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, EnvironmentInjector, runInInjectionContext, HostBinding } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonicModule, Platform, AlertController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
 import { Firestore, collection, collectionData, query, orderBy, where, getDocs, limit, startAfter } from '@angular/fire/firestore';
-import { Observable, of } from 'rxjs';
+import type { QueryConstraint } from 'firebase/firestore';
+import { Observable, of, Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { map, catchError } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms'; // تم إضافة FormsModule لدعم البحث
@@ -16,7 +17,9 @@ import {
   call, logoWhatsapp, locationOutline, globeOutline,
   searchOutline, closeOutline,
   carSportOutline, schoolOutline, gridOutline, storefrontOutline, cartOutline,
-  constructOutline, carOutline, chevronDownCircleOutline
+  constructOutline, carOutline, chevronDownCircleOutline,
+  basket, bandage, restaurant, shirt, tv, hammer, bed, bicycle, bus,
+  medkit, hardwareChip
 } from 'ionicons/icons';
 
 // كروت عرض الإعلانات
@@ -33,6 +36,9 @@ import { DELIVERY_CATEGORY } from '../core/constants/delivery-data';
 import { EDUCATION_CATEGORY } from '../core/constants/educational-data';
 import { OTHER_SERVICES_DATA } from '../core/constants/other-services-data';
 import { PRODUCTS_CATEGORY } from '../core/constants/products-data';
+import { STORES_CATEGORIES_DATA } from '../core/constants/stores-data';
+import { AppTaxonomyService } from '../core/services/app-taxonomy.service';
+import { resolveTaxonomyIcon } from '../core/utils/taxonomy-icon.util';
 
 @Component({
   selector: 'app-home',
@@ -52,12 +58,14 @@ import { PRODUCTS_CATEGORY } from '../core/constants/products-data';
     StoreHomeCardComponent
   ]
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
   private platform = inject(Platform);
   private router = inject(Router);
   private alertCtrl = inject(AlertController);
+  private taxonomy = inject(AppTaxonomyService);
+  private taxonomySub?: Subscription;
 
   ionViewWillEnter() {
     this.backToHome(); // سيقوم بتصفير الحالة كلما دخلت الصفحة من التابس
@@ -113,10 +121,15 @@ export class HomePage implements OnInit {
   otherTabCounts: Record<string, number | undefined> = {};
   productCategoryTabCounts: Record<string, number | undefined> = {};
   productSubcategoryTabCounts: Record<string, number | undefined> = {};
+  storeTypes = [...STORES_CATEGORIES_DATA.items];
+  selectedStoreType: string = 'all';
+  storeTypeTabCounts: Record<string, number | undefined> = {};
   private tabCountsRequestId = 0;
   /** تخزين مؤقت للإعلانات المصفّاة (نوع + مدينة) لتفادي إعادة الجلب عند تغيير التاب الفرعي فقط */
   private tabCountsPoolCache: { adType: string; cityLabel: string; pool: any[] } | null = null;
 
+  /** رسالة عند الاعتماد الكامل على الثوابت (فشل جلب التصنيفات من Firestore) */
+  taxonomyLoadWarning: string | null = null;
   constructor() {
     addIcons({ 
       'car': car, 'school': school, 'construct': construct, 
@@ -135,19 +148,49 @@ export class HomePage implements OnInit {
       'cart-outline': cartOutline,
       'construct-outline': constructOutline,
       'car-outline': carOutline,
-      'chevron-down-circle-outline': chevronDownCircleOutline
+      'chevron-down-circle-outline': chevronDownCircleOutline,
+      basket, bandage, restaurant, shirt, tv, hammer, bed, bicycle, bus,
+      medkit, 'hardware-chip': hardwareChip,
     });
   }
 
+  ngOnDestroy(): void {
+    this.taxonomySub?.unsubscribe();
+  }
+
   ngOnInit() {
+    this.taxonomySub = this.taxonomy.bundle$.subscribe((b) => {
+      this.deliveryCategories = b.deliveryItems;
+      this.educationStages = b.educationItems;
+      this.otherServices = b.otherItems;
+      this.productCategories = b.productItems;
+      this.storeTypes = b.storeItems;
+      if (!b.loadedFromFirebase) {
+        this.taxonomyLoadWarning =
+          'تعذر تحميل التصنيفات من السحابة — يُعرض نسخة احتياطية محلية';
+      } else {
+        this.taxonomyLoadWarning = null;
+      }
+      const stage = this.educationStages.find((s: any) => s.id === this.selectedEducationStage);
+      if (this.selectedEducationStage !== 'all') {
+        this.educationSubjects = stage?.subjects || [];
+      }
+      const pc = this.productCategories.find((c: any) => c.id === this.selectedProductCategory);
+      if (this.selectedProductCategory !== 'all') {
+        this.productSubcategories = pc?.subcategories || [];
+      }
+    });
+
     window.addEventListener('reset-mota7-home', () => this.backToHome());
     runInInjectionContext(this.injector, () => {
       const categoriesRef = collection(this.firestore, 'Categories');
       const q = query(categoriesRef, orderBy('order', 'asc'));
       this.categories$ = collectionData(q, { idField: 'id' }).pipe(
+        map((rows: any[] | undefined) =>
+          rows != null ? rows.map((c) => ({ ...c, icon: resolveTaxonomyIcon(c?.icon) })) : null
+        ),
         catchError((err) => {
           console.error('Failed to load Categories from Firestore:', err);
-          // يرجع null حتى الـ *ngIf في الـ HTML يمر على else (defaultView)
           return of(null);
         })
       );
@@ -213,6 +256,11 @@ export class HomePage implements OnInit {
     this.loadAdsForCategory(this.selectedCategory);
   }
 
+  selectStoreType(typeId: string) {
+    this.selectedStoreType = typeId;
+    this.loadAdsForCategory(this.selectedCategory);
+  }
+
   openService(service: any) {
     this.selectedCategory = typeof service === 'string' ? service : (service.id || service.nameAr);
     this.selectedCategoryName = typeof service === 'string' ? this.getStaticName(service) : service.nameAr;
@@ -233,6 +281,7 @@ export class HomePage implements OnInit {
     this.selectedProductCategory = 'all';
     this.selectedProductSubcategory = 'all';
     this.productSubcategories = [];
+    this.selectedStoreType = 'all';
   }
 
   private loadAdsForCategory(categoryId: string | null) {
@@ -270,6 +319,7 @@ export class HomePage implements OnInit {
     this.otherTabCounts = {};
     this.productCategoryTabCounts = {};
     this.productSubcategoryTabCounts = {};
+    this.storeTypeTabCounts = {};
   }
 
   /** الرجوع بالجهاز يخص «الرئيسية» فقط — خارجها نمرّر للمعالجات الأخرى (مثل my-ads / edit-profile). */
@@ -446,6 +496,7 @@ export class HomePage implements OnInit {
     this.otherTabCounts = {};
     this.productCategoryTabCounts = {};
     this.productSubcategoryTabCounts = {};
+    this.storeTypeTabCounts = {};
 
     if (cat === 'transportation') {
       this.deliveryTabCounts['all'] = pool.length;
@@ -490,6 +541,14 @@ export class HomePage implements OnInit {
           this.productSubcategoryTabCounts[sub] = catPool.filter((a) => a.sub_category_name === sub).length;
         }
       }
+      return;
+    }
+
+    if (cat === 'stores_types') {
+      this.storeTypeTabCounts['all'] = pool.length;
+      for (const item of this.storeTypes) {
+        this.storeTypeTabCounts[item.id] = pool.filter((a) => a.category_id === item.id).length;
+      }
     }
   }
 
@@ -500,7 +559,7 @@ export class HomePage implements OnInit {
       return;
     }
     const adType = this.mapCategoryToAdType(cat);
-    if (!adType || cat === 'stores_types') {
+    if (!adType) {
       return;
     }
 
@@ -592,7 +651,9 @@ export class HomePage implements OnInit {
       return [item?.nameAr, sub].filter(Boolean).join(' ');
     }
     if (adType === 'store') {
-      return ad?.store_name || '';
+      const st = this.storeTypes.find((i) => i.id === catId);
+      const parts = [st?.nameAr, ad?.store_name].filter(Boolean);
+      return parts.join(' — ') || ad?.store_name || '';
     }
     return '';
   }
@@ -761,6 +822,41 @@ export class HomePage implements OnInit {
     }, 1000);
   }
 
+  /**
+   * قيود Firestore لقائمة الرئيسية: الفلترة حسب التاب الفرعي على الخادم
+   * حتى تكون أول صفحة (ولاحقاً الترقيم) ممتلئة بإعلانات مطابقة فعلياً.
+   */
+  private buildHomeFeedQueryConstraints(adType: string): QueryConstraint[] {
+    const c: QueryConstraint[] = [where('ad_type', '==', adType)];
+    const cat = this.selectedCategory;
+
+    if (cat === 'transportation' && this.selectedDeliveryCategory !== 'all') {
+      c.push(where('category_id', '==', this.selectedDeliveryCategory));
+    }
+    if (cat === 'education' && this.selectedEducationStage !== 'all') {
+      c.push(where('category_id', '==', this.selectedEducationStage));
+    }
+    if (cat === 'education' && this.selectedEducationSubject !== 'all') {
+      c.push(where('details.subject', '==', this.selectedEducationSubject));
+    }
+    if (cat === 'other_services' && this.selectedOtherService !== 'all') {
+      c.push(where('category_id', '==', this.selectedOtherService));
+    }
+    if (cat === 'products' && this.selectedProductCategory !== 'all') {
+      c.push(where('category_id', '==', this.selectedProductCategory));
+    }
+    if (cat === 'products' && this.selectedProductSubcategory !== 'all') {
+      c.push(where('sub_category_name', '==', this.selectedProductSubcategory));
+    }
+    if (cat === 'stores_types' && this.selectedStoreType !== 'all') {
+      c.push(where('category_id', '==', this.selectedStoreType));
+    }
+
+    c.push(orderBy('created_at', 'desc'));
+    c.push(limit(20));
+    return c;
+  }
+
   private async fetchAdsPage(adType: string, event?: any) {
     if (this.isLoadingPage || !this.hasMore) {
       if (event?.target) event.target.complete();
@@ -770,8 +866,7 @@ export class HomePage implements OnInit {
     try {
       const snapshot = await runInInjectionContext(this.injector, () => {
         const adsRef = collection(this.firestore, 'ads');
-        let qBase: any;
-        qBase = query(adsRef, where('ad_type', '==', adType), orderBy('created_at', 'desc'), limit(20));
+        const qBase = query(adsRef, ...this.buildHomeFeedQueryConstraints(adType));
         const qFinal = this.lastVisible ? query(qBase, startAfter(this.lastVisible)) : qBase;
         return getDocs(qFinal);
       });
@@ -786,25 +881,9 @@ export class HomePage implements OnInit {
       const pageAds = pageDocs.map((d) =>
         slimAdForHomeFeed(Object.assign({ id: d.id }, d.data() || {}), adType)
       );
-      const filtered = pageAds.filter((ad: any) => {
-        if (ad.status !== 'active') return false;
-        if (!this.isCityMatch(ad.city)) return false;
-        if (this.selectedCategory === 'transportation' && this.selectedDeliveryCategory !== 'all') {
-          return ad.category_id === this.selectedDeliveryCategory;
-        }
-        if (this.selectedCategory === 'education') {
-          if (this.selectedEducationStage !== 'all' && ad.category_id !== this.selectedEducationStage) return false;
-          if (this.selectedEducationSubject !== 'all' && ad?.details?.subject !== this.selectedEducationSubject) return false;
-        }
-        if (this.selectedCategory === 'other_services' && this.selectedOtherService !== 'all') {
-          return ad.category_id === this.selectedOtherService;
-        }
-        if (this.selectedCategory === 'products') {
-          if (this.selectedProductCategory !== 'all' && ad.category_id !== this.selectedProductCategory) return false;
-          if (this.selectedProductSubcategory !== 'all' && ad.sub_category_name !== this.selectedProductSubcategory) return false;
-        }
-        return true;
-      });
+      const filtered = pageAds.filter(
+        (ad: any) => ad.status === 'active' && this.isCityMatch(ad.city)
+      );
       const merged = [...this.adsList, ...filtered];
       this.adsList = this.sortForDisplay(merged);
       if (pageDocs.length < 20) this.hasMore = false;

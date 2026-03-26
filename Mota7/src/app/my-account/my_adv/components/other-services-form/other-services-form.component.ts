@@ -1,10 +1,12 @@
-import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
+import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
@@ -20,7 +22,7 @@ import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmar
 })
 export class OtherServicesFormComponent implements OnInit {
   @Input() editAdData: any; 
-  categories = OTHER_SERVICES_DATA.items;
+  categories: any[] = [...OTHER_SERVICES_DATA.items];
   isEditMode = false;
   currentAdId: string | null = null;
   userVerificationStatus: string = 'none';
@@ -41,6 +43,8 @@ export class OtherServicesFormComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -53,6 +57,10 @@ export class OtherServicesFormComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b) => {
+      this.categories = b.otherItems;
+    });
+
     if (this.editAdData) {
       this.isEditMode = true;
       this.loadExistingAdData(this.editAdData);

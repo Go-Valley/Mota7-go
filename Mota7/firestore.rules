@@ -4,15 +4,20 @@ service cloud.firestore {
 
     // ——— دوال مساعدة ———
 
-    /** أدمن: هذه الإيميلات فقط (مستخدمو التطبيق {phone}@mota7.com ليسوا أدمن) */
+    /**
+     * أدمن: إما مطالبة مخصصة admin=true (مُفضّلة للوحة الأدمن)
+     * أو إيميل ضمن القائمة (مستخدمو التطبيق {phone}@mota7.com ليسوا أدمن).
+     */
     function isAdmin() {
-      return request.auth != null &&
-        request.auth.token.email is string &&
-        request.auth.token.email in [
-          'hossam@mota7.com',
-          'ibrahem@mota7.com',
-          'admin@mota7.com'
-        ];
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        (request.auth.token.email is string &&
+          request.auth.token.email in [
+            'hossam@mota7.com',
+            'ibrahem@mota7.com',
+            'admin@mota7.com'
+          ])
+      );
     }
 
     /** معرّف مستند users/{phone} من إيميل تسجيل الدخول */
@@ -108,6 +113,19 @@ service cloud.firestore {
     match /daily_stats/{date}/ads_logs/{logId} {
       allow read: if true;
       allow create, update: if request.auth != null && isUserActive();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * تصنيفات التطبيق (مجموعة Categories):
+     * - قراءة عامة: تطبيق العميل (docData / استعلام orderBy) بدون تسجيل إن لزم.
+     * - كتابة كاملة للأدمن: setDoc(merge)، updateDoc، حذف المستند — لوحة «تعديل قوائم التطبيق».
+     * ملاحظة: لا توجد حقول فرعية تحت المستند في التصميم الحالي؛ الحقل items مصفوفة داخل المستند.
+     */
+    match /Categories/{docId} {
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 

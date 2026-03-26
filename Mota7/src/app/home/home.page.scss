@@ -1,5 +1,24 @@
 // Mota7 Home — Premium layout (يستخدم الخلفية الموحدة من global.scss)
 
+.taxonomy-fallback-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff8e6 0%, #ffe8cc 100%);
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.4;
+  ion-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    color: #d97706;
+  }
+}
 
 /* --- تنسيقات زر اختيار المدينة --- */
 .city-widget {
@@ -249,7 +268,7 @@
   }
 }
 
-.delivery-tabs, .education-tabs, .education-subjects, .other-tabs, .product-tabs, .product-subtabs {
+.delivery-tabs, .education-tabs, .education-subjects, .other-tabs, .product-tabs, .product-subtabs, .store-tabs {
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -260,7 +279,7 @@
   &::-webkit-scrollbar { display: none; }
 }
 
-.delivery-tab, .edu-tab, .other-tab, .product-tab {
+.delivery-tab, .edu-tab, .other-tab, .product-tab, .store-tab {
   border: none;
   padding: 8px 16px;
   border-radius: 999px;
@@ -276,7 +295,7 @@
   flex-shrink: 0;
 }
 
-.delivery-tab.active, .edu-tab.active, .other-tab.active, .product-tab.active {
+.delivery-tab.active, .edu-tab.active, .other-tab.active, .product-tab.active, .store-tab.active {
   background: #1a1a1a;
   color: #ffffff;
 }
@@ -291,7 +310,8 @@
 .delivery-tab.active .tab-count,
 .edu-tab.active .tab-count,
 .other-tab.active .tab-count,
-.product-tab.active .tab-count {
+.product-tab.active .tab-count,
+.store-tab.active .tab-count {
   opacity: 0.9;
 }
 

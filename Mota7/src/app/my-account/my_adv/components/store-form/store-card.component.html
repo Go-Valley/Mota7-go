@@ -22,11 +22,13 @@
 
   <div class="card-main-content">
     <div class="store-logo-container">
-      <img [src]="ad.logo || 'assets/mota7.png'" 
-           (error)="$any($event.target).src = 'assets/mota7.png'" 
-           alt="لوجو المتجر">
+      <div class="store-logo-frame">
+        <img [src]="ad.logo || 'assets/mota7.png'"
+             (error)="$any($event.target).src = 'assets/mota7.png'"
+             alt="لوجو المتجر">
+      </div>
 
-      <div class="verification-badge" 
+      <div class="verification-badge"
            *ngIf="ad.verification_level && ad.verification_level !== 'none'" 
            [ngClass]="ad.verification_level">
         <img src="assets/gold.avif" *ngIf="ad.verification_level === 'gold'" class="verify-img" alt="ذهبي">

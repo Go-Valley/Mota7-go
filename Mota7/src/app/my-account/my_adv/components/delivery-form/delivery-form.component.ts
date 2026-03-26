@@ -1,10 +1,12 @@
-import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, inject, Input, EnvironmentInjector, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
+import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
@@ -22,7 +24,7 @@ export class DeliveryFormComponent implements OnInit {
   @Input() editAdData: any; 
   @Input() locationFunc: any; // استقبال دالة الموقع من الصفحة الأب
 
-  deliveryCategories = DELIVERY_CATEGORY.items;
+  deliveryCategories: any[] = [...DELIVERY_CATEGORY.items];
   isSubmitting = false;
   isEditMode = false; 
   currentAdId: string | null = null; 
@@ -51,12 +53,18 @@ export class DeliveryFormComponent implements OnInit {
   private navCtrl = inject(NavController);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     addIcons({ chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline });
   }
 
   async ngOnInit() {
+    this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b: TaxonomyBundle) => {
+      this.deliveryCategories = b.deliveryItems;
+    });
+
     if (this.editAdData) {
       this.initEditData(this.editAdData);
     } else {
