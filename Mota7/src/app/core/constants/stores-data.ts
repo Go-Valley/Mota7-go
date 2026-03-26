@@ -11,7 +11,7 @@ export const STORES_CATEGORIES_DATA = {
       { id: "restaurants", nameAr: "مطاعم وكافيهات", nameEn: "Restaurants", icon: "restaurant" },
       { id: "clothing", nameAr: "ملابس وأحذية", nameEn: "Clothing & Shoes", icon: "shirt" },
       { id: "electronics-stores", nameAr: "معارض إلكترونيات", nameEn: "Electronics Stores", icon: "tv" },
-      { id: "building-materials", nameAr: "موانئ ومواد بناء", nameEn: "Building Materials", icon: "hammer" },
+      { id: "building-materials", nameAr: "سيارات", nameEn: "Building Materials", icon: "hammer" },
       { id: "furniture", nameAr: "موبيليات وأثاث", nameEn: "Furniture Store", icon: "bed" }
     ]
   };

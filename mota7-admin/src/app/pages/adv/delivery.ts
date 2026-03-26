@@ -21,6 +21,8 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 })
 export class DeliveryCard implements OnInit {
   @Input() ad: any;
+  /** يُمرَّر من صفحة الإعلانات لتعطيل الإجراءات أثناء وضع التحديد المتعدد */
+  @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
 
   private alertCtrl = inject(AlertController);

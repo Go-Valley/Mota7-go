@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { IonicModule, ActionSheetController, AlertController, ModalController } from '@ionic/angular';
+import { IonicModule, ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
 import { Firestore, collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { addIcons } from 'ionicons';
@@ -64,11 +64,18 @@ export class AdvPage implements OnInit {
   private location = inject(Location);
   private modalCtrl = inject(ModalController);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
+  private toastCtrl = inject(ToastController);
 
   adsList: any[] = [];
   isLoading: boolean = true;
   selectedTab: string = 'pending';
   selectedType: string = 'all';
+
+  readonly longPressMs = 500;
+  selectionMode = false;
+  selectedAdIds = new Set<string>();
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressTriggered = false;
 
   ngOnInit() {
     this.fetchAds();
@@ -84,6 +91,7 @@ export class AdvPage implements OnInit {
         (snapshot) => {
           this.adsList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
           this.isLoading = false;
+          this.pruneAdSelectionToVisible();
         },
         (error) => {
           console.error('Error fetching ads:', error);
@@ -95,10 +103,149 @@ export class AdvPage implements OnInit {
 
   onTabChange(event: CustomEvent) {
     this.selectedTab = event.detail.value as string;
+    this.pruneAdSelectionToVisible();
   }
 
   onTypeChange(event: CustomEvent) {
     this.selectedType = event.detail.value as string;
+    this.pruneAdSelectionToVisible();
+  }
+
+  get selectedAdCount(): number {
+    return this.selectedAdIds.size;
+  }
+
+  private get visibleAds(): any[] {
+    return this.getFilteredAds(this.selectedTab);
+  }
+
+  get isAllVisibleAdsSelected(): boolean {
+    const ads = this.visibleAds;
+    if (!ads.length) return false;
+    const ids = ads.map((a) => a.id).filter(Boolean) as string[];
+    if (ids.length !== this.selectedAdIds.size) return false;
+    return ids.every((id) => this.selectedAdIds.has(id));
+  }
+
+  isAdSelected(adId: string): boolean {
+    return this.selectedAdIds.has(adId);
+  }
+
+  private pruneAdSelectionToVisible(): void {
+    if (!this.selectionMode) return;
+    const visible = new Set(this.visibleAds.map((a) => a.id).filter(Boolean));
+    const next = new Set<string>();
+    for (const id of this.selectedAdIds) {
+      if (visible.has(id)) next.add(id);
+    }
+    this.selectedAdIds = next;
+    if (this.selectedAdIds.size === 0) {
+      this.selectionMode = false;
+    }
+  }
+
+  private enterSelectionForAd(adId: string): void {
+    this.selectionMode = true;
+    this.selectedAdIds = new Set(this.selectedAdIds);
+    this.selectedAdIds.add(adId);
+  }
+
+  toggleSelectedAd(adId: string): void {
+    if (!this.selectionMode) return;
+    const next = new Set(this.selectedAdIds);
+    if (next.has(adId)) next.delete(adId);
+    else next.add(adId);
+    this.selectedAdIds = next;
+    if (this.selectedAdIds.size === 0) this.selectionMode = false;
+  }
+
+  toggleSelectAllVisible(checked: boolean): void {
+    if (!checked) {
+      this.selectedAdIds = new Set();
+      this.selectionMode = false;
+      return;
+    }
+    this.selectionMode = true;
+    this.selectedAdIds = new Set(this.visibleAds.map((a) => a.id).filter(Boolean));
+  }
+
+  onAdPointerDown(adId: string, ev: PointerEvent): void {
+    if (ev.pointerType === 'mouse' && ev.buttons !== 1) return;
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTriggered = false;
+    this.longPressTimer = setTimeout(() => {
+      this.longPressTriggered = true;
+      this.enterSelectionForAd(adId);
+    }, this.longPressMs);
+  }
+
+  onAdPointerUp(): void {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+  }
+
+  onAdPointerCancel(): void {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+  }
+
+  onAdCardClick(adId: string, ev: Event): void {
+    if (!this.selectionMode) return;
+    const t = ev.target as HTMLElement | undefined;
+    if (t?.closest?.('ion-checkbox')) return;
+    if (this.longPressTriggered) {
+      this.longPressTriggered = false;
+      return;
+    }
+    ev.stopPropagation();
+    this.toggleSelectedAd(adId);
+  }
+
+  async confirmDeleteSelectedAds(): Promise<void> {
+    const count = this.selectedAdCount;
+    if (count <= 0) return;
+
+    const ids = Array.from(this.selectedAdIds);
+    const alert = await this.alertCtrl.create({
+      header: 'تأكيد الحذف',
+      message: `هل أنت متأكد من حذف عدد (${count}) إعلان؟`,
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await runInInjectionContext(this.injector, async () => {
+                for (const id of ids) {
+                  const ad = this.adsList.find((a) => a.id === id);
+                  if (ad) {
+                    const cloudIds = collectCloudinaryPublicIdsFromAd(ad as Record<string, unknown>);
+                    if (cloudIds.length) {
+                      await this.cloudinaryCleanup.deletePublicIds(cloudIds).catch(() => {});
+                    }
+                  }
+                  await deleteDoc(doc(this.firestore, 'ads', id));
+                }
+              });
+              this.selectedAdIds = new Set();
+              this.selectionMode = false;
+              const toast = await this.toastCtrl.create({
+                message: 'تم حذف الإعلانات',
+                duration: 2000,
+                color: 'success',
+                mode: 'ios',
+              });
+              await toast.present();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   getFilteredAds(status: string): any[] {
@@ -138,6 +285,9 @@ export class AdvPage implements OnInit {
   }
 
   async openAdActions(event: any) {
+    if (this.selectionMode) {
+      return;
+    }
     const ad = event.ad ? event.ad : event;
 
     if (event.action === 'edit') {

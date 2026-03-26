@@ -281,6 +281,20 @@
   color: #ffffff;
 }
 
+.tab-count {
+  font-weight: 800;
+  font-size: 0.78em;
+  opacity: 0.85;
+  margin-inline-start: 4px;
+}
+
+.delivery-tab.active .tab-count,
+.edu-tab.active .tab-count,
+.other-tab.active .tab-count,
+.product-tab.active .tab-count {
+  opacity: 0.9;
+}
+
 .services-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);

@@ -18,6 +18,7 @@ import { normalizeUserFreeText } from './order-form-fields.util';
  * يبحث عن إعلان مقدم الخدمة المطابق لطلب مكتمل (نفس رقم المالك ومفتاح الخدمة).
  */
 async function findProviderAdId(
+  injector: EnvironmentInjector,
   firestore: Firestore,
   order: Record<string, unknown>
 ): Promise<string | null> {
@@ -47,7 +48,7 @@ async function findProviderAdId(
   }
 
   const q = query(collection(firestore, 'ads'), ...constraints, limit(3));
-  const snap = await getDocs(q);
+  const snap = await runInInjectionContext(injector, () => getDocs(q));
   if (snap.empty) return null;
   return snap.docs[0].id;
 }
@@ -65,51 +66,52 @@ export async function submitOrderProviderRating(
   const now = Timestamp.now();
   const s = Math.min(5, Math.max(1, Math.round(stars)));
 
-  await runInInjectionContext(injector, async () => {
-    const prevSnap = await getDoc(doc(firestore, 'orders', orderId));
-    const prevData = prevSnap.exists() ? prevSnap.data() : undefined;
-    const prevStars = prevData?.['customerProviderRating'];
-    const hadPreviousRating = typeof prevStars === 'number' && prevStars >= 1;
+  const prevSnap = await runInInjectionContext(injector, () =>
+    getDoc(doc(firestore, 'orders', orderId))
+  );
+  const prevData = prevSnap.exists() ? prevSnap.data() : undefined;
+  const prevStars = prevData?.['customerProviderRating'];
+  const hadPreviousRating = typeof prevStars === 'number' && prevStars >= 1;
 
-    await updateDoc(doc(firestore, 'orders', orderId), {
+  await runInInjectionContext(injector, () =>
+    updateDoc(doc(firestore, 'orders', orderId), {
       customerProviderRating: s,
       customerProviderRatingComment: comment,
       customerRatedAt: now,
-    });
+    })
+  );
 
-    const adId = await findProviderAdId(firestore, order);
-    if (!adId) return;
+  const adId = await findProviderAdId(injector, firestore, order);
+  if (!adId) return;
 
-    const adUpdate = hadPreviousRating
-      ? {
-          // إعادة التقييم: لا نزيد عدد التقييمات، فقط نعدّل مجموع النجوم.
-          provider_service_rating_sum: increment(s - (prevStars as number)),
-          last_provider_rating: {
-            stars: s,
-            comment,
-            ratedAt: now,
-            orderId,
-            customerPhone: order['customerPhone'] ?? '',
-          },
-        }
-      : {
-          // أول تقييم: نزيد العدد والمجموع.
-          provider_service_rating_count: increment(1),
-          provider_service_rating_sum: increment(s),
-          last_provider_rating: {
-            stars: s,
-            comment,
-            ratedAt: now,
-            orderId,
-            customerPhone: order['customerPhone'] ?? '',
-          },
-        };
+  const adUpdate = hadPreviousRating
+    ? {
+        provider_service_rating_sum: increment(s - (prevStars as number)),
+        last_provider_rating: {
+          stars: s,
+          comment,
+          ratedAt: now,
+          orderId,
+          customerPhone: order['customerPhone'] ?? '',
+        },
+      }
+    : {
+        provider_service_rating_count: increment(1),
+        provider_service_rating_sum: increment(s),
+        last_provider_rating: {
+          stars: s,
+          comment,
+          ratedAt: now,
+          orderId,
+          customerPhone: order['customerPhone'] ?? '',
+        },
+      };
 
-    // إذا فشل تحديث `ads` (صلاحيات/خلاف قواعد) لا نعتبر التقييم فاشلًا نفسه.
-    try {
-      await updateDoc(doc(firestore, 'ads', adId), adUpdate as any);
-    } catch (e) {
-      console.error('submitOrderProviderRating: ads update failed', e);
-    }
-  });
+  try {
+    await runInInjectionContext(injector, () =>
+      updateDoc(doc(firestore, 'ads', adId), adUpdate as any)
+    );
+  } catch (e) {
+    console.error('submitOrderProviderRating: ads update failed', e);
+  }
 }

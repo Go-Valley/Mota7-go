@@ -44,13 +44,15 @@ export async function commitAdContactClickFirestore(
   const rootField = type === 'call' ? 'call_clicks' : 'whatsapp_clicks';
   const statsField = type === 'call' ? 'calls' : 'whatsapp';
 
-  await runInInjectionContext(injector, async () => {
-    await updateDoc(doc(firestore, 'ads', adId), {
+  await runInInjectionContext(injector, () =>
+    updateDoc(doc(firestore, 'ads', adId), {
       [rootField]: increment(1),
       [`stats.${statsField}`]: increment(1),
-    });
+    })
+  );
 
-    await setDoc(
+  await runInInjectionContext(injector, () =>
+    setDoc(
       doc(firestore, 'daily_stats', today, 'ads_logs', adId),
       {
         ad_id: adId,
@@ -61,6 +63,6 @@ export async function commitAdContactClickFirestore(
         last_update: serverTimestamp(),
       },
       { merge: true }
-    );
-  });
+    )
+  );
 }

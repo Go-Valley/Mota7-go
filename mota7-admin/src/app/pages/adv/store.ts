@@ -19,6 +19,7 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 })
 export class StoreCard implements OnInit {
   @Input() ad: any;
+  @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
   
   showProducts: boolean = false;

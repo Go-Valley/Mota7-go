@@ -82,33 +82,33 @@
     </div>
 
     <div class="delivery-tabs" *ngIf="selectedCategory === 'transportation'">
-      <button type="button" class="delivery-tab" [class.active]="selectedDeliveryCategory === 'all'" (click)="selectDeliveryCategory('all')">الكل</button>
-      <button type="button" class="delivery-tab" *ngFor="let item of deliveryCategories" [class.active]="selectedDeliveryCategory === item.id" (click)="selectDeliveryCategory(item.id)">{{ item.nameAr }}</button>
+      <button type="button" class="delivery-tab" [class.active]="selectedDeliveryCategory === 'all'" (click)="selectDeliveryCategory('all')">الكل<span class="tab-count">({{ deliveryTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="delivery-tab" *ngFor="let item of deliveryCategories" [class.active]="selectedDeliveryCategory === item.id" (click)="selectDeliveryCategory(item.id)">{{ item.nameAr }}<span class="tab-count">({{ deliveryTabCounts[item.id] ?? 0 }})</span></button>
     </div>
 
     <div class="education-tabs" *ngIf="selectedCategory === 'education'">
-      <button type="button" class="edu-tab" [class.active]="selectedEducationStage === 'all'" (click)="selectEducationStage('all')">الكل</button>
-      <button type="button" class="edu-tab" *ngFor="let stage of educationStages" [class.active]="selectedEducationStage === stage.id" (click)="selectEducationStage(stage.id)">{{ stage.nameAr }}</button>
+      <button type="button" class="edu-tab" [class.active]="selectedEducationStage === 'all'" (click)="selectEducationStage('all')">الكل<span class="tab-count">({{ educationStageTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="edu-tab" *ngFor="let stage of educationStages" [class.active]="selectedEducationStage === stage.id" (click)="selectEducationStage(stage.id)">{{ stage.nameAr }}<span class="tab-count">({{ educationStageTabCounts[stage.id] ?? 0 }})</span></button>
     </div>
 
     <div class="education-subjects" *ngIf="selectedCategory === 'education' && selectedEducationStage !== 'all'">
-      <button type="button" class="edu-tab" [class.active]="selectedEducationSubject === 'all'" (click)="selectEducationSubject('all')">الكل</button>
-      <button type="button" class="edu-tab" *ngFor="let sub of educationSubjects" [class.active]="selectedEducationSubject === sub" (click)="selectEducationSubject(sub)">{{ sub }}</button>
+      <button type="button" class="edu-tab" [class.active]="selectedEducationSubject === 'all'" (click)="selectEducationSubject('all')">الكل<span class="tab-count">({{ educationSubjectTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="edu-tab" *ngFor="let sub of educationSubjects" [class.active]="selectedEducationSubject === sub" (click)="selectEducationSubject(sub)">{{ sub }}<span class="tab-count">({{ educationSubjectTabCounts[sub] ?? 0 }})</span></button>
     </div>
 
     <div class="other-tabs" *ngIf="selectedCategory === 'other_services'">
-      <button type="button" class="other-tab" [class.active]="selectedOtherService === 'all'" (click)="selectOtherService('all')">الكل</button>
-      <button type="button" class="other-tab" *ngFor="let item of otherServices" [class.active]="selectedOtherService === item.id" (click)="selectOtherService(item.id)">{{ item.nameAr }}</button>
+      <button type="button" class="other-tab" [class.active]="selectedOtherService === 'all'" (click)="selectOtherService('all')">الكل<span class="tab-count">({{ otherTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="other-tab" *ngFor="let item of otherServices" [class.active]="selectedOtherService === item.id" (click)="selectOtherService(item.id)">{{ item.nameAr }}<span class="tab-count">({{ otherTabCounts[item.id] ?? 0 }})</span></button>
     </div>
 
     <div class="product-tabs" *ngIf="selectedCategory === 'products'">
-      <button type="button" class="product-tab" [class.active]="selectedProductCategory === 'all'" (click)="selectProductCategory('all')">الكل</button>
-      <button type="button" class="product-tab" *ngFor="let item of productCategories" [class.active]="selectedProductCategory === item.id" (click)="selectProductCategory(item.id)">{{ item.nameAr }}</button>
+      <button type="button" class="product-tab" [class.active]="selectedProductCategory === 'all'" (click)="selectProductCategory('all')">الكل<span class="tab-count">({{ productCategoryTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="product-tab" *ngFor="let item of productCategories" [class.active]="selectedProductCategory === item.id" (click)="selectProductCategory(item.id)">{{ item.nameAr }}<span class="tab-count">({{ productCategoryTabCounts[item.id] ?? 0 }})</span></button>
     </div>
 
     <div class="product-subtabs" *ngIf="selectedCategory === 'products' && selectedProductCategory !== 'all'">
-      <button type="button" class="product-tab" [class.active]="selectedProductSubcategory === 'all'" (click)="selectProductSubcategory('all')">الكل</button>
-      <button type="button" class="product-tab" *ngFor="let sub of productSubcategories" [class.active]="selectedProductSubcategory === sub" (click)="selectProductSubcategory(sub)">{{ sub }}</button>
+      <button type="button" class="product-tab" [class.active]="selectedProductSubcategory === 'all'" (click)="selectProductSubcategory('all')">الكل<span class="tab-count">({{ productSubcategoryTabCounts['all'] ?? 0 }})</span></button>
+      <button type="button" class="product-tab" *ngFor="let sub of productSubcategories" [class.active]="selectedProductSubcategory === sub" (click)="selectProductSubcategory(sub)">{{ sub }}<span class="tab-count">({{ productSubcategoryTabCounts[sub] ?? 0 }})</span></button>
     </div>
 
     <div class="search-results" *ngIf="!selectedCategory && searchText" (click)="$event.stopPropagation()">

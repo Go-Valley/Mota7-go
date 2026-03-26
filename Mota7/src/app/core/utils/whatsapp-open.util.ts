@@ -15,8 +15,8 @@ export function normalizeWhatsappPhoneDigits(phone: string): string {
 }
 
 /**
- * على التطبيق الأصلي (Capacitor): فتح واتساب عبر AppLauncher مع احتياطي لـ location.assign.
- * على المتصفح: رابط wa.me لتفادي أخطاء الكونسول عند عدم تسجيل مخطط whatsapp://.
+ * على الأصلي: فتح تطبيق واتساب (whatsapp:// عبر AppLauncher مع احتياطي).
+ * على الويب/سطح المكتب: wa.me لتفادي خطأ «scheme does not have a registered handler».
  */
 export function openWhatsappNative(phone: string, message: string = ''): void {
   const digits = normalizeWhatsappPhoneDigits(phone);

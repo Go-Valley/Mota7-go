@@ -51,15 +51,6 @@
                 <div class="order-date">
                   أكتمل في: {{ order.completedAt?.toDate() | date:'hh:mm a - yyyy/MM/dd':'':'ar' }}
                 </div>
-
-                <button
-                  type="button"
-                  class="expires-btn"
-                  (click)="editExpiresAt(order, $event)"
-                >
-                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
-                  <span>expiresAt: {{ getExpiresAtDisplay(order) }}</span>
-                </button>
               </div>
 
               <ion-checkbox
@@ -84,6 +75,17 @@
                 <ion-icon name="cash-outline"></ion-icon>
                 <span>{{ order.price }} ج.م</span>
               </div>
+            </div>
+
+            <div class="completed-order-expiry-row" *ngIf="showExpiresAtControl(order)">
+              <button
+                type="button"
+                class="footer-item expiry-toggle"
+                (click)="editExpiresAt(order, $event)"
+              >
+                <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+                <span>تاريخ انتهاء الطلب (expiresAt): {{ getExpiresAtDisplay(order) }}</span>
+              </button>
             </div>
 
             <div class="dual-parties">

@@ -36,7 +36,11 @@ import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
 } from 'src/app/core/utils/order-lifecycle.firestore';
-import { presentProviderRatesCustomerModal } from '../../provider-completion-notice-modal/provider-rates-customer-modal.presenter';
+import {
+  presentProviderRatesCustomerModal,
+  releaseProviderRatesCustomerRatingPromptReservation,
+  reserveProviderRatesCustomerRatingPrompt,
+} from '../../provider-completion-notice-modal/provider-rates-customer-modal.presenter';
 
 @Component({
   selector: 'app-other-services-card',
@@ -265,13 +269,23 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
     this.stopAcceptedTimer();
     const id = this.order?.id;
     if (!id) return;
+    let weSetPresentingFlag = false;
     try {
+      reserveProviderRatesCustomerRatingPrompt(id);
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
       await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
       const snap = await runInInjectionContext(this.injector, () =>
         getDoc(doc(this.firestore, 'orders', id))
       );
       const d = snap.data();
-      if (!d || d['status'] !== 'completed') return;
+      if (!d || d['status'] !== 'completed') {
+        releaseProviderRatesCustomerRatingPromptReservation(id);
+        if (weSetPresentingFlag) this.presentingRateCustomer = false;
+        return;
+      }
       Object.assign(this.order, d);
       this.order.id = id;
       this.isVisible = true;
@@ -286,11 +300,6 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
       } else {
         void this.afterArchiveDone();
       }
-      let weSetPresentingFlag = false;
-      if (!this.presentingRateCustomer) {
-        this.presentingRateCustomer = true;
-        weSetPresentingFlag = true;
-      }
       this.finishOrder.emit(this.order.id);
       try {
         await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
@@ -299,6 +308,8 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
       }
     } catch (e) {
       console.error('fireAcceptedExpired other', e);
+      releaseProviderRatesCustomerRatingPromptReservation(id);
+      if (weSetPresentingFlag) this.presentingRateCustomer = false;
     }
   }
 
@@ -370,12 +381,20 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
 
   private async finishOrderNow(): Promise<void> {
     let weSetPresentingFlag = false;
+    const id = this.order?.id;
+    if (!id) return;
     try {
       this.stopAcceptedTimer();
+      reserveProviderRatesCustomerRatingPrompt(id);
+      if (!this.presentingRateCustomer) {
+        this.presentingRateCustomer = true;
+        weSetPresentingFlag = true;
+      }
+
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
       await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, 'orders', this.order.id), {
+        updateDoc(doc(this.firestore, 'orders', id), {
           status: 'completed',
           completedAt: now,
           isArchiving: true,
@@ -388,17 +407,16 @@ export class OtherServicesCardComponent implements OnInit, OnDestroy, OnChanges 
       this.isVisible = true;
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());
 
-      if (!this.presentingRateCustomer) {
-        this.presentingRateCustomer = true;
-        weSetPresentingFlag = true;
+      this.finishOrder.emit(id);
+
+      try {
+        await presentProviderRatesCustomerModal(this.modalCtrl, id, { ...this.order });
+      } finally {
+        if (weSetPresentingFlag) this.presentingRateCustomer = false;
       }
-
-      this.finishOrder.emit(this.order.id);
-
-      await presentProviderRatesCustomerModal(this.modalCtrl, this.order.id, { ...this.order });
     } catch (e) {
       console.error(e);
-    } finally {
+      releaseProviderRatesCustomerRatingPromptReservation(id);
       if (weSetPresentingFlag) this.presentingRateCustomer = false;
     }
   }

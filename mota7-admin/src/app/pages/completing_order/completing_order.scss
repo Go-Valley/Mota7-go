@@ -129,23 +129,6 @@
 
     .order-date { font-size: 0.75rem; color: #64748b; font-weight: 600; }
 
-    .expires-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid #bfdbfe;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-weight: 900;
-      border-radius: 12px;
-      padding: 6px 10px;
-      cursor: pointer;
-
-      ion-icon {
-        font-size: 16px;
-      }
-    }
-
     .order-select-checkbox {
       --size: 20px;
     }
@@ -169,6 +152,38 @@
     .service-tag { background: #eff6ff; color: #2563eb; }
     .city-badge { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
     .price-tag { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  }
+
+  /* مطابقة كارت «خدمات أخرى» في إدارة الإعلانات: .footer-grid .footer-item.expiry-toggle */
+  .completed-order-expiry-row {
+    display: flex;
+    border-top: 1px dashed #eee;
+    padding: 10px 18px 12px;
+    gap: 10px;
+
+    .footer-item.expiry-toggle {
+      flex: 1;
+      background: #fff4e5;
+      color: #ff9800;
+      padding: 6px 10px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+
+      ion-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+    }
   }
 
   .dual-parties {

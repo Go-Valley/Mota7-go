@@ -103,6 +103,8 @@ export class ProviderRatesCustomerModalComponent implements OnInit {
         this.commentText
       );
 
+      await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
+
       const toast = await this.toastCtrl.create({
         message: 'شكرا لاستخدامك تطبيق "مُتاح"',
         duration: 3000,
@@ -110,8 +112,6 @@ export class ProviderRatesCustomerModalComponent implements OnInit {
         mode: 'ios',
       });
       await toast.present();
-
-      await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
     } catch (e) {
       console.error('submitProviderRatesCustomer', e);
       const errToast = await this.toastCtrl.create({

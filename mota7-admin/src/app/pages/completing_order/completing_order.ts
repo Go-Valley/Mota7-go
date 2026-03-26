@@ -1,4 +1,4 @@
-import { Component, OnInit, QueryList, ViewChildren, inject, Injector, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, QueryList, ViewChildren, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { AlertController, IonicModule, IonItemSliding, ToastController } from '@ionic/angular';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import localeAr from '@angular/common/locales/ar';
@@ -11,7 +11,8 @@ import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkDoneCircle, logoWhatsapp, 
   trashOutline, bookOutline, carOutline, call, locationOutline, 
-  timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline
+  timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline,
+  calendarOutline
 } from 'ionicons/icons';
 
 registerLocaleData(localeAr);
@@ -27,7 +28,7 @@ export class CompletingOrderPage implements OnInit {
   @ViewChildren(IonItemSliding) private itemSlidings!: QueryList<IonItemSliding>;
 
   private firestore = inject(Firestore);
-  private injector = inject(Injector);
+  private injector = inject(EnvironmentInjector);
   private router = inject(Router);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
@@ -65,7 +66,8 @@ export class CompletingOrderPage implements OnInit {
     addIcons({ 
       searchOutline, checkmarkDoneCircle, logoWhatsapp, 
       trashOutline, bookOutline, carOutline, call, locationOutline, 
-      timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline
+      timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline,
+      calendarOutline
     });
   }
 
@@ -187,7 +189,7 @@ export class CompletingOrderPage implements OnInit {
     const ids = Array.from(this.selectedOrderIds);
     const alert = await this.alertCtrl.create({
       header: 'تأكيد الحذف',
-      message: `هل انت متأكد من حذف عدد (${count}) طلب مكتمل - تأكيد/الغاء`,
+      message: `هل أنت متأكد من حذف عدد (${count}) طلب مكتمل؟`,
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
@@ -196,11 +198,11 @@ export class CompletingOrderPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              await runInInjectionContext(this.injector, async () => {
-                for (const id of ids) {
-                  await deleteDoc(doc(this.firestore, 'orders', id));
-                }
-              });
+              for (const id of ids) {
+                await runInInjectionContext(this.injector, () =>
+                  deleteDoc(doc(this.firestore, 'orders', id))
+                );
+              }
 
               // حدّث الواجهة محلياً
               const remaining = (o: any) => !ids.includes(o.id);
@@ -326,6 +328,11 @@ export class CompletingOrderPage implements OnInit {
     return d.toLocaleDateString('ar', { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 
+  /** يظهر زر تاريخ الانتهاء لطلبات التوصيل والتعليم فقط. */
+  showExpiresAtControl(order: any): boolean {
+    return order?.serviceType === 'delivery' || order?.serviceType === 'education';
+  }
+
   async editExpiresAt(order: any, ev: Event) {
     ev.stopPropagation();
     const v = order?.expiresAt;
@@ -358,9 +365,9 @@ export class CompletingOrderPage implements OnInit {
             const ts = Timestamp.fromDate(d);
 
             try {
-              await runInInjectionContext(this.injector, async () => {
-                await updateDoc(doc(this.firestore, 'orders', order.id), { expiresAt: ts });
-              });
+              await runInInjectionContext(this.injector, () =>
+                updateDoc(doc(this.firestore, 'orders', order.id), { expiresAt: ts })
+              );
 
               // حدّث القيم محلياً
               order.expiresAt = ts;

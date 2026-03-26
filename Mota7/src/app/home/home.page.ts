@@ -106,6 +106,17 @@ export class HomePage implements OnInit {
   selectedProductCategory: string = 'all';
   selectedProductSubcategory: string = 'all';
 
+  /** أعداد الإعلانات (بعد فلتر المدينة والحالة) لكل تاب فرعي */
+  deliveryTabCounts: Record<string, number | undefined> = {};
+  educationStageTabCounts: Record<string, number | undefined> = {};
+  educationSubjectTabCounts: Record<string, number | undefined> = {};
+  otherTabCounts: Record<string, number | undefined> = {};
+  productCategoryTabCounts: Record<string, number | undefined> = {};
+  productSubcategoryTabCounts: Record<string, number | undefined> = {};
+  private tabCountsRequestId = 0;
+  /** تخزين مؤقت للإعلانات المصفّاة (نوع + مدينة) لتفادي إعادة الجلب عند تغيير التاب الفرعي فقط */
+  private tabCountsPoolCache: { adType: string; cityLabel: string; pool: any[] } | null = null;
+
   constructor() {
     addIcons({ 
       'car': car, 'school': school, 'construct': construct, 
@@ -240,6 +251,7 @@ export class HomePage implements OnInit {
     this.hasMore = true;
     this.isLoadingPage = false;
 
+    void this.refreshSectionTabCounts();
     this.fetchAdsPage(adType, true);
   }
 
@@ -251,6 +263,13 @@ export class HomePage implements OnInit {
     this.selectedCityLabel = 'الكل';
     this.showCityPopover = false;
     this.clearSearch();
+    this.tabCountsPoolCache = null;
+    this.deliveryTabCounts = {};
+    this.educationStageTabCounts = {};
+    this.educationSubjectTabCounts = {};
+    this.otherTabCounts = {};
+    this.productCategoryTabCounts = {};
+    this.productSubcategoryTabCounts = {};
   }
 
   /** الرجوع بالجهاز يخص «الرئيسية» فقط — خارجها نمرّر للمعالجات الأخرى (مثل my-ads / edit-profile). */
@@ -366,6 +385,144 @@ export class HomePage implements OnInit {
     if (!selected) return true;
     if (!ad) return false;
     return ad === selected || ad.includes(selected) || selected.includes(ad);
+  }
+
+  /** نفس شروط العرض في القائمة: مفعل + المدينة المختارة */
+  private passesBaseHomeFilters(ad: any): boolean {
+    return ad?.status === 'active' && this.isCityMatch(ad.city);
+  }
+
+  private mapCategoryToAdType(categoryId: string): string | null {
+    switch (categoryId) {
+      case 'transportation':
+        return 'delivery';
+      case 'education':
+        return 'education';
+      case 'other_services':
+        return 'other';
+      case 'products':
+        return 'product';
+      case 'stores_types':
+        return 'store';
+      default:
+        return null;
+    }
+  }
+
+  private async fetchAllRawAdsByType(adType: string): Promise<any[]> {
+    const all: any[] = [];
+    let lastVisible: any = null;
+    const pageSize = 300;
+    await runInInjectionContext(this.injector, async () => {
+      const adsRef = collection(this.firestore, 'ads');
+      for (;;) {
+        const qBase = query(
+          adsRef,
+          where('ad_type', '==', adType),
+          orderBy('created_at', 'desc'),
+          limit(pageSize)
+        );
+        const qFinal = lastVisible ? query(qBase, startAfter(lastVisible)) : qBase;
+        const snap = await getDocs(qFinal);
+        if (snap.empty) {
+          break;
+        }
+        for (const d of snap.docs) {
+          all.push(Object.assign({ id: d.id }, d.data() || {}));
+        }
+        if (snap.docs.length < pageSize) {
+          break;
+        }
+        lastVisible = snap.docs[snap.docs.length - 1];
+      }
+    });
+    return all;
+  }
+
+  private applyTabCountsForCategory(cat: string, pool: any[]): void {
+    this.deliveryTabCounts = {};
+    this.educationStageTabCounts = {};
+    this.educationSubjectTabCounts = {};
+    this.otherTabCounts = {};
+    this.productCategoryTabCounts = {};
+    this.productSubcategoryTabCounts = {};
+
+    if (cat === 'transportation') {
+      this.deliveryTabCounts['all'] = pool.length;
+      for (const item of this.deliveryCategories) {
+        this.deliveryTabCounts[item.id] = pool.filter((a) => a.category_id === item.id).length;
+      }
+      return;
+    }
+
+    if (cat === 'education') {
+      this.educationStageTabCounts['all'] = pool.length;
+      for (const stage of this.educationStages) {
+        this.educationStageTabCounts[stage.id] = pool.filter((a) => a.category_id === stage.id).length;
+      }
+      if (this.selectedEducationStage !== 'all') {
+        const stagePool = pool.filter((a) => a.category_id === this.selectedEducationStage);
+        this.educationSubjectTabCounts['all'] = stagePool.length;
+        for (const sub of this.educationSubjects) {
+          this.educationSubjectTabCounts[sub] = stagePool.filter((a) => a?.details?.subject === sub).length;
+        }
+      }
+      return;
+    }
+
+    if (cat === 'other_services') {
+      this.otherTabCounts['all'] = pool.length;
+      for (const item of this.otherServices) {
+        this.otherTabCounts[item.id] = pool.filter((a) => a.category_id === item.id).length;
+      }
+      return;
+    }
+
+    if (cat === 'products') {
+      this.productCategoryTabCounts['all'] = pool.length;
+      for (const item of this.productCategories) {
+        this.productCategoryTabCounts[item.id] = pool.filter((a) => a.category_id === item.id).length;
+      }
+      if (this.selectedProductCategory !== 'all') {
+        const catPool = pool.filter((a) => a.category_id === this.selectedProductCategory);
+        this.productSubcategoryTabCounts['all'] = catPool.length;
+        for (const sub of this.productSubcategories) {
+          this.productSubcategoryTabCounts[sub] = catPool.filter((a) => a.sub_category_name === sub).length;
+        }
+      }
+    }
+  }
+
+  /** يحدّث أعداد التبويبات لتطابق فلتر المدينة والإعلانات المفعلة (مثل قائمة العرض). */
+  private async refreshSectionTabCounts(): Promise<void> {
+    const cat = this.selectedCategory;
+    if (!cat) {
+      return;
+    }
+    const adType = this.mapCategoryToAdType(cat);
+    if (!adType || cat === 'stores_types') {
+      return;
+    }
+
+    const cityLabel = this.selectedCityLabel;
+    const cache = this.tabCountsPoolCache;
+    if (cache && cache.adType === adType && cache.cityLabel === cityLabel) {
+      this.applyTabCountsForCategory(cat, cache.pool);
+      return;
+    }
+
+    const reqId = ++this.tabCountsRequestId;
+    try {
+      const raw = await this.fetchAllRawAdsByType(adType);
+      if (reqId !== this.tabCountsRequestId) {
+        return;
+      }
+      const pool = raw.filter((ad) => this.passesBaseHomeFilters(ad));
+      this.tabCountsPoolCache = { adType, cityLabel, pool };
+      this.applyTabCountsForCategory(cat, pool);
+    } catch (e) {
+      console.error('refreshSectionTabCounts', e);
+    }
   }
 
   private tokenizeText(text: string): string[] {

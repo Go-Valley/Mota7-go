@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { AppLauncher } from '@capacitor/app-launcher';
 
 /** نفس نافذة الطلب المقبول في تطبيق العميل (30 دقيقة) */
 export const ORDER_ACCEPTED_WINDOW_MS = 30 * 60 * 1000;
@@ -39,11 +40,32 @@ export function buildGoogleMapsDirectionsUrl(
   return 'https://www.google.com/maps/';
 }
 
+/**
+ * فتح رابط الخرائط في تطبيق الخرائط/المتصفح الخارجي (نفس سلوك طلبات العملاء في Mota7).
+ * window.open(..., '_system') داخل WebView غالباً لا يفتح تطبيق الخرائط ويظهر «الصفحة غير متوفرة».
+ */
 export async function openMapsUrlWithFallback(mapsUrl: string): Promise<void> {
   const url = mapsUrl?.trim();
   if (!url) return;
-  const target = Capacitor.isNativePlatform() ? '_system' : '_blank';
-  window.open(url, target);
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { value } = await AppLauncher.canOpenUrl({ url });
+      if (value) {
+        await AppLauncher.openUrl({ url });
+        return;
+      }
+    } catch {
+      /* fall through */
+    }
+    try {
+      await AppLauncher.openUrl({ url });
+      return;
+    } catch {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 export function formatAcceptedRemainingMs(diffMs: number): string {

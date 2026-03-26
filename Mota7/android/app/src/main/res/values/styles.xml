@@ -15,27 +15,21 @@
     </style>
 
     <!--
-      إقلاع بدون Theme.SplashScreen: خلفية النافذة = splash.png بملء الشاشة.
-      يعتمد setTheme() في MainActivity قبل super.onCreate للانتقال إلى NoActionBar.
-      إضافة Capacitor قد تفشل installSplashScreen فتستخدم مسار ImageView بملء الشاشة — يعزز ظهور الصورة.
-    -->
-    <!--
-      SplashScreen على Android 12+:
-      نحتاج Theme.SplashScreen كي لا يحدث fallback (أيقونة التطبيق بدل صورة splash) على بعض الأجهزة/launchers.
+      Android 12+ (Theme.SplashScreen): طبقة النظام تعرض لوناً + أيقونة مركزية + (اختياري) branding أسفل.
+      إزالة BrandingImage كانت تضغط splash.png في شريط سفلي غير منسق.
+      أيقونة شفافة بدل ic_launcher_foreground حتى لا يظهر شكل زر/«إيقاف» في المنتصف.
+      windowBackground = splash_launch (bitmap fill) يظهر مع الثيم ويُفضّل لملء الشاشة قبل رسم الويب.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowBackground">@drawable/splash_launch</item>
-        <!-- Branding image يظهر أثناء Splash على Android 12+. -->
-        <item name="android:windowSplashScreenBrandingImage">@drawable/splash</item>
-        <!-- خلفية أيقونة/رسمة الإقلاع (نخليها شفافة عشان الصورة الأساسية هي الأوضح). -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
-        <!-- Animated icon: نستخدم أيقونة اللانشر الموجودة لتجنب fallback. -->
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <!-- خلفية Splash API. -->
-        <item name="android:windowSplashScreenBackground">@android:color/white</item>
-        <item name="android:windowFullscreen">false</item>
+        <!-- لون خلفية طبقة Splash API (يُنصح أن يطابق حواف تصميم splash.png) -->
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowFullscreen">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

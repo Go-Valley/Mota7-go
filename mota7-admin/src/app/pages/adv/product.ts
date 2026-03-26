@@ -18,6 +18,7 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 })
 export class ProductCard implements OnInit {
   @Input() ad: any;
+  @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
   displayName: string = 'متاح';
 
@@ -132,6 +133,13 @@ export class ProductCard implements OnInit {
     });
 
     await alert.present();
+  }
+
+  onProductShellClick(): void {
+    if (this.selectionMode) {
+      return;
+    }
+    void this.openDetails();
   }
 
   async openDetails() {

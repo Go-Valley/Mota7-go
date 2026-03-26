@@ -4,7 +4,8 @@
     pagination="false" 
     autoplay-delay="4000"
     autoplay-disable-on-interaction="false"
-    [loop]="banners.length > 3"
+    loop="false"
+    rewind="true"
     slides-per-view="1"
     slides-per-group="1"
     observer="true" 
@@ -35,7 +36,14 @@
         <div class="glass-effect-layer"></div> 
         <div class="content">
           <div class="icon-badge">
-            <img src="assets/mota7.png" class="mota7-logo-icon" alt="شعار متاح" title="مساحتك الإعلانية">
+            <img
+              src="assets/mota7.png"
+              class="mota7-logo-icon"
+              alt="شعار متاح"
+              title="مساحتك الإعلانية"
+              width="76"
+              height="76"
+              decoding="async">
           </div>
           <h3>مساحتك الإعلانية هنا</h3>
           <p>أعلن معنا وابدأ بالوصول لآلاف العملاء</p>

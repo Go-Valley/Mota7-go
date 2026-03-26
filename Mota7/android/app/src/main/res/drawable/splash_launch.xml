@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- fill: تمديد الصورة لملء نافذة الإقلاع (نسبة 1080×1920 تتكيف مع مختلف أحجام الشاشات). -->
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:gravity="center"
+    android:gravity="fill"
     android:src="@drawable/splash" />

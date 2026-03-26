@@ -104,6 +104,8 @@ export class ProviderRatingModalComponent implements OnInit {
         this.commentText
       );
 
+      await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
+
       const toast = await this.toastCtrl.create({
         message: 'شكرا لاستخدامك تطبيق "مُتاح"',
         duration: RATING_THANKS_MS,
@@ -111,8 +113,6 @@ export class ProviderRatingModalComponent implements OnInit {
         mode: 'ios',
       });
       await toast.present();
-
-      await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
     } catch (e) {
       console.error('submitOrderProviderRating', e);
       const errToast = await this.toastCtrl.create({

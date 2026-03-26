@@ -1,3 +1,70 @@
+.multi-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+
+.multi-select-label {
+  flex: 1;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.multi-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 900;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+.adv-card-select-chrome {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.card-wrapper.adv-selection-mode {
+  position: relative;
+  touch-action: manipulation;
+
+  ::ng-deep .admin-action-btn,
+  ::ng-deep .icon-btn,
+  ::ng-deep .icon-contact-actions .icon-btn,
+  ::ng-deep .action-btn,
+  ::ng-deep .footer-item.expiry-toggle,
+  ::ng-deep .footer-item.products-toggle,
+  ::ng-deep .footer-item.status-toggle,
+  ::ng-deep .footer-item.travel-toggle,
+  ::ng-deep .footer-item.rent-toggle,
+  ::ng-deep .mota7-admin-store-wrapper .admin-action-btn,
+  ::ng-deep .mota7-admin-store-wrapper .action-btn,
+  ::ng-deep .mota7-admin-store-wrapper .footer-item {
+    pointer-events: none;
+    opacity: 0.55;
+  }
+}
+
 .admin-main-container {
   padding: 12px;
   background: #f8f9fa;

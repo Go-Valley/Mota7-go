@@ -16,7 +16,11 @@ import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { addIcons } from 'ionicons';
 import { AlertController, ModalController, ToastController } from '@ionic/angular';
-import { presentProviderRatingModal } from '../provider-rating-modal/provider-rating-modal.presenter';
+import {
+  presentProviderRatingModal,
+  releaseCustomerProviderRatingPromptReservation,
+  reserveCustomerProviderRatingPrompt,
+} from '../provider-rating-modal/provider-rating-modal.presenter';
 import {
   checkmarkCircle,
   carSportOutline,
@@ -185,20 +189,25 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
     const id = this.order?.id;
     if (!id) return;
     try {
+      reserveCustomerProviderRatingPrompt(id);
+      this.suppressCustomerProviderRatingModal = true;
       await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
       const snap = await runInInjectionContext(this.injector, () =>
         getDoc(doc(this.firestore, 'orders', id))
       );
       const d = snap.data();
-      if (!d || d['status'] !== 'completed') return;
+      if (!d || d['status'] !== 'completed') {
+        releaseCustomerProviderRatingPromptReservation(id);
+        return;
+      }
       Object.assign(this.order, d);
       this.order.id = id;
-      this.suppressCustomerProviderRatingModal = true;
       this.checkStatusAndTimer();
       await presentProviderRatingModal(this.modalCtrl, id, { ...this.order });
-      this.suppressCustomerProviderRatingModal = false;
     } catch (e) {
       console.error('expireAcceptedSoftRemove delivery:', e);
+      releaseCustomerProviderRatingPromptReservation(id);
+    } finally {
       this.suppressCustomerProviderRatingModal = false;
     }
     this.stopTimer();
@@ -255,6 +264,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
           cssClass: 'confirm-button',
           handler: async () => {
             try {
+              reserveCustomerProviderRatingPrompt(orderId);
               const now = Timestamp.now();
               const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
               this.order.status = 'completed';
@@ -273,11 +283,12 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
               );
 
               await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
-              this.suppressCustomerProviderRatingModal = false;
             } catch (e) {
               console.error('Error finishing delivery task:', e);
-              this.suppressCustomerProviderRatingModal = false;
+              releaseCustomerProviderRatingPromptReservation(orderId);
               this.presentToast('عذراً، حدث خطأ أثناء إنهاء الطلب');
+            } finally {
+              this.suppressCustomerProviderRatingModal = false;
             }
           }
         }

@@ -15,6 +15,7 @@ import {
 } from 'ionicons/icons';
 import { Mota7HeaderComponent } from '../top_header/header';
 import { UserAccountStatusService } from './user-account-status.service';
+import { openWhatsappNative } from '../core/utils/whatsapp-open.util';
 
 
 @Component({
@@ -156,8 +157,7 @@ export class MyAccountPage implements OnInit {
           text: 'تواصل عبر واتساب', 
           icon: 'logo-whatsapp', 
           handler: () => { 
-            const msg = encodeURIComponent("مرحبا .. اريد التواصل مع الدعم الفني");
-            window.open(`whatsapp://send?phone=201220883999&text=${msg}`, '_system');
+            openWhatsappNative('201220883999', 'مرحبا .. اريد التواصل مع الدعم الفني');
           }
         },
         { 
@@ -179,7 +179,6 @@ export class MyAccountPage implements OnInit {
   goToMyAds() { this.router.navigateByUrl('/my-ads'); }
 
   goToCusOrder() {
-    console.log('محاولة الانتقال...');
     this.router.navigateByUrl('/tabs/my-account/cus-order');
   }
 

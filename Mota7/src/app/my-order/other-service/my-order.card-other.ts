@@ -13,7 +13,11 @@ import {
 } from '@angular/core';
 import { Firestore, doc, deleteDoc, getDoc, Timestamp, updateDoc } from '@angular/fire/firestore';
 import { AlertController, ModalController } from '@ionic/angular';
-import { presentProviderRatingModal } from '../provider-rating-modal/provider-rating-modal.presenter';
+import {
+  presentProviderRatingModal,
+  releaseCustomerProviderRatingPromptReservation,
+  reserveCustomerProviderRatingPrompt,
+} from '../provider-rating-modal/provider-rating-modal.presenter';
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
@@ -228,12 +232,16 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
     const id = this.order?.id;
     if (!id || this.isArchiving) return;
     try {
+      reserveCustomerProviderRatingPrompt(id);
       await completeAcceptedOrderWhenWindowElapsed(this.injector, this.firestore, id);
       const snap = await runInInjectionContext(this.injector, () =>
         getDoc(doc(this.firestore, 'orders', id))
       );
       const d = snap.data();
-      if (!d || d['status'] !== 'completed') return;
+      if (!d || d['status'] !== 'completed') {
+        releaseCustomerProviderRatingPromptReservation(id);
+        return;
+      }
       Object.assign(this.order, d);
       this.order.id = id;
       this.clearMainCountdown();
@@ -243,6 +251,7 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
       await presentProviderRatingModal(this.modalCtrl, id, { ...this.order });
     } catch (e) {
       console.error('expireAcceptedSoftRemove other:', e);
+      releaseCustomerProviderRatingPromptReservation(id);
     }
   }
 
@@ -302,6 +311,7 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
 
   private async processFinish(orderId: string) {
     try {
+      reserveCustomerProviderRatingPrompt(orderId);
       this.clearMainCountdown();
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
@@ -325,6 +335,7 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
       await presentProviderRatingModal(this.modalCtrl, orderId, { ...this.order });
     } catch (e) {
       console.error('Error finishing task:', e);
+      releaseCustomerProviderRatingPromptReservation(orderId);
     }
   }
 

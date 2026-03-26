@@ -21,6 +21,7 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 })
 export class OtherCard implements OnInit {
   @Input() ad: any;
+  @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
 
   // حقن الخدمات اللازمة للتعامل مع التاريخ وقاعدة البيانات

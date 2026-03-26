@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { CommonModule, registerLocaleData } from '@angular/common'; // أضف registerLocaleData
 import localeAr from '@angular/common/locales/ar'; // استيراد بيانات اللغة العربية
@@ -35,7 +35,7 @@ registerLocaleData(localeAr);
 })
 export class AcceptingOrderPage implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
-  private injector = inject(Injector);
+  private injector = inject(EnvironmentInjector);
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
 
