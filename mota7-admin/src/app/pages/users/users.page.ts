@@ -8,7 +8,19 @@ import {
   ModalController,
   AlertController,
 } from '@ionic/angular';
-import { Firestore, collection, onSnapshot, doc, deleteDoc, updateDoc } from '@angular/fire/firestore';
+import {
+  Firestore,
+  collection,
+  onSnapshot,
+  doc,
+  deleteDoc,
+  updateDoc,
+  getDocs,
+  query,
+  where,
+  writeBatch,
+  serverTimestamp,
+} from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
@@ -26,6 +38,9 @@ import {
   imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
 })
 export class UsersPage implements OnInit {
+  private static readonly DEACTIVATE_ACCOUNT_REJECTION_REASON =
+    'اعلان مرفوض بسبب ايقاف تنشيط الحساب - لمزيد من الاستفسار, يرجى التواصل مع الادارة';
+
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private actionSheetCtrl = inject(ActionSheetController);
@@ -116,13 +131,64 @@ export class UsersPage implements OnInit {
   }
 
   async toggleStatus(user: any) {
+    const willDeactivate = user.isActive === true;
     try {
-      await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, 'users', user.id), { isActive: !user.isActive })
+      await runInInjectionContext(this.injector, async () => {
+        if (willDeactivate) {
+          await this.rejectAllAdsForDeactivatedUser(user);
+        }
+        await updateDoc(doc(this.firestore, 'users', user.id), { isActive: !user.isActive });
+      });
+      this.showToast(
+        willDeactivate
+          ? 'تم تعطيل الحساب ورفض الإعلانات المرتبطة'
+          : 'تم تنشيط الحساب'
       );
-      this.showToast(user.isActive ? 'تم تعطيل الحساب' : 'تم تنشيط الحساب');
     } catch (e) {
       this.showToast('فشل التعديل: راجع قواعد الحماية');
+    }
+  }
+
+  /** عند تعطيل الحساب: جعل كل إعلانات المستخدم مرفوضة مع سبب إداري موحّد. */
+  private async rejectAllAdsForDeactivatedUser(user: any): Promise<void> {
+    const reason = UsersPage.DEACTIVATE_ACCOUNT_REJECTION_REASON;
+    const adsRef = collection(this.firestore, 'ads');
+    const adIds = new Set<string>();
+
+    const snapByUserId = await getDocs(
+      query(adsRef, where('userId', '==', user.id))
+    );
+    snapByUserId.docs.forEach((d) => adIds.add(d.id));
+
+    const phoneKeys = new Set<string>();
+    if (user.phone != null && String(user.phone).trim()) {
+      phoneKeys.add(String(user.phone).trim());
+    }
+    if (user.id != null && String(user.id).trim()) {
+      phoneKeys.add(String(user.id).trim());
+    }
+    for (const p of phoneKeys) {
+      const byOwner = await getDocs(query(adsRef, where('owner_phone', '==', p)));
+      byOwner.docs.forEach((d) => adIds.add(d.id));
+      const byPhone = await getDocs(query(adsRef, where('phone', '==', p)));
+      byPhone.docs.forEach((d) => adIds.add(d.id));
+    }
+
+    const ids = [...adIds];
+    if (!ids.length) return;
+
+    const chunkSize = 400;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const batch = writeBatch(this.firestore);
+      for (const adId of ids.slice(i, i + chunkSize)) {
+        batch.update(doc(this.firestore, 'ads', adId), {
+          status: 'rejected',
+          admin_reason: reason,
+          reject_reason: reason,
+          updated_at: serverTimestamp(),
+        });
+      }
+      await batch.commit();
     }
   }
 

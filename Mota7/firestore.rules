@@ -52,6 +52,20 @@ service cloud.firestore {
             userId == request.auth.token.email.replace('@mota7.com', '')));
     }
 
+    /**
+     * إنشاء مستند users/{phone} (تسجيل جديد أو ترحيل من mota7-app):
+     * - معرّف المستند = رقم الهاتف كما في التطبيق (01…).
+     * - الحقول phone و uid و systemEmail متسقة مع Auth (نفس ما يرسله register والترحيل).
+     * الأدمن يتجاوز هذه القيود عبر فرع isAdmin() في allow create.
+     */
+    function userProfileCreateAllowed(userId) {
+      return ownsUserProfile(userId) &&
+        request.resource.data.phone == userId &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.systemEmail is string &&
+        request.resource.data.systemEmail == (userId + '@mota7.com');
+    }
+
     function ownsAdResource() {
       return request.auth != null &&
         (resource.data.userId == request.auth.uid ||
@@ -86,9 +100,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // users/{phone}: الترحيل من التطبيق القديم يستخدم نفس شروط الإنشاء (setDoc بعد createUser على mota7-go)
     match /users/{userId} {
       allow read: if true;
-      allow create: if isAdmin() || (request.auth != null && ownsUserProfile(userId));
+      allow create: if isAdmin() || (request.auth != null && userProfileCreateAllowed(userId));
       allow update: if isAdmin() || (request.auth != null && ownsUserProfile(userId) && isUserActive());
       allow delete: if isAdmin();
     }

@@ -26,6 +26,7 @@ import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
 
 import { environment } from './environments/environment';
+import { getApps, initializeApp as initializeSecondaryFirebaseApp } from 'firebase/app';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
@@ -55,6 +56,20 @@ addIcons({
   'checkmark-done-circle': checkmarkDoneCircle,
   'radio-button-on': radioButtonOn
 });
+
+/** تطبيق Firebase ثانٍ للمصادقة على المشروع القديم فقط (قبل أي شاشة تستخدمه) */
+function ensureLegacyFirebaseApp(): void {
+  const legacy = environment.legacyFirebaseConfig;
+  if (!legacy?.apiKey) {
+    return;
+  }
+  if (getApps().some((a) => a.name === 'legacy')) {
+    return;
+  }
+  initializeSecondaryFirebaseApp(legacy, 'legacy');
+}
+
+ensureLegacyFirebaseApp();
 
 bootstrapApplication(AppComponent, {
   providers: [

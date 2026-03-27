@@ -1,3 +1,5 @@
+import { LEGACY_MOTA7_APP_FIREBASE_CONFIG } from './firebase-legacy-mota7-app.config';
+
 export const environment = {
   production: false,
   /**
@@ -25,5 +27,6 @@ export const environment = {
   messagingSenderId: "1078959492808",
   appId: "1:1078959492808:web:1c0013dfeec7ca53551ffd",
   measurementId: "G-G8V3F6XHNT"
-  }
+  },
+  legacyFirebaseConfig: LEGACY_MOTA7_APP_FIREBASE_CONFIG,
 };

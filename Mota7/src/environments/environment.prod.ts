@@ -1,3 +1,5 @@
+import { LEGACY_MOTA7_APP_FIREBASE_CONFIG } from './firebase-legacy-mota7-app.config';
+
 export const environment = {
   production: true, // لاحظ هنا true
   /** وسيط حذف Cloudinary (HTTPS فقط للمتاجر). مثال: https://اسم-الخدمة.onrender.com */
@@ -16,5 +18,6 @@ export const environment = {
     storageBucket: "mota7-go.firebasestorage.app",
     messagingSenderId: "1078959492808",
     appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
-  }
+  },
+  legacyFirebaseConfig: LEGACY_MOTA7_APP_FIREBASE_CONFIG,
 };

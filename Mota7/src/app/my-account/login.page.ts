@@ -4,8 +4,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 // استيرادات الفيربيز للربط الفعلي
-import { Auth, signInWithEmailAndPassword, signOut } from '@angular/fire/auth';
-import { Firestore, doc, getDoc } from '@angular/fire/firestore'; // أضفنا استيرادات الفايرستور
+import {
+  Auth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from '@angular/fire/auth';
+import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../top_header/header';
 import {
   applyOrderPhoneInputState,
@@ -15,6 +20,16 @@ import {
   orderPhoneToEnglishDigits,
 } from '../core/utils/egyptian-phone-order.util';
 import { readIonTextInputValueFromEvent } from '../core/utils/order-form-fields.util';
+import {
+  getLegacyFirebaseAuth,
+  toLegacyLoginEmail,
+} from '../core/utils/legacy-firebase-login.util';
+import {
+  buildMigratedUserFirestoreDoc,
+  getLegacyFirestore,
+  legacyPhoneNumberToOrderPhone,
+} from '../core/utils/legacy-firebase-migration.util';
+import { doc as legacyDocRef, getDoc as legacyGetDoc } from 'firebase/firestore';
 import { 
   fingerPrintOutline, 
   phonePortraitOutline, 
@@ -111,6 +126,127 @@ export class LoginPage {
     this.cdr.detectChanges();
   }
 
+  /** بعد نجاح المصادقة على المشروع الجديد: فحص isActive ثم التوجيه */
+  private async completeLoginAfterAuthenticated(loading: HTMLIonLoadingElement): Promise<void> {
+    const userDoc = await runInInjectionContext(this.injector, () =>
+      getDoc(doc(this.firestore, 'users', this.loginData.phone))
+    );
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      if (userData['isActive'] === false) {
+        await runInInjectionContext(this.injector, () => signOut(this.auth));
+        await loading.dismiss();
+        this.showToast('عذراً، هذا الحساب معطل من قبل الإدارة');
+        return;
+      }
+    }
+
+    await loading.dismiss();
+    this.showToast('تم تسجيل الدخول بنجاح');
+    this.navCtrl.navigateRoot('/tabs/my-account');
+  }
+
+  private mapPrimaryAuthError(code: string | undefined): string {
+    let msg = 'خطأ في رقم الهاتف أو كلمة المرور';
+    if (code === 'auth/user-not-found') msg = 'هذا الحساب غير موجود';
+    if (code === 'auth/wrong-password') msg = 'كلمة المرور غير صحيحة';
+    if (code === 'auth/invalid-credential') msg = 'بيانات الدخول غير صحيحة';
+    return msg;
+  }
+
+  /** محاولة الدخول على الجديد فشلت لغياب المستخدم؛ نجرّب المشروع القديم ثم ننشئ حساباً على الجديد */
+  private async tryLegacyMigrateAndSignIn(
+    loading: HTMLIonLoadingElement,
+    phone: string,
+    systemEmail: string,
+    legacyEmail: string,
+    password: string
+  ): Promise<void> {
+    const legacyAuth = getLegacyFirebaseAuth();
+    if (!legacyAuth) {
+      await loading.dismiss();
+      this.showToast(this.mapPrimaryAuthError('auth/user-not-found'));
+      return;
+    }
+
+    try {
+      const legacyCredential = await runInInjectionContext(this.injector, () =>
+        signInWithEmailAndPassword(legacyAuth, legacyEmail, password)
+      );
+      const legacyUid = legacyCredential.user.uid;
+
+      let legacyProfile: Record<string, unknown> | null = null;
+      const legacyDb = getLegacyFirestore();
+      if (legacyDb) {
+        try {
+          const legacyUserSnap = await legacyGetDoc(legacyDocRef(legacyDb, 'users', legacyUid));
+          if (legacyUserSnap.exists()) {
+            legacyProfile = legacyUserSnap.data() as Record<string, unknown>;
+          }
+        } catch (readErr) {
+          console.warn('Legacy Firestore users read:', readErr);
+        }
+      }
+
+      const rawPhone = legacyProfile?.['phoneNumber'];
+      if (rawPhone != null && String(rawPhone).trim().length > 0) {
+        const normalizedLegacy = legacyPhoneNumberToOrderPhone(String(rawPhone));
+        if (!normalizedLegacy || normalizedLegacy !== phone) {
+          await runInInjectionContext(this.injector, () => signOut(legacyAuth));
+          await loading.dismiss();
+          this.showToast('تأكد أن رقم الهاتف يطابق حسابك في التطبيق القديم');
+          return;
+        }
+      }
+
+      await runInInjectionContext(this.injector, () => signOut(legacyAuth));
+
+      try {
+        const userCredential = await runInInjectionContext(this.injector, () =>
+          createUserWithEmailAndPassword(this.auth, systemEmail, password)
+        );
+        const payload = buildMigratedUserFirestoreDoc(
+          phone,
+          systemEmail,
+          userCredential.user.uid,
+          legacyProfile
+        );
+        await runInInjectionContext(this.injector, () =>
+          setDoc(doc(this.firestore, 'users', phone), payload)
+        );
+      } catch (migrateErr: any) {
+        if (migrateErr?.code === 'auth/email-already-in-use') {
+          const newCred = await runInInjectionContext(this.injector, () =>
+            signInWithEmailAndPassword(this.auth, systemEmail, password)
+          );
+          const existingSnap = await runInInjectionContext(this.injector, () =>
+            getDoc(doc(this.firestore, 'users', phone))
+          );
+          if (!existingSnap.exists()) {
+            const payload = buildMigratedUserFirestoreDoc(
+              phone,
+              systemEmail,
+              newCred.user.uid,
+              legacyProfile
+            );
+            await runInInjectionContext(this.injector, () =>
+              setDoc(doc(this.firestore, 'users', phone), payload)
+            );
+          }
+        } else {
+          throw migrateErr;
+        }
+      }
+
+      await this.completeLoginAfterAuthenticated(loading);
+    } catch (e) {
+      await loading.dismiss();
+      console.error('Legacy login / migrate:', e);
+      this.showToast('بيانات الدخول غير صحيحة');
+    }
+  }
+
   // دالة تسجيل الدخول الفعلية
   async performLogin() {
     const phoneSt = applyOrderPhoneInputState(this.loginData.phone);
@@ -127,6 +263,11 @@ export class LoginPage {
       return;
     }
 
+    const phone = this.loginData.phone;
+    const password = this.loginData.password;
+    const systemEmail = `${phone}@mota7.com`;
+    const legacyEmail = toLegacyLoginEmail(phone);
+
     const loading = await this.loadingCtrl.create({
       message: 'جاري تسجيل الدخول...',
       spinner: 'crescent'
@@ -134,50 +275,25 @@ export class LoginPage {
     await loading.present();
 
     try {
-      // تحويل رقم الهاتف للإيميل النظامي المستخدم في التسجيل
-      const systemEmail = `${this.loginData.phone}@mota7.com`;
-
-      const userCredential = await runInInjectionContext(this.injector, () =>
-        signInWithEmailAndPassword(this.auth, systemEmail, this.loginData.password)
+      await runInInjectionContext(this.injector, () =>
+        signInWithEmailAndPassword(this.auth, systemEmail, password)
       );
-      const user = userCredential.user;
+      await this.completeLoginAfterAuthenticated(loading);
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      const code = error?.code as string | undefined;
 
-      // 2. فحص حالة الحساب (isActive) من قاعدة البيانات قبل التحويل
-      // نستخدم رقم الهاتف المدخل كمعرف للمستند كما اتفقنا
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', this.loginData.phone))
-      );
+      const tryLegacy =
+        getLegacyFirebaseAuth() &&
+        (code === 'auth/user-not-found' || code === 'auth/invalid-credential');
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // إذا كان الحساب معطلاً (isActive === false)
-        if (userData['isActive'] === false) {
-          await runInInjectionContext(this.injector, () => signOut(this.auth));
-          await loading.dismiss();
-          this.showToast('عذراً، هذا الحساب معطل من قبل الإدارة');
-          return; // التوقف عن إكمال الدخول
-        }
+      if (tryLegacy) {
+        await this.tryLegacyMigrateAndSignIn(loading, phone, systemEmail, legacyEmail, password);
+        return;
       }
 
-      // إذا كان الحساب نشطاً
       await loading.dismiss();
-      this.showToast('تم تسجيل الدخول بنجاح');
-
-      // التوجه لصفحة الملف الشخصي
-      this.navCtrl.navigateRoot('/tabs/my-account');
-
-    } catch (error: any) {
-      await loading.dismiss();
-      console.error('Login Error:', error);
-
-      // رسائل خطأ واضحة للمستخدم
-      let msg = 'خطأ في رقم الهاتف أو كلمة المرور';
-      if (error.code === 'auth/user-not-found') msg = 'هذا الحساب غير موجود';
-      if (error.code === 'auth/wrong-password') msg = 'كلمة المرور غير صحيحة';
-      if (error.code === 'auth/invalid-credential') msg = 'بيانات الدخول غير صحيحة';
-      
-      this.showToast(msg);
+      this.showToast(this.mapPrimaryAuthError(code));
     }
   }
 

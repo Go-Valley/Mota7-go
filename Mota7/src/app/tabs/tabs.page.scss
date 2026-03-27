@@ -191,20 +191,25 @@ ion-modal.service-request-modal {
 }
 
 .service-divider {
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08), transparent);
-  margin: 5px 0;
+  height: 4px;
+  background: linear-gradient(to right, #e9ad0300, #ff9800, transparent);
+  margin: 20px 1px;
 }
 
 .service-action-btn {
-  --background: #FF6B00;
-  --background-activated: #e66000;
-  --border-radius: 50px;
-  --box-shadow: 10px 0px px rgb(255 107 0 / 78%);
-  height: 60px;
-  font-weight: 900;
-  font-size: 1.3rem;
-  margin-top: 15px;
+  --background: #f16c14;
+  --background-activated: #f16c14;
+  --border-radius: 15px;
+  --box-shadow: 2px 4px 2px rgb(0, 0, 0);
+  height: auto;
+  min-height: 50px;
+  white-space: normal;
+  line-height: 1.25;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #ffffff;
+  padding: 9px 40px;
+  margin-top: 5px;
   text-transform: none;
 }
 

@@ -49,18 +49,18 @@
 
   .mota7-main-btn {
       width: 100%;
-      background: #1a1a1a;
+      background: #f16c14;
       color: white;
       border: none;
       border-radius: 20px;
       padding: 22px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 2px 4px 2px rgb(0, 0, 0);
       margin-bottom: 10px;
       
       .btn-content {
-          display: flex; align-items: center; justify-content: center; gap: 12px;
-          span { font-size: 1.2rem; font-weight: 800; }
-          ion-icon { font-size: 24px; color: #ff8800; }
+        display: flex; align-items: center; justify-content: center; gap: 12px;
+        span { font-size: 1.5rem; font-weight: 700; }
+        ion-icon { font-size: 30px; color: #fff; }
       }
       &:active { transform: scale(0.98); }
   }

@@ -325,7 +325,8 @@ export class RegisterPage {
           systemEmail: systemAuthEmail,
           personalEmail: this.userData.email || '',
           createdAt: new Date().toISOString(),
-          role: 'user'
+          role: 'user',
+          isActive: true,
         })
       );
 
