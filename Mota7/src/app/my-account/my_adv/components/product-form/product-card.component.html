@@ -93,14 +93,14 @@
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
-    <p>سبب الرفض : {{ ad.admin_reason }}</p>
+    <p>سبب الرفض : {{ ad.admin_reason || ad.reject_reason }}</p>
     <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
       تواصل واتساب مع الإدارة
     </button>
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
-    <p>سبب الانتهاء : {{ ad.admin_reason || 'يرجى التواصل مع الإدارة' }}</p>
+    <p>سبب الانتهاء : {{ ad.admin_reason || ad.reject_reason || 'يرجى التواصل مع الإدارة' }}</p>
     <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
       تواصل واتساب مع الإدارة
     </button>

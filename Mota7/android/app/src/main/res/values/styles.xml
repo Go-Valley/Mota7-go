@@ -15,23 +15,14 @@
     </style>
 
     <!--
-      Android 12+ (Theme.SplashScreen): طبقة النظام تعرض لوناً + أيقونة مركزية + (اختياري) branding أسفل.
-      إزالة BrandingImage كانت تضغط splash.png في شريط سفلي غير منسق.
-      أيقونة شفافة بدل ic_launcher_foreground حتى لا يظهر شكل زر/«إيقاف» في المنتصف.
-      windowBackground = splash_launch (bitmap fill) يظهر مع الثيم ويُفضّل لملء الشاشة قبل رسم الويب.
+      قاعدة الإقلاع لجميع الإصدارات (قبل Android 12 خصوصاً):
+      نعرض صورة splash_launch كخلفية نافذة كاملة الشاشة.
+      في Android 12+ سيتم عمل override لهذا الستايل داخل values-v31 باستخدام Theme.SplashScreen.
     -->
-    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowBackground">@drawable/splash_launch</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
-        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
-        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
-        <!-- لون خلفية طبقة Splash API (يُنصح أن يطابق حواف تصميم splash.png) -->
-        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

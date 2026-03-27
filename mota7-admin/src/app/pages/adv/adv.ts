@@ -399,10 +399,12 @@ export class AdvPage implements OnInit {
         {
           text: 'حفظ',
           handler: (data) => {
+            const reason = String(data?.reason ?? '');
             void runInInjectionContext(this.injector, () =>
               updateDoc(doc(this.firestore, 'ads', adId), {
                 status: status,
-                admin_reason: data.reason || '',
+                admin_reason: reason,
+                reject_reason: reason,
                 updated_at: serverTimestamp(),
               })
             );

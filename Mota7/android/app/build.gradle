@@ -46,24 +46,40 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 
 def splashSource = file('../../src/assets/splash.png')
+def logoSource = file('../../src/assets/mota7.png')
 def splashTargetDir = file('src/main/res/drawable-nodpi')
 def splashTarget = file("${splashTargetDir}/splash.png")
+def logoTarget = file("${splashTargetDir}/mota7.png")
 
 tasks.register('syncSplashFromAssets') {
     inputs.file(splashSource)
+    inputs.file(logoSource)
     outputs.file(splashTarget)
+    outputs.file(logoTarget)
     doLast {
-        if (!splashSource.exists()) {
-            logger.lifecycle("[splash] src/assets/splash.png not found, keeping current Android splash resource.")
-            return
-        }
         splashTargetDir.mkdirs()
-        copy {
-            from splashSource
-            into splashTargetDir
-            rename { 'splash.png' }
+
+        if (splashSource.exists()) {
+            copy {
+                from splashSource
+                into splashTargetDir
+                rename { 'splash.png' }
+            }
+            logger.lifecycle("[splash] Copied splash.png to android/app/src/main/res/drawable-nodpi/")
+        } else {
+            logger.lifecycle("[splash] src/assets/splash.png not found, keeping current Android splash resource.")
         }
-        logger.lifecycle("[splash] Copied splash.png to android/app/src/main/res/drawable-nodpi/")
+
+        if (logoSource.exists()) {
+            copy {
+                from logoSource
+                into splashTargetDir
+                rename { 'mota7.png' }
+            }
+            logger.lifecycle("[splash] Copied mota7.png to android/app/src/main/res/drawable-nodpi/")
+        } else {
+            logger.lifecycle("[splash] src/assets/mota7.png not found, keeping current Android logo resource.")
+        }
     }
 }
 

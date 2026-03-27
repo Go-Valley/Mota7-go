@@ -144,7 +144,16 @@
   .admin-box {
     margin-top: 12px; padding: 12px; border-radius: 12px;
     display: flex; flex-direction: column; gap: 10px; font-weight: 700;
-    p { margin: 0; font-size: 1rem; font-size: 1rem; align-items: center; text-align: center; }
+    p {
+      margin: 0;
+      font-size: 1rem;
+      display: block;
+      text-align: right;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.6;
+    }
 
     &.pending { background: #eef3ff; color: #1e3a8a; }
     &.rejected { background: #fdeced; color: #eb445a; }
