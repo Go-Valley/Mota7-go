@@ -1,3 +1,29 @@
 <ion-app>
-  <ion-router-outlet></ion-router-outlet>
+  @if (showAppLaunchShell()) {
+    <div class="app-launch-shell">
+      <img src="assets/mota7.png" class="app-launch-logo" alt="" />
+      @if (mandatoryUpdate.loading()) {
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p class="app-launch-msg">جاري التحقق من الإصدار...</p>
+      }
+    </div>
+  } @else if (mandatoryUpdate.blocked()) {
+    <ion-content class="mandatory-update-block" [fullscreen]="true">
+      <div class="mandatory-update-block-inner">
+        <h1>{{ mandatoryUpdate.titleAr() }}</h1>
+        <p class="mandatory-update-msg">{{ mandatoryUpdate.messageAr() }}</p>
+        <ion-button
+          expand="block"
+          size="large"
+          class="mandatory-update-btn"
+          (click)="openMandatoryPlayStore()"
+        >
+          تحديث من Google Play
+        </ion-button>
+        <p class="mandatory-update-hint">لن يمكن استخدام التطبيق قبل إكمال التحديث.</p>
+      </div>
+    </ion-content>
+  } @else {
+    <ion-router-outlet></ion-router-outlet>
+  }
 </ion-app>

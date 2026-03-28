@@ -15,7 +15,7 @@
     .status-badge {
       padding: 4px 12px; border-radius: 25px; font-weight: 800; font-size: 1.5rem;
       &.pending { background: #fff4e5; color: #ff9f43; }
-      &.active { background: #e7fbf0; color: #2dd36f; }
+      &.active { background: hsl(147, 71%, 95%); color: #2dd36f; }
       &.expired, &.rejected { background: #fdeced; color: #eb445a; }
     }
     .ad-date { color: #000000; font-weight: 700; font-size: 1rem; }
@@ -33,7 +33,7 @@
   .card-main-content {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 68px;
     background: #f9f9f9;
     padding: 10px 15px;
     border-radius: 25px;

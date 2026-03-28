@@ -109,6 +109,18 @@
           <ion-label>تعديل الملف الشخصي</ion-label>
         </ion-item>
 
+        <ion-item
+          *ngIf="acct.accountUsable()"
+          lines="none"
+          detail="true"
+          detail-icon="chevron-back"
+          class="option-item"
+          (click)="openSubscriptionsModal()"
+        >
+          <ion-icon slot="start" name="pricetag-outline"></ion-icon>
+          <ion-label>باقات الاشتراكات الشهرية</ion-label>
+        </ion-item>
+
         <ion-item lines="none" detail="true" detail-icon="chevron-back" class="option-item" (click)="openContactOptions()">
           <ion-icon slot="start" name="chatbubble-ellipses-outline"></ion-icon>
           <ion-label>تحدث معنا</ion-label>
@@ -141,6 +153,49 @@
             <div [innerHTML]="termsContent"></div>
           </div>
         </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <ion-modal
+      *ngIf="isSubscriptionsModalOpen"
+      [isOpen]="true"
+      [backdropDismiss]="true"
+      [keepContentsMounted]="false"
+      class="subscriptions-packages-modal"
+      (didDismiss)="setOpenSubscriptions(false)"
+    >
+      <ng-template>
+        <ion-header class="ion-no-border subs-modal-header">
+          <ion-toolbar>
+            <ion-title>باقات الاشتراكات الشهرية</ion-title>
+            <ion-buttons slot="end">
+              <ion-button fill="clear" (click)="closeSubscriptionsModal()">إغلاق</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding subscriptions-modal-content" scrollY="true">
+          <div *ngIf="subscriptionsModalView === 'empty'" class="subs-empty-state">
+            {{ subscriptionsEmptyMessage }}
+          </div>
+
+          <div *ngIf="subscriptionsModalView === 'current'" class="subscriptions-html-wrap">
+            <div class="subscriptions-inner" [innerHTML]="subscriptionsHtmlSafe"></div>
+          </div>
+
+          <div *ngIf="subscriptionsModalView === 'none'" class="subs-none-state">
+            <p>لم يُفعَّل عرض الباقات من الإدارة.</p>
+            <p class="subs-none-hint">فعِّل <strong>current_status</strong> أو <strong>empty_status</strong> بقيمة <code>active</code> في مستند Firestore <code>subscriptions/page</code>.</p>
+          </div>
+        </ion-content>
+
+        <ion-footer class="ion-no-border subs-modal-footer">
+          <ion-toolbar>
+            <ion-button expand="block" mode="ios" class="subs-footer-cancel" (click)="closeSubscriptionsModal()">
+              إلغاء
+            </ion-button>
+          </ion-toolbar>
+        </ion-footer>
       </ng-template>
     </ion-modal>
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- خلفية موحّدة لطبقة Capacitor بدل صورة splash كاملة -->
+<!-- طبقة Capacitor Splash — لون فقط بدون صورة splash.png -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <solid android:color="@color/ic_launcher_background" />
 </shape>

@@ -16,7 +16,7 @@
 
     <!--
       قاعدة الإقلاع لجميع الإصدارات (قبل Android 12 خصوصاً):
-      نعرض صورة splash_launch كخلفية نافذة كاملة الشاشة.
+      نعرض splash_launch (لون موحّد) كخلفية نافذة الإقلاع.
       في Android 12+ سيتم عمل override لهذا الستايل داخل values-v31 باستخدام Theme.SplashScreen.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">

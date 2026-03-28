@@ -24,9 +24,11 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
+import { provideRemoteConfig } from '@angular/fire/remote-config';
 
 import { environment } from './environments/environment';
-import { getApps, initializeApp as initializeSecondaryFirebaseApp } from 'firebase/app';
+import { getApp, getApps, initializeApp as initializeSecondaryFirebaseApp } from 'firebase/app';
+import { getRemoteConfig } from 'firebase/remote-config';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
@@ -79,6 +81,11 @@ bootstrapApplication(AppComponent, {
 
     // Firebase
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
+    provideRemoteConfig(() => {
+      const rc = getRemoteConfig(getApp());
+      rc.settings.minimumFetchIntervalMillis = environment.production ? 12 * 60 * 60 * 1000 : 0;
+      return rc;
+    }),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
 

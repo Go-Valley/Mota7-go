@@ -3,7 +3,7 @@
     <!--
       Android 12+ (API 31+):
       استخدم Theme.SplashScreen بشكل صريح مع أيقونة شفافة لمنع ظهور ic_launcher في المنتصف.
-      وخلفية splash_launch لملء الشاشة قبل انتقال التطبيق للثيم الأساسي.
+      وخلفية splash_launch (لون موحّد) قبل انتقال التطبيق للثيم الأساسي.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowActionBar">false</item>

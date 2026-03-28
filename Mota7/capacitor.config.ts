@@ -12,13 +12,12 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 3000,
-      launchAutoHide: true, // مهم للـ Live Reload على أندرويد عبر الشبكة المحلية (بدون هيك يظهر شاشة البداية ويغلقها بعد 3 ثوان)   
-      androidSplashResourceName: 'splash',
-      // نفس لون ثيم الإقلاع الأصلي (ic_launcher_background / android.backgroundColor) لتفادي وميض لون مختلف
+      /** 0 يخفض طبقة Capacitor فوراً؛ اللوجو يُعرض من MainActivity + شاشة Angular */
+      launchShowDuration: 0,
+      launchAutoHide: true,
+      androidSplashResourceName: 'capacitor_splash',
       backgroundColor: '#ffe1c0',
-      // مواءمة مع splash_launch.xml (bitmap gravity=fill): ملء الشاشة مثل الطبقة الأصلية
-      androidScaleType: 'FIT_XY',
+      androidScaleType: 'CENTER_INSIDE',
       splashFullScreen: true,
       splashImmersive: true,
     },

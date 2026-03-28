@@ -4,18 +4,32 @@ import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { Router } from '@angular/router';
 import { Firestore, doc, onSnapshot, getDoc } from '@angular/fire/firestore';
-import { Component, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Auth, authState, signOut } from '@angular/fire/auth';
 import { Observable } from 'rxjs';
 import { 
   personAddOutline, chatbubbleEllipsesOutline, documentTextOutline,
   callOutline, logoWhatsapp, chevronBackOutline, personOutline,
   megaphoneOutline, peopleOutline, logOutOutline, createOutline, locationOutline,
-  closeOutline
+  closeOutline, pricetagOutline
 } from 'ionicons/icons';
 import { Mota7HeaderComponent } from '../top_header/header';
 import { UserAccountStatusService } from './user-account-status.service';
 import { openWhatsappNative } from '../core/utils/whatsapp-open.util';
+import {
+  isFirestoreActiveFlag,
+  getSubscriptionsContentHtmlFromDoc,
+  SUBSCRIPTIONS_MISSING_CONTENT_HTML,
+  SUBSCRIPTIONS_EMPTY_FALLBACK,
+} from './subscriptions_page/subscriptions-default-html';
 
 
 @Component({
@@ -28,6 +42,12 @@ import { openWhatsappNative } from '../core/utils/whatsapp-open.util';
 export class MyAccountPage implements OnInit {
   isLoggedIn: boolean = false; 
   isTermsModalOpen: boolean = false;
+  isSubscriptionsModalOpen: boolean = false;
+  /** none: لا وضع مفعّل | empty: رسالة الفراغ | current: جدول الباقات */
+  subscriptionsModalView: 'none' | 'empty' | 'current' = 'none';
+  /** HTML من Firestore — SafeHtml حتى لا يُعاد تعقيمه ويُحذف منه الوسوم/الصفات */
+  subscriptionsHtmlSafe = inject(DomSanitizer).bypassSecurityTrustHtml('');
+  subscriptionsEmptyMessage = '';
   private contactSheetOpen = false;
   termsContent: string = 'جاري التحميل...'; // متغير لتخزين النص
   userName: string = 'جاري التحميل...';
@@ -38,7 +58,9 @@ export class MyAccountPage implements OnInit {
 
   private auth = inject(Auth);
   private firestore = inject(Firestore);
+  private domSanitizer = inject(DomSanitizer);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
   private document = inject(DOCUMENT);
   private authState$!: Observable<any>;
   readonly acct = inject(UserAccountStatusService);
@@ -72,6 +94,7 @@ export class MyAccountPage implements OnInit {
       'create-outline': createOutline,
       'location-outline': locationOutline,
       'close-outline': closeOutline,
+      'pricetag-outline': pricetagOutline,
     });
   }
 
@@ -133,7 +156,80 @@ export class MyAccountPage implements OnInit {
       console.error('Error fetching terms:', error); 
       this.termsContent = 'حدث خطأ أثناء تحميل الشروط.'; 
     } 
-  } 
+  }
+
+  setOpenSubscriptions(isOpen: boolean): void {
+    this.isSubscriptionsModalOpen = isOpen;
+  }
+
+  closeSubscriptionsModal(): void {
+    this.isSubscriptionsModalOpen = false;
+  }
+
+  async openSubscriptionsModal(): Promise<void> {
+    await this.fetchSubscriptionsPage();
+    this.isSubscriptionsModalOpen = true;
+  }
+
+  /**
+   * Firestore: subscriptions/page
+   * current_status / empty_status: "active" | غير نشط
+   * أولوية العرض: إن وُجد current نشط → محتوى الباقات؛ وإلا empty نشط → الرسالة؛ وإلا none.
+   */
+  private async fetchSubscriptionsPage(): Promise<void> {
+    this.subscriptionsModalView = 'none';
+    this.subscriptionsHtmlSafe = this.domSanitizer.bypassSecurityTrustHtml('');
+    this.subscriptionsEmptyMessage = '';
+
+    try {
+      const docSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'subscriptions', 'page'))
+      );
+
+      if (!docSnap.exists()) {
+        this.subscriptionsModalView = 'none';
+        this.cdr.markForCheck();
+        return;
+      }
+
+      const d = docSnap.data() as Record<string, unknown>;
+      const nestedEmpty = d['empty'] as { status?: unknown } | undefined;
+      const nestedCurrent = d['current'] as { status?: unknown } | undefined;
+
+      const currentOn =
+        isFirestoreActiveFlag(d['current_status']) ||
+        isFirestoreActiveFlag(nestedCurrent?.status);
+      const emptyOn =
+        isFirestoreActiveFlag(d['empty_status']) ||
+        isFirestoreActiveFlag(nestedEmpty?.status);
+
+      if (currentOn) {
+        this.subscriptionsModalView = 'current';
+        const raw = getSubscriptionsContentHtmlFromDoc(d);
+        const html = raw.length > 0 ? raw : SUBSCRIPTIONS_MISSING_CONTENT_HTML;
+        this.subscriptionsHtmlSafe = this.domSanitizer.bypassSecurityTrustHtml(html);
+        this.cdr.markForCheck();
+        return;
+      }
+
+      if (emptyOn) {
+        this.subscriptionsModalView = 'empty';
+        const em =
+          typeof d['empty_message'] === 'string' ? d['empty_message'].trim() : '';
+        this.subscriptionsEmptyMessage =
+          em.length > 0 ? em : SUBSCRIPTIONS_EMPTY_FALLBACK;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.subscriptionsModalView = 'none';
+      this.cdr.markForCheck();
+    } catch (e) {
+      console.error('subscriptions/page:', e);
+      this.subscriptionsModalView = 'none';
+      this.cdr.markForCheck();
+    }
+  }
 
   // تحديث الدالة لتصبح احترافية (Action Sheet)
   async openContactOptions() {

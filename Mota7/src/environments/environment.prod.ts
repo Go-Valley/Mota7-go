@@ -2,6 +2,8 @@ import { LEGACY_MOTA7_APP_FIREBASE_CONFIG } from './firebase-legacy-mota7-app.co
 
 export const environment = {
   production: true, // لاحظ هنا true
+  androidApplicationId: 'com.mota7.app',
+  playStoreUrl: 'https://play.google.com/store/apps/details?id=com.mota7.app',
   /** وسيط حذف Cloudinary (HTTPS فقط للمتاجر). مثال: https://اسم-الخدمة.onrender.com */
   cloudinaryDeleteProxyUrl: 'https://mota7-go.onrender.com',
   ntfy: {

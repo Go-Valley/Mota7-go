@@ -1,4 +1,4 @@
-import { Component, inject, Injector, OnInit, runInInjectionContext } from '@angular/core';
+import { Component, computed, inject, Injector, OnInit, runInInjectionContext, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, Platform } from '@ionic/angular';
 import { NavigationStart, Router } from '@angular/router'; 
@@ -6,7 +6,6 @@ import { addIcons } from 'ionicons';
 import { locationOutline, location, globeOutline } from 'ionicons/icons';
 
 import { Auth, onAuthStateChanged } from '@angular/fire/auth';
-import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 import { App } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -16,10 +15,12 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { NtfyListenerService } from './core/services/ntfy-listener.service';
 import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
+import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
+  styleUrls: ['app.component.scss'],
   standalone: true,
   imports: [IonicModule, CommonModule],
 })
@@ -29,12 +30,21 @@ export class AppComponent implements OnInit {
 
   // تعريف خدمات الفيربيز والـ Ionic
   private auth = inject(Auth);
-  private firestore = inject(Firestore);
   private injector = inject(Injector);
   private alertCtrl = inject(AlertController);
   private platform = inject(Platform);
   private ntfyListener = inject(NtfyListenerService);
   private userAccountStatus = inject(UserAccountStatusService);
+  readonly mandatoryUpdate = inject(MandatoryUpdateService);
+
+  /**
+   * بعد انتهاء التهيئة على الموبايل نخفي شاشة اللوجو (assets/mota7.png).
+   * على الويب لا تُعرض الشاشة أصلاً.
+   */
+  private readonly launchPhaseComplete = signal(false);
+  readonly showAppLaunchShell = computed(
+    () => Capacitor.isNativePlatform() && !this.launchPhaseComplete()
+  );
 
   /** منع ازدواجية نافذة التأكيد عند التشغيل ثم resume */
   private lastNotifPromptAt = 0;
@@ -56,12 +66,9 @@ export class AppComponent implements OnInit {
   async initializeApp() {
     await this.platform.ready();
 
-    /**
-     * لا تستدعِ SplashScreen.hide() هنا فور platform.ready().
-     * على أندرويد 12+ ذلك يزيل مستمع الإقلاع فوراً فيسبق انتهاء launchShowDuration
-     * فيظهر وميض أسود/أبيض دون صورة الـ splash. الإخفاء يتم عبر launchAutoHide في capacitor.config.
-     * لإخفاء مبكر عند جاهزية الواجهة: استدعِ hide() بعد تحميل الصفحة الأولى (مثلاً من ionViewDidEnter).
-     */
+    if (!Capacitor.isNativePlatform()) {
+      this.launchPhaseComplete.set(true);
+    }
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -72,17 +79,27 @@ export class AppComponent implements OnInit {
       } catch (_) {}
     }
 
+    await this.mandatoryUpdate.runInitialCheck();
+
     this.checkAuthState();
     this.userAccountStatus.start();
 
     if (this.platform.is('hybrid')) {
-      void this.checkForUpdate();
       this.ntfyListener.start();
       void this.showNotificationPermissionReminder();
       void App.addListener('resume', () => {
+        void this.mandatoryUpdate.recheckAfterResume();
         void this.showNotificationPermissionReminder();
       });
     }
+
+    if (Capacitor.isNativePlatform()) {
+      this.launchPhaseComplete.set(true);
+    }
+  }
+
+  openMandatoryPlayStore(): void {
+    void this.mandatoryUpdate.openPlayStore();
   }
 
   /**
@@ -201,49 +218,6 @@ export class AppComponent implements OnInit {
     if (digits.startsWith('0') && digits.length >= 10) return `20${digits.slice(1)}`;
     if (digits.startsWith('1') && digits.length === 10) return `20${digits}`;
     return digits;
-  }
-
-  async checkForUpdate() {
-    try {
-      const configDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'settings/app_config'))
-      );
-      
-      if (configDoc.exists()) {
-        const data = configDoc.data();
-        const minVersion = data['min_version'] || 0;
-        const updateUrl = data['update_url'];
-
-        // جلب معلومات الإصدار الحالي
-        const appInfo = await App.getInfo();
-        const currentVersionCode = parseInt(appInfo.build);
-
-        if (currentVersionCode < minVersion) {
-          this.showUpdateAlert(updateUrl);
-        }
-      }
-    } catch (error) {
-      console.error('فشل جلب بيانات التحديث من الفايربيز:', error);
-    }
-  }
-
-  async showUpdateAlert(url: string) {
-    const alert = await this.alertCtrl.create({
-      header: 'تحديث جديد متوفر',
-      backdropDismiss: false,
-      message: 'يتوفر إصدار جديد من تطبيق "مُتاح". يرجى التحديث الآن للاستمرار في استخدام التطبيق والحصول على آخر الميزات.',
-      buttons: [
-        {
-          text: 'تحديث الآن',
-          handler: () => {
-            window.open(url, '_system');
-            return false; 
-          }
-        }
-      ]
-    });
-
-    await alert.present();
   }
 
   checkAuthState() {

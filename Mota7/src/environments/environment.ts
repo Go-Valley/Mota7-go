@@ -2,6 +2,10 @@ import { LEGACY_MOTA7_APP_FIREBASE_CONFIG } from './firebase-legacy-mota7-app.co
 
 export const environment = {
   production: false,
+  /** نفس applicationId في android/app/build.gradle — لرابط Play و market:// */
+  androidApplicationId: 'com.mota7.app',
+  /** رابط صفحة التطبيق على Google Play (للتحديث الإجباري) */
+  playStoreUrl: 'https://play.google.com/store/apps/details?id=com.mota7.app',
   /**
    * ntfy: غيّر `topic` إلى سلسلة طويلة عشوائية سرية؛ أي من يعرفها يمكنه الإرسال/الاستقبال.
    * عطّل `enabled` إن لم تستخدم الإشعارات العامة.

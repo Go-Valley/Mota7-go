@@ -144,6 +144,39 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    /**
+     * باقات الاشتراك (وغيرها تحت نفس المجموعة): subscriptions/page — content_html، current_status، إلخ.
+     * صريح هنا حتى لا يعتمد العرض على المسار العام فقط (getDoc + أي list لاحق).
+     */
+    match /subscriptions/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * إعدادات التطبيق العامة (مثل app_config للتحديث الإلزامي — doc(..., 'settings', 'app_config')).
+     */
+    match /settings/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /** الشروط والأحكام: TermsAndConditions/current */
+    match /TermsAndConditions/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /** بانرات الواجهة */
+    match /banners/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * باقي المسارات: قراءة عامة، كتابة للأدمن.
+     * القواعد أعلاه أخصّ لمستندات التطبيق الشائعة.
+     */
     match /{path=**} {
       allow read: if true;
       allow write: if isAdmin();

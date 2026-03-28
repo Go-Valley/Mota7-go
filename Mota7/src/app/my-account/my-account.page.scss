@@ -216,6 +216,218 @@
   }
 }
 
+/* ——— مودال باقات الاشتراكات (85% ارتفاع تقريبي) ——— */
+ion-modal.subscriptions-packages-modal {
+  --width: min(100%, 520px);
+  --height: 85vh;
+  --max-height: 85vh;
+  --border-radius: 22px 22px 0 0;
+  --box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.subscriptions-modal-content {
+  --background: linear-gradient(180deg, #fffdfb 0%, #f8fafc 100%);
+  direction: rtl;
+}
+
+.subs-modal-header ion-toolbar {
+  --background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+  --color: #fff;
+  --border-width: 0;
+
+  ion-title {
+    font-weight: 800;
+    font-size: 1rem;
+    text-align: center;
+    color: #fff !important;
+  }
+
+  ion-button {
+    --color: #ffe1c0;
+    font-weight: 700;
+  }
+}
+
+.subs-modal-footer ion-toolbar {
+  --background: #fff;
+  --padding-top: 8px;
+  --padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  --border-width: 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.subs-footer-cancel {
+  --background: linear-gradient(135deg, #ff6b00 0%, #ea580c 100%);
+  --color: #fff;
+  --border-radius: 14px;
+  font-weight: 800;
+  margin: 0 12px;
+  min-height: 48px;
+}
+
+.subs-empty-state {
+  min-height: 45vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #dc2626;
+  line-height: 1.6;
+}
+
+.subs-none-state {
+  padding: 24px 16px;
+  text-align: center;
+
+  p {
+    margin: 0 0 12px;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .subs-none-hint {
+    font-size: 0.82rem;
+    color: #94a3b8;
+
+    code {
+      font-size: 0.78rem;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  }
+}
+
+.subscriptions-html-wrap {
+  padding-bottom: 8px;
+}
+
+.subscriptions-inner ::ng-deep {
+  .subs-doc {
+    padding: 4px 0 16px;
+    text-align: center;
+  }
+
+  .subs-missing-placeholder {
+    min-height: 40vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .subs-missing-msg {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: #64748b !important;
+    text-align: center;
+
+    strong {
+      color: #334155 !important;
+    }
+  }
+
+  .subs-title-main {
+    color: #ed6400 !important;
+    font-weight: 900;
+    font-size: 1.5rem;
+    text-align: center;
+    margin: 8px 0 20px;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+  }
+
+  .subs-block {
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgb(0, 0, 0);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    text-align: center;
+  }
+
+  .subs-red-block .subs-line-title {
+    color: #dc2626 !important;
+    font-weight: 800;
+    font-size: 0.98rem;
+    margin: 0 0 10px;
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  .subs-orange-block {
+    border-top: 4px solid #f97316;
+    background: linear-gradient(180deg, #fff7ed 0%, #fff 40%);
+  }
+
+  .subs-orange-title {
+    color: #ea580c !important;
+    font-weight: 800;
+    font-size: 0.98rem;
+    margin: 0 0 10px;
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  .subs-price {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #334155 !important;
+    text-align: center;
+
+    strong {
+      color: #0f172a !important;
+      font-weight: 900;
+      font-size: 1.05rem;
+    }
+  }
+
+  .subs-gold-text {
+    color: #b45309 !important;
+    font-weight: 900;
+  }
+
+  .subs-blue-text {
+    color: #2563eb !important;
+    font-weight: 900;
+  }
+
+  .subs-promo {
+    margin-top: 20px;
+    padding: 20px 16px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+    border: 1px dashed #f87171;
+    text-align: center;
+  }
+
+  .subs-promo-line {
+    margin: 0 0 10px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .subs-red-strong {
+    color: #dc2626 !important;
+    font-weight: 800;
+    font-size: 1rem;
+  }
+
+  .subs-black-bold {
+    color: #0f172a !important;
+    font-weight: 900;
+    font-size: 1.08rem;
+  }
+}
+
 @keyframes rotate-ring { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes morph-logo { 0%, 100% { border-radius: 35% 65% 70% 30% / 30% 40% 60% 70%; } 50% { border-radius: 50% 50% 30% 70% / 50% 60% 40% 40%; } }
 @keyframes float-logo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }

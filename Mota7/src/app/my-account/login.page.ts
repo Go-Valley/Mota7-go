@@ -29,7 +29,18 @@ import {
   getLegacyFirestore,
   legacyPhoneNumberToOrderPhone,
 } from '../core/utils/legacy-firebase-migration.util';
-import { doc as legacyDocRef, getDoc as legacyGetDoc } from 'firebase/firestore';
+import {
+  migrateLegacyServiceAdsOnce,
+  type PrefetchedLegacyServiceRow,
+} from '../core/utils/legacy-services-import.util';
+import {
+  collection as legacyCollection,
+  doc as legacyDocRef,
+  getDoc as legacyGetDoc,
+  getDocs as legacyGetDocs,
+  query as legacyQuery,
+  where as legacyWhere,
+} from 'firebase/firestore';
 import { 
   fingerPrintOutline, 
   phonePortraitOutline, 
@@ -126,8 +137,15 @@ export class LoginPage {
     this.cdr.detectChanges();
   }
 
-  /** بعد نجاح المصادقة على المشروع الجديد: فحص isActive ثم التوجيه */
-  private async completeLoginAfterAuthenticated(loading: HTMLIonLoadingElement): Promise<void> {
+  /**
+   * بعد نجاح المصادقة على المشروع الجديد: فحص isActive، ترحيل خدمات القديم (مرة واحدة)، ثم التوجيه.
+   * `prefetchedLegacyServices` يُمرَّر عند مسار ترحيل الحساب لتفادي تسجيل دخول مكرر للمشروع القديم.
+   */
+  private async completeLoginAfterAuthenticated(
+    loading: HTMLIonLoadingElement,
+    password: string,
+    prefetchedLegacyServices?: PrefetchedLegacyServiceRow[] | null
+  ): Promise<void> {
     const userDoc = await runInInjectionContext(this.injector, () =>
       getDoc(doc(this.firestore, 'users', this.loginData.phone))
     );
@@ -140,6 +158,20 @@ export class LoginPage {
         this.showToast('عذراً، هذا الحساب معطل من قبل الإدارة');
         return;
       }
+    }
+
+    try {
+      await runInInjectionContext(this.injector, () =>
+        migrateLegacyServiceAdsOnce({
+          firestore: this.firestore,
+          auth: this.auth,
+          orderPhone: this.loginData.phone,
+          password,
+          prefetchedLegacyServices: prefetchedLegacyServices ?? null,
+        })
+      );
+    } catch (importErr) {
+      console.warn('Legacy services import:', importErr);
     }
 
     await loading.dismiss();
@@ -200,6 +232,23 @@ export class LoginPage {
         }
       }
 
+      let prefetchedLegacyServices: PrefetchedLegacyServiceRow[] | null = null;
+      if (legacyDb) {
+        try {
+          const svcQ = legacyQuery(
+            legacyCollection(legacyDb, 'services'),
+            legacyWhere('userId', '==', legacyUid)
+          );
+          const svcSnap = await legacyGetDocs(svcQ);
+          prefetchedLegacyServices = svcSnap.docs.map((d) => ({
+            id: d.id,
+            data: d.data() as Record<string, unknown>,
+          }));
+        } catch (prefErr) {
+          console.warn('Legacy services prefetch:', prefErr);
+        }
+      }
+
       await runInInjectionContext(this.injector, () => signOut(legacyAuth));
 
       try {
@@ -239,7 +288,7 @@ export class LoginPage {
         }
       }
 
-      await this.completeLoginAfterAuthenticated(loading);
+      await this.completeLoginAfterAuthenticated(loading, password, prefetchedLegacyServices);
     } catch (e) {
       await loading.dismiss();
       console.error('Legacy login / migrate:', e);
@@ -278,7 +327,7 @@ export class LoginPage {
       await runInInjectionContext(this.injector, () =>
         signInWithEmailAndPassword(this.auth, systemEmail, password)
       );
-      await this.completeLoginAfterAuthenticated(loading);
+      await this.completeLoginAfterAuthenticated(loading, password);
     } catch (error: any) {
       console.error('Login Error:', error);
       const code = error?.code as string | undefined;
