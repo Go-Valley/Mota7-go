@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      /** 0 يخفض طبقة Capacitor فوراً؛ اللوجو يُعرض من MainActivity + شاشة Angular */
+      /** 0 يخفض طبقة Capacitor فوراً؛ اللوجو من شاشة Angular app-launch-shell فقط */
       launchShowDuration: 0,
       launchAutoHide: true,
       androidSplashResourceName: 'capacitor_splash',

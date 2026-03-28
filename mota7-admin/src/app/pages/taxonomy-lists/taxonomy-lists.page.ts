@@ -157,6 +157,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
     const loader = await this.loadingCtrl.create({ message: 'جاري الحفظ...', mode: 'ios' });
     await loader.present();
     try {
+      this.assignSequentialOrderToItems();
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'Categories', this.selectedDocId), {
           items: this.items,
@@ -295,6 +296,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
           role: 'destructive',
           handler: () => {
             this.items.splice(index, 1);
+            this.assignSequentialOrderToItems();
           },
         },
       ],
@@ -307,6 +309,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
     const t = this.items[index - 1];
     this.items[index - 1] = this.items[index];
     this.items[index] = t;
+    this.assignSequentialOrderToItems();
   }
 
   moveDown(index: number): void {
@@ -314,6 +317,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
     const t = this.items[index + 1];
     this.items[index + 1] = this.items[index];
     this.items[index] = t;
+    this.assignSequentialOrderToItems();
   }
 
   itemPreview(row: any): string {
@@ -352,6 +356,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
 
     this.savingNameIndex = index;
     try {
+      this.assignSequentialOrderToItems();
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'Categories', this.selectedDocId), {
           items: this.items,
@@ -604,6 +609,18 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
       items: this.items,
       nameAr: this.metaNameAr || null,
       icon: this.metaIcon || null,
+    });
+  }
+
+  /**
+   * يُطابق حقل order على كل بند مع موضعه في المصفوفة (0..n-1) كما يظهر في الإدارة.
+   * يضمن أن تطبيق Mota7 يعرض نفس الترتيب عندما يرتّب حسب order بعد الحفظ.
+   */
+  private assignSequentialOrderToItems(): void {
+    this.items.forEach((row: any, index: number) => {
+      if (row && typeof row === 'object') {
+        row.order = index;
+      }
     });
   }
 

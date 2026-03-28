@@ -27,7 +27,8 @@ function mapDeliveryItem(raw: any): any {
     nameEn: raw.nameEn ?? '',
     icon: resolveTaxonomyIcon(raw.icon),
     active: raw.active !== false,
-    order: typeof raw.order === 'number' ? raw.order : 0,
+    order:
+      typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : undefined,
     value: raw.value ?? raw.id,
   };
 }
@@ -39,6 +40,8 @@ function mapEducationItem(raw: any): any {
     nameEn: raw.nameEn ?? '',
     subjects: Array.isArray(raw.subjects) ? [...raw.subjects] : [],
     icon: raw.icon != null ? resolveTaxonomyIcon(raw.icon) : undefined,
+    order:
+      typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : undefined,
   };
 }
 
@@ -49,6 +52,8 @@ function mapProductItem(raw: any): any {
     nameEn: raw.nameEn ?? '',
     icon: resolveTaxonomyIcon(raw.icon),
     subcategories: Array.isArray(raw.subcategories) ? [...raw.subcategories] : [],
+    order:
+      typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : undefined,
   };
 }
 
@@ -58,6 +63,8 @@ function mapStoreItem(raw: any): any {
     nameAr: raw.nameAr ?? '',
     nameEn: raw.nameEn ?? '',
     icon: resolveTaxonomyIcon(raw.icon),
+    order:
+      typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : undefined,
   };
 }
 
@@ -67,7 +74,33 @@ function mapOtherItem(raw: any): any {
     nameAr: raw.nameAr ?? '',
     nameEn: raw.nameEn ?? '',
     icon: raw.icon != null ? resolveTaxonomyIcon(raw.icon) : undefined,
+    order:
+      typeof raw.order === 'number' && Number.isFinite(raw.order) ? raw.order : undefined,
   };
+}
+
+/**
+ * إن وُجد على كل البنود order = 0..n-1 بدون تكرار (كما يحفظه mota7-admin بعد إعادة الترتيب)، نرتّب به.
+ * وإلا نُبقي ترتيب مصفوفة items كما جاء من Firestore (أو الثوابت).
+ */
+function orderMappedItemsForDisplay(mapped: any[]): any[] {
+  const n = mapped.length;
+  if (n <= 1) {
+    return mapped;
+  }
+  const orders = mapped.map((m) =>
+    typeof m?.order === 'number' && Number.isFinite(m.order) ? m.order : null
+  );
+  if (orders.some((o) => o === null)) {
+    return mapped;
+  }
+  const sorted = [...orders].sort((a, b) => (a as number) - (b as number));
+  const isZeroToN1Permutation =
+    new Set(orders).size === n && sorted.every((o, i) => (o as number) === i);
+  if (!isZeroToN1Permutation) {
+    return mapped;
+  }
+  return [...mapped].sort((a, b) => a.order - b.order);
 }
 
 function pickItems(
@@ -77,9 +110,9 @@ function pickItems(
 ): { items: any[]; fromFs: boolean } {
   const arr = fsDoc?.items;
   if (Array.isArray(arr) && arr.length > 0) {
-    return { items: arr.map(mapper), fromFs: true };
+    return { items: orderMappedItemsForDisplay(arr.map(mapper)), fromFs: true };
   }
-  return { items: fallback.map(mapper), fromFs: false };
+  return { items: orderMappedItemsForDisplay(fallback.map(mapper)), fromFs: false };
 }
 
 @Injectable({ providedIn: 'root' })
