@@ -115,7 +115,6 @@ export class RegisterPage {
       ev.preventDefault();
       ev.stopPropagation();
       this.phoneLiveWarning = ORDER_PHONE_INVALID_MSG;
-      this.cdr.detectChanges();
       return;
     }
     // مفاتيح غير حرف واحد (بعض لوحات IME) — إن لم تكن رقماً بعد التحويل نمنع
@@ -127,7 +126,6 @@ export class RegisterPage {
       ev.preventDefault();
       ev.stopPropagation();
       this.phoneLiveWarning = ORDER_PHONE_INVALID_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -139,7 +137,6 @@ export class RegisterPage {
     if (t === 'insertLineBreak' || t === 'insertParagraph') {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_INVALID_MSG;
-      this.cdr.detectChanges();
       return;
     }
     const chunk = ev.data ?? '';
@@ -149,7 +146,6 @@ export class RegisterPage {
     if (orderPhoneRawHasNonDigitChars(chunk)) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_INVALID_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -161,7 +157,6 @@ export class RegisterPage {
     if (orderPhoneRawHasNonDigitChars(text)) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_INVALID_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -234,20 +229,14 @@ export class RegisterPage {
     this.cdr.detectChanges();
   }
 
-  async onFullNameInput(ev: Event): Promise<void> {
-    let v = this.normalizeFullName(readIonTextInputValueFromEvent(ev));
-    this.userData.fullName = v;
-    if (this.inputFullName) {
-      try {
-        const el = await this.inputFullName.getInputElement();
-        if (el && el.value !== v) {
-          el.value = v;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    this.cdr.detectChanges();
+  /**
+   * بدون getInputElement على كل ionInput — يخفّف تعليق المسح مع IME/WebView.
+   * الحد الأقصى للطول: beforeinput + compositionend → clampFullNameToMax.
+   */
+  onFullNameInput(ev: Event): void {
+    this.userData.fullName = this.normalizeFullName(
+      readIonTextInputValueFromEvent(ev)
+    );
   }
 
   onRegisterPhoneInput(ev: Event): void {
@@ -257,7 +246,6 @@ export class RegisterPage {
     const cleaned = sanitizeOrderPhoneInput(raw);
     this.userData.phone = cleaned;
     this.phoneLiveWarning = getOrderPhoneFieldLiveWarning(cleaned, hadNonDigit);
-    this.cdr.detectChanges();
   }
 
   goBack() {

@@ -1,0 +1,23 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.reason-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ion-color-medium-shade, #666);
+  line-height: 1.5;
+}
+
+.reason-textarea {
+  --background: var(--ion-color-light, #f4f5f8);
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: 12px;
+  font-size: 16px;
+  min-height: 200px;
+}

@@ -10,6 +10,9 @@ import {
 
 /**
  * بعد نشر إعلان جديد: إشعار محلي لصاحب الإعلان + نشر على ntfy لبقية المشتركين.
+ * نغمة mota7.mp3: يجب أن يكون الملف في `src/assets` ويُنسَخ إلى `android/.../res/raw/`
+ * (مهمة Gradle `syncNotificationSoundFromAssets` أو `node scripts/copy-notification-sound.js` مع البناء).
+ * إن وُجدت القنوات سابقاً بدون صوت، قد تحتاج لمسح بيانات التطبيق أو إعادة تثبيت حتى يظهر الصوت في إعدادات أندرويد.
  */
 @Injectable({ providedIn: 'root' })
 export class NewAdNtfyService {
@@ -108,6 +111,7 @@ export class NewAdNtfyService {
           description: 'تنبيهات عند نشر إعلانات جديدة',
           importance: 4,
           vibration: true,
+          sound: 'mota7.mp3',
         });
         await LocalNotifications.createChannel({
           id: 'mota7-orders',

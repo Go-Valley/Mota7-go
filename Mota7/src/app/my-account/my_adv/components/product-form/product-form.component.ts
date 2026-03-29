@@ -193,7 +193,6 @@ export class ProductFormComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
-    this.cdr.detectChanges();
   }
 
   onProductPriceBeforeInput(ev: InputEvent): void {
@@ -209,7 +208,6 @@ export class ProductFormComponent implements OnInit {
     if (/\D/.test(english)) {
       ev.preventDefault();
       this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -235,7 +233,6 @@ export class ProductFormComponent implements OnInit {
     this.priceInputStr = normalized;
     this.productData.price =
       normalized === '' ? null : parseInt(normalized, 10);
-    this.cdr.detectChanges();
   }
 
   onMainCategoryChange(resetSub = true) {

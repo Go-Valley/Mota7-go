@@ -61,9 +61,10 @@
       <ion-label class="input-label">المدينة</ion-label>
       <ion-item lines="none" class="custom-input city-select-item">
         <ion-icon name="location-outline" slot="start"></ion-icon>
-        <ion-select [(ngModel)]="userData.city" 
-                    interface="action-sheet" 
-                    placeholder="اختر المدينة">
+        <ion-select [(ngModel)]="userData.city"
+                    interface="action-sheet"
+                    placeholder="اختر المدينة"
+                    (ionOpen)="onCitySelectOpen()">
           <ion-select-option value="الخارجة">الخارجة</ion-select-option>
           <ion-select-option value="الداخلة">الداخلة</ion-select-option>
         </ion-select>

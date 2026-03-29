@@ -288,8 +288,13 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       const delivery_match_key = `${categoryNameAr}_${this.deliveryData.city}`;
       let ntfySnapshot: Record<string, unknown> | null = null;
 
-      const outcome = await runInInjectionContext(this.injector, async (): Promise<'duplicate' | 'ok'> => {
-        if (!this.isEditMode) {
+      /**
+       * runInInjectionContext لا يغطي استكمال async بعد await — لذلك نفصل:
+       * 1) فحص التكرار (getDocs فقط داخل سياق)
+       * 2) setDoc/updateDoc كلٌ في استدعاء منفصل بلا await سابق لنفس الـ callback
+       */
+      if (!this.isEditMode) {
+        const isDuplicate = await runInInjectionContext(this.injector, async () => {
           const adsRef = collection(this.firestore, 'ads');
           const q = query(
             adsRef,
@@ -298,61 +303,61 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
             where('ad_type', '==', 'delivery')
           );
           const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            return 'duplicate';
-          }
+          return !querySnapshot.empty;
+        });
+        if (isDuplicate) {
+          await loader.dismiss();
+          this.presentToast('لديك إعلان مضاف بالفعل لنفس نوع الخدمة');
+          return;
         }
+      }
 
-        const adId = this.isEditMode ? this.currentAdId! : `${this.deliveryData.contactPhone}_${this.deliveryData.category_id}-${Date.now()}`;
+      const adId = this.isEditMode ? this.currentAdId! : `${this.deliveryData.contactPhone}_${this.deliveryData.category_id}-${Date.now()}`;
 
-        const adPayload: any = {
-          ad_id: adId,
-          userId: user.uid,
-          owner_name: this.deliveryData.driverName,
-          owner_phone: this.deliveryData.contactPhone,
-          category_id: this.deliveryData.category_id,
-          ad_type: 'delivery',
-          delivery_match_key: delivery_match_key,
-          verification_level: this.userVerificationStatus,
-          sort_order: 999,
-          details: {
-            driver_name: this.deliveryData.driverName,
-            can_travel: this.deliveryData.canTravel,
-            for_rent: this.deliveryData.forRent,
-            whatsapp_phone: this.deliveryData.whatsappEnabled ? this.deliveryData.whatsappPhone : null,
-            is_available: this.deliveryData.isAvailable
-          },
-          location: { lat: this.deliveryData.lat, lng: this.deliveryData.lng },
-          city: this.deliveryData.city,
-          is_available: this.deliveryData.isAvailable,
-          updated_at: serverTimestamp(),
-        };
+      const adPayload: any = {
+        ad_id: adId,
+        userId: user.uid,
+        owner_name: this.deliveryData.driverName,
+        owner_phone: this.deliveryData.contactPhone,
+        category_id: this.deliveryData.category_id,
+        ad_type: 'delivery',
+        delivery_match_key: delivery_match_key,
+        verification_level: this.userVerificationStatus,
+        sort_order: 999,
+        details: {
+          driver_name: this.deliveryData.driverName,
+          can_travel: this.deliveryData.canTravel,
+          for_rent: this.deliveryData.forRent,
+          whatsapp_phone: this.deliveryData.whatsappEnabled ? this.deliveryData.whatsappPhone : null,
+          is_available: this.deliveryData.isAvailable
+        },
+        location: { lat: this.deliveryData.lat, lng: this.deliveryData.lng },
+        city: this.deliveryData.city,
+        is_available: this.deliveryData.isAvailable,
+        updated_at: serverTimestamp(),
+      };
 
-        if (this.isEditMode) {
-          adPayload.status = 'pending';
+      if (this.isEditMode) {
+        adPayload.status = 'pending';
+        await runInInjectionContext(this.injector, async () => {
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
-        } else {
-          adPayload.status = 'pending';
-          adPayload.created_at = serverTimestamp();
-          adPayload.reject_reason = '';
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + 30);
-          adPayload.expiry_date = expiry;
+        });
+      } else {
+        adPayload.status = 'pending';
+        adPayload.created_at = serverTimestamp();
+        adPayload.reject_reason = '';
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 30);
+        adPayload.expiry_date = expiry;
+        await runInInjectionContext(this.injector, async () => {
           await setDoc(doc(this.firestore, 'ads', adId), adPayload);
-          ntfySnapshot = {
-            ad_type: 'delivery',
-            category_id: adPayload.category_id,
-            owner_name: adPayload.owner_name,
-            details: { ...adPayload.details },
-          };
-        }
-        return 'ok';
-      });
-
-      if (outcome === 'duplicate') {
-        await loader.dismiss();
-        this.presentToast('لديك إعلان مضاف بالفعل لنفس نوع الخدمة');
-        return;
+        });
+        ntfySnapshot = {
+          ad_type: 'delivery',
+          category_id: adPayload.category_id,
+          owner_name: adPayload.owner_name,
+          details: { ...adPayload.details },
+        };
       }
 
       this.isSubmitting = true;

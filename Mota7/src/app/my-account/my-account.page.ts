@@ -283,7 +283,7 @@ export class MyAccountPage implements OnInit {
     await loading.present();
     try {
       if (this.unsubscribeSnapshot) this.unsubscribeSnapshot();
-      await signOut(this.auth);
+      await runInInjectionContext(this.injector, () => signOut(this.auth));
       
       this.isLoggedIn = false;
       this.userName = 'جاري التحميل...';

@@ -9,7 +9,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // يجب أن يطابق App.getInfo().build في Capacitor — يُقارَن مع Remote Config: android_min_version_code
-        versionCode 2
+        versionCode 11
         versionName "2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -47,10 +47,10 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 
 def splashSource = file('../../src/assets/splash.png')
-def logoSource = file('../../src/assets/mota7.png')
+def logoSource = file('../../src/assets/start.png')
 def splashTargetDir = file('src/main/res/drawable-nodpi')
 def splashTarget = file("${splashTargetDir}/splash.png")
-def logoTarget = file("${splashTargetDir}/mota7.png")
+def logoTarget = file("${splashTargetDir}/start.png")
 
 tasks.register('syncSplashFromAssets') {
     inputs.file(splashSource)
@@ -75,17 +75,36 @@ tasks.register('syncSplashFromAssets') {
             copy {
                 from logoSource
                 into splashTargetDir
-                rename { 'mota7.png' }
+                rename { 'start.png' }
             }
-            logger.lifecycle("[splash] Copied mota7.png to android/app/src/main/res/drawable-nodpi/")
+            logger.lifecycle("[splash] Copied start.png to android/app/src/main/res/drawable-nodpi/")
         } else {
-            logger.lifecycle("[splash] src/assets/mota7.png not found, keeping current Android logo resource.")
+            logger.lifecycle("[splash] src/assets/start.png not found, keeping current Android logo resource.")
+        }
+    }
+}
+
+def notificationSoundSource = file('../../src/assets/mota7.mp3')
+def rawResDir = file('src/main/res/raw')
+
+tasks.register('syncNotificationSoundFromAssets') {
+    doLast {
+        if (notificationSoundSource.exists()) {
+            rawResDir.mkdirs()
+            copy {
+                from notificationSoundSource
+                into rawResDir
+                rename { 'mota7.mp3' }
+            }
+            logger.lifecycle("[notification-sound] Copied mota7.mp3 to android/app/src/main/res/raw/")
+        } else {
+            logger.lifecycle("[notification-sound] src/assets/mota7.mp3 not found, skipping raw copy.")
         }
     }
 }
 
 tasks.matching { it.name == 'preBuild' }.configureEach {
-    dependsOn tasks.named('syncSplashFromAssets')
+    dependsOn tasks.named('syncSplashFromAssets'), tasks.named('syncNotificationSoundFromAssets')
 }
 
 try {

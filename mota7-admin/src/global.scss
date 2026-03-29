@@ -360,3 +360,10 @@ ion-icon[name="chevron-back"] {
   box-shadow: 0 8px 25px rgba(0,0,0,0.05) !important;
   border: 1px solid rgba(255,255,255,0.8) !important;
 }
+
+/* مودال سبب الرفض/الإيقاف — حجم مناسب لنصوص طويلة */
+ion-modal.mota7-reason-modal {
+  --width: min(100%, 520px);
+  --height: min(92vh, 640px);
+  --border-radius: 16px;
+}

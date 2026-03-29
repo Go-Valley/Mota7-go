@@ -33,7 +33,7 @@ export class EditAdModal implements OnInit {
     }
   }
 
-  /** مزامنة ion-input/textarea مع IME العربي وحذف سلس على أندرويد */
+  /** مزامنة ion-input/textarea مع IME العربي؛ تجنّب إعادة تعيين النموذج إن كانت القيمة مطابقة لتقليل دورات الاكتشاف مع [(ngModel)]. */
   onEditIonInput(ev: Event, path: string): void {
     const v = readIonTextInputValueFromEvent(ev);
     const parts = path.split('.');
@@ -45,7 +45,12 @@ export class EditAdModal implements OnInit {
       }
       o = o[key];
     }
-    o[parts[parts.length - 1]] = v;
+    const leaf = parts[parts.length - 1];
+    const cur = o[leaf];
+    if (Object.is(cur, v) || String(cur ?? '') === String(v)) {
+      return;
+    }
+    o[leaf] = v;
   }
 
   private sanitizeEditStringsBeforeSave(): void {

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   OnInit,
   ViewChild,
@@ -26,6 +25,10 @@ import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
+import {
+  mergeGuestStoredContactIntoOrderData,
+  writeGuestOrderContact,
+} from '../../core/utils/guest-order-contact-storage.util';
 
 @Component({
   selector: 'app-educational-service',
@@ -49,7 +52,6 @@ export class EducationalServiceComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(Injector);
   private newOrderNtfy = inject(NewOrderNtfyService);
-  private cdr = inject(ChangeDetectorRef);
 
   orderData = {
     customerName: '',
@@ -68,6 +70,10 @@ export class EducationalServiceComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadUserProfile();
+    mergeGuestStoredContactIntoOrderData(
+      this.orderData,
+      !!this.auth.currentUser?.email
+    );
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
@@ -88,7 +94,6 @@ export class EducationalServiceComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
     this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-    this.cdr.detectChanges();
   }
 
   onCustomerPhoneBeforeInput(ev: InputEvent): void {
@@ -103,7 +108,6 @@ export class EducationalServiceComponent implements OnInit {
     if (/\D/.test(orderPhoneToEnglishDigits(chunk))) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -112,7 +116,6 @@ export class EducationalServiceComponent implements OnInit {
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    this.cdr.detectChanges();
   }
 
   onEducationNameInput(ev: Event): void {
@@ -343,7 +346,7 @@ export class EducationalServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      localStorage.setItem('last_customer_phone', customerPhone);
+      writeGuestOrderContact(customerName, customerPhone);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
 
       await loader.dismiss();

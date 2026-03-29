@@ -27,6 +27,7 @@ import { StoreCard } from './store';
 
 // استيراد مودال التعديل
 import { EditAdModal } from './edit-ad';
+import { AdReasonModalComponent } from './ad-reason-modal.component';
 import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
 import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-public-id.util';
 
@@ -391,28 +392,36 @@ export class AdvPage implements OnInit {
   }
 
   async promptReason(adId: string, status: string) {
-    const alert = await this.alertCtrl.create({
-      header: status === 'rejected' ? 'سبب الرفض' : 'سبب الإيقاف',
-      inputs: [{ name: 'reason', type: 'textarea', placeholder: 'اكتب السبب هنا للمستخدم...' }],
-      buttons: [
-        { text: 'إلغاء', role: 'cancel' },
-        {
-          text: 'حفظ',
-          handler: (data) => {
-            const reason = String(data?.reason ?? '');
-            void runInInjectionContext(this.injector, () =>
-              updateDoc(doc(this.firestore, 'ads', adId), {
-                status: status,
-                admin_reason: reason,
-                reject_reason: reason,
-                updated_at: serverTimestamp(),
-              })
-            );
-          },
-        },
-      ]
+    const modal = await this.modalCtrl.create({
+      component: AdReasonModalComponent,
+      componentProps: {
+        headerTitle: status === 'rejected' ? 'سبب الرفض' : 'سبب الإيقاف',
+      },
+      mode: 'ios',
+      cssClass: 'mota7-reason-modal',
+      backdropDismiss: false,
     });
-    await alert.present();
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<{ reason: string }>();
+    if (role !== 'confirm' || !data || typeof data.reason !== 'string') {
+      return;
+    }
+    const reason = data.reason;
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, 'ads', adId), {
+        status: status,
+        admin_reason: reason,
+        reject_reason: reason,
+        updated_at: serverTimestamp(),
+      })
+    );
+    const ok = await this.toastCtrl.create({
+      message: 'تم حفظ السبب والحالة',
+      duration: 2000,
+      color: 'success',
+      position: 'bottom',
+    });
+    await ok.present();
   }
 
   async confirmDelete(ad: { id: string; ad_id?: string; [key: string]: unknown }) {

@@ -1,0 +1,26 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="cancel()">إلغاء</ion-button>
+    </ion-buttons>
+    <ion-title>{{ headerTitle }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p class="reason-hint">يمكنك كتابة نص طويل؛ سيُحفظ كاملاً في Firestore.</p>
+  <ion-textarea
+    [(ngModel)]="reasonText"
+    [autoGrow]="true"
+    rows="10"
+    inputmode="text"
+    placeholder="اكتب السبب هنا للمستخدم..."
+    class="reason-textarea"
+  ></ion-textarea>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <ion-toolbar>
+    <ion-button expand="block" mode="ios" (click)="save()">حفظ السبب</ion-button>
+  </ion-toolbar>
+</ion-footer>

@@ -11,6 +11,7 @@ import {
 import {
   IonInput,
   IonicModule,
+  ViewWillLeave,
   LoadingController,
   NavController,
   Platform,
@@ -48,7 +49,7 @@ import { UserAccountStatusService } from './user-account-status.service';
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule]
 })
-export class EditProfilePage implements OnInit, OnDestroy {
+export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
 
   private readonly fullNameMaxLen = 20;
@@ -97,6 +98,18 @@ export class EditProfilePage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.hardwareBackSub?.unsubscribe();
     this.hardwareBackSub = undefined;
+  }
+
+  /** يمنع تحذير aria-hidden عندما يبقى تركيز input داخل outlet أثناء overlay/تنقل */
+  ionViewWillLeave(): void {
+    this.blurActiveFocus();
+  }
+
+  private blurActiveFocus(): void {
+    const el = document.activeElement;
+    if (el instanceof HTMLElement && el !== document.body) {
+      el.blur();
+    }
   }
 
   async loadUserData() {
@@ -164,23 +177,18 @@ export class EditProfilePage implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  async onFullNameInput(ev: Event): Promise<void> {
-    const v = this.normalizeFullName(readIonTextInputValueFromEvent(ev));
-    this.userData.fullName = v;
-    if (this.inputFullName) {
-      try {
-        const el = await this.inputFullName.getInputElement();
-        if (el && el.value !== v) {
-          el.value = v;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    this.cdr.detectChanges();
+  /**
+   * مزامنة خفيفة فقط — بدون getInputElement على كل ضغطة (كان يسبب تعليق الحذف على WebView/IME).
+   * التصحيح عند تجاوز الطول يبقى عبر beforeinput + compositionend → clampFullNameToMax.
+   */
+  onFullNameInput(ev: Event): void {
+    this.userData.fullName = this.normalizeFullName(
+      readIonTextInputValueFromEvent(ev)
+    );
   }
 
   changePasswordViaWA() {
+    this.blurActiveFocus();
     const adminPhone = '201220883999';
     const message = `مرحبا .. اريد تغيير كلمة المرور الخاصة برقم ${this.userData.phone}`;
     const whatsappUrl = `whatsapp://send?phone=${adminPhone}&text=${encodeURIComponent(message)}`;
@@ -208,6 +216,7 @@ export class EditProfilePage implements OnInit, OnDestroy {
       return;
     }
 
+    this.blurActiveFocus();
     const loading = await this.loadingCtrl.create({ message: 'جاري حفظ التعديلات...' });
     await loading.present();
 
@@ -236,7 +245,12 @@ export class EditProfilePage implements OnInit, OnDestroy {
   }
 
   goBack(): void {
+    this.blurActiveFocus();
     void this.navCtrl.navigateRoot('/tabs/my-account', { animated: true });
+  }
+
+  onCitySelectOpen(): void {
+    this.blurActiveFocus();
   }
 
   async showToast(msg: string) {

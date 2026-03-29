@@ -1,6 +1,5 @@
 import { Capacitor } from '@capacitor/core';
 import {
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -35,6 +34,10 @@ import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
+import {
+  mergeGuestStoredContactIntoOrderData,
+  writeGuestOrderContact,
+} from '../../core/utils/guest-order-contact-storage.util';
 
 @Component({
   selector: 'app-delivery-service',
@@ -85,14 +88,17 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   constructor(
     private modalCtrl: ModalController,
-    private alertCtrl: AlertController,
-    private cdr: ChangeDetectorRef
+    private alertCtrl: AlertController
   ) {
     addIcons({ checkmarkCircle });
   }
   
   async ngOnInit() {
     await this.loadUserProfile();
+    mergeGuestStoredContactIntoOrderData(
+      this.orderData,
+      !!this.auth.currentUser?.email
+    );
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
@@ -150,7 +156,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     ev.stopPropagation();
     this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-    this.cdr.detectChanges();
   }
 
   onCustomerPhoneBeforeInput(ev: InputEvent): void {
@@ -166,7 +171,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     if (/\D/.test(english)) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -175,7 +179,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    this.cdr.detectChanges();
   }
 
   /** مزامنة فورية مع ion-input — دمج detail + قيمة العنصر لدعم IME العربي على الموبايل */
@@ -232,7 +235,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     ev.stopPropagation();
     this.priceLiveWarning = DeliveryServiceComponent.PRICE_NON_DIGIT_MSG;
-    this.cdr.detectChanges();
   }
 
   /** لصق نص يحتوي غير أرقام */
@@ -249,7 +251,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     if (/\D/.test(english)) {
       ev.preventDefault();
       this.priceLiveWarning = DeliveryServiceComponent.PRICE_NON_DIGIT_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -273,7 +274,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
 
     this.orderData.price = normalized;
-    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
@@ -870,7 +870,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      localStorage.setItem('last_customer_phone', customerPhone);
+      writeGuestOrderContact(customerName, customerPhone);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
 
       await loader.dismiss();

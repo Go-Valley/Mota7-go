@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { IonicModule, NavController, LoadingController, ToastController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -60,7 +60,6 @@ export class LoginPage {
   // حقن الخدمات الجديدة
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
-  private cdr = inject(ChangeDetectorRef);
 
   /** تحذير فوري تحت حقل الهاتف (نفس منطق طلبات الخدمات) */
   phoneLiveWarning: string | null = null;
@@ -110,7 +109,6 @@ export class LoginPage {
     ev.preventDefault();
     ev.stopPropagation();
     this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-    this.cdr.detectChanges();
   }
 
   onLoginPhoneBeforeInput(ev: InputEvent): void {
@@ -125,7 +123,6 @@ export class LoginPage {
     if (/\D/.test(orderPhoneToEnglishDigits(chunk))) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
-      this.cdr.detectChanges();
     }
   }
 
@@ -134,7 +131,6 @@ export class LoginPage {
     const st = applyOrderPhoneInputState(raw);
     this.loginData.phone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    this.cdr.detectChanges();
   }
 
   /**

@@ -17,6 +17,9 @@ import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 
+/** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
+const NATIVE_LAUNCH_LOGO_MIN_MS = 4000;
+
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -38,7 +41,7 @@ export class AppComponent implements OnInit {
   readonly mandatoryUpdate = inject(MandatoryUpdateService);
 
   /**
-   * بعد انتهاء التهيئة على الموبايل نخفي شاشة اللوجو (assets/mota7.png).
+   * بعد انتهاء التهيئة على الموبايل نخفي شاشة اللوجو (assets/start.png).
    * على الويب لا تُعرض الشاشة أصلاً.
    */
   private readonly launchPhaseComplete = signal(false);
@@ -64,13 +67,16 @@ export class AppComponent implements OnInit {
   ngOnInit() {}
 
   async initializeApp() {
+    const isNative = Capacitor.isNativePlatform();
+    const launchT0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
     await this.platform.ready();
 
-    if (!Capacitor.isNativePlatform()) {
+    if (!isNative) {
       this.launchPhaseComplete.set(true);
     }
 
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
       try {
         // Keep status bar readable in all app themes.
         await StatusBar.setStyle({ style: Style.Light });
@@ -93,7 +99,14 @@ export class AppComponent implements OnInit {
       });
     }
 
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const elapsed = now - launchT0;
+      if (elapsed < NATIVE_LAUNCH_LOGO_MIN_MS) {
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, NATIVE_LAUNCH_LOGO_MIN_MS - elapsed)
+        );
+      }
       this.launchPhaseComplete.set(true);
     }
   }

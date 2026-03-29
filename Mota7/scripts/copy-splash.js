@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const splashSrc = path.join(__dirname, '..', 'src', 'assets', 'splash.png');
-const logoSrc = path.join(__dirname, '..', 'src', 'assets', 'mota7.png');
+const logoSrc = path.join(__dirname, '..', 'src', 'assets', 'start.png');
 const resRoot = path.join(__dirname, '..', 'android', 'app', 'src', 'main', 'res');
 const destDirs = [path.join(resRoot, 'drawable-nodpi')];
 
@@ -39,10 +39,10 @@ for (const destDir of destDirs) {
   }
 
   if (fs.existsSync(logoSrc)) {
-    const logoDest = path.join(destDir, 'mota7.png');
+    const logoDest = path.join(destDir, 'start.png');
     fs.copyFileSync(logoSrc, logoDest);
-    console.log('[copy-splash] تم نسخ mota7.png إلى', path.relative(path.join(__dirname, '..'), logoDest));
+    console.log('[copy-splash] تم نسخ start.png إلى', path.relative(path.join(__dirname, '..'), logoDest));
   } else {
-    console.warn('[copy-splash] تحذير: src/assets/mota7.png غير موجود. تم تخطي نسخة اللوجو.');
+    console.warn('[copy-splash] تحذير: src/assets/start.png غير موجود. تم تخطي نسخة اللوجو.');
   }
 }

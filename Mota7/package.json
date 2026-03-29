@@ -7,8 +7,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:android": "ng build --configuration android && node scripts/copy-splash.js && npx cap sync android",
-    "build:android:prod": "ng build --configuration production && node scripts/copy-splash.js && npx cap sync android",
+    "build:android": "ng build --configuration android && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync android",
+    "build:android:prod": "ng build --configuration production && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync android",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"
