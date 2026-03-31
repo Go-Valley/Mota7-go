@@ -399,7 +399,7 @@ export class AdvPage implements OnInit {
       },
       mode: 'ios',
       cssClass: 'mota7-reason-modal',
-      backdropDismiss: false,
+      backdropDismiss: true,
     });
     await modal.present();
     const { data, role } = await modal.onDidDismiss<{ reason: string }>();

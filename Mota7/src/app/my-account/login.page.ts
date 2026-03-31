@@ -1,5 +1,5 @@
-import { Component, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { IonicModule, NavController, LoadingController, ToastController } from '@ionic/angular';
+import { Component, inject, EnvironmentInjector, runInInjectionContext, ViewChild } from '@angular/core';
+import { IonInput, IonicModule, NavController, LoadingController, ToastController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
@@ -56,6 +56,8 @@ import {
   imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
 })
 export class LoginPage {
+
+  @ViewChild('inputPhone', { read: IonInput }) private inputPhone?: IonInput;
 
   // حقن الخدمات الجديدة
   private firestore = inject(Firestore);
@@ -126,11 +128,15 @@ export class LoginPage {
     }
   }
 
-  onLoginPhoneInput(ev: Event): void {
-    const raw = readIonTextInputValueFromEvent(ev);
+  onLoginPhoneChange(val: string): void {
+    const raw = val || '';
     const st = applyOrderPhoneInputState(raw);
     this.loginData.phone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+    
+    if (this.inputPhone) {
+      this.inputPhone.value = st.cleaned;
+    }
   }
 
   /**

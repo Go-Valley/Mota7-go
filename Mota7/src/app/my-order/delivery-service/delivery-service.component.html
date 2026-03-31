@@ -18,7 +18,7 @@
         <ion-input
           #inputCustomerName
           type="text"
-          [(ngModel)]="orderData.customerName"
+          [ngModel]="orderData.customerName"
           (ionInput)="onDeliveryFreeTextInput($event, 'customerName')"
           placeholder="اكتب اسمك هنا">
         </ion-input>
@@ -27,10 +27,13 @@
       <div class="input-group">
         <label class="main-label">رقم الهاتف : <span>*</span></label>
         <ion-input
+          #inputCustomerPhone
           type="tel"
           maxlength="11"
-          [(ngModel)]="orderData.customerPhone"
-          (ionInput)="onCustomerPhoneInput($event)"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          [ngModel]="orderData.customerPhone"
+          (ngModelChange)="onCustomerPhoneChange($event)"
           (keydown)="onCustomerPhoneKeyDown($event)"
           (beforeinput)="onCustomerPhoneBeforeInput($event)"
           placeholder="01xxxxxxxxx">
@@ -64,7 +67,7 @@
         <label class="main-label">من : (نقطة الانطلاق) <span>*</span></label>
         <ion-input
           #inputFromLocation
-          [(ngModel)]="orderData.fromLocation"
+          [ngModel]="orderData.fromLocation"
           (ionInput)="onDeliveryFreeTextInput($event, 'fromLocation')"
           placeholder="المكان الحالي">
         </ion-input>
@@ -79,7 +82,7 @@
         <label class="main-label">إلى : (جهة الوصول) <span>*</span></label>
         <ion-input
           #inputToLocation
-          [(ngModel)]="orderData.toLocation"
+          [ngModel]="orderData.toLocation"
           (ionInput)="onDeliveryFreeTextInput($event, 'toLocation')"
           placeholder="المكان المتوجه إليه">
         </ion-input>
@@ -89,10 +92,9 @@
         <label class="main-label">المبلغ : (اختياري)</label>
         <ion-input
           type="text"
-          [(ngModel)]="orderData.price"
+          [ngModel]="orderData.price"
           (ionInput)="onPriceInput($event)"
           (keydown)="onPriceKeyDown($event)"
-          (beforeinput)="onPriceBeforeInput($event)"
           placeholder="أرقام فقط — مثلاً: 30">
         </ion-input>
         <p class="phone-live-warning" *ngIf="priceLiveWarning" role="alert">{{ priceLiveWarning }}</p>

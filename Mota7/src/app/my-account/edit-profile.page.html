@@ -42,9 +42,7 @@
         <ion-icon name="person-outline" slot="start"></ion-icon>
         <ion-input
           #inputFullName
-          [(ngModel)]="userData.fullName"
-          (beforeinput)="onFullNameBeforeInput($event)"
-          (compositionend)="onFullNameCompositionEnd()"
+          [ngModel]="userData.fullName"
           (ionInput)="onFullNameInput($event)"
           maxlength="20"
           type="text"
@@ -63,7 +61,9 @@
         <ion-icon name="location-outline" slot="start"></ion-icon>
         <ion-select [(ngModel)]="userData.city"
                     interface="action-sheet"
+                    mode="ios"
                     placeholder="اختر المدينة"
+                    cancelText="إلغاء"
                     (ionOpen)="onCitySelectOpen()">
           <ion-select-option value="الخارجة">الخارجة</ion-select-option>
           <ion-select-option value="الداخلة">الداخلة</ion-select-option>

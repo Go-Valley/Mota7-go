@@ -5,14 +5,18 @@ import {
   ViewChild,
   inject,
   runInInjectionContext,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
-import { IonInput, IonicModule, LoadingController, NavController, ToastController } from '@ionic/angular';
+import { IonInput, IonicModule, LoadingController, NavController, ToastController, Platform } from '@ionic/angular';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { Auth, createUserWithEmailAndPassword } from '@angular/fire/auth';
 import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../top_header/header';
+import { subscribeHardwareBackToMyAccount } from '../core/utils/hardware-back-my-account.util';
 import {
   applyOrderPhoneInputState,
   getOrderPhoneFieldLiveWarning,
@@ -45,11 +49,13 @@ import {
   standalone: true,
   imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
 })
-export class RegisterPage {
+export class RegisterPage implements OnInit, OnDestroy {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
   @ViewChild('inputPhone', { read: IonInput }) private inputPhone?: IonInput;
   private envInjector = inject(EnvironmentInjector);
   private cdr = inject(ChangeDetectorRef);
+  private platform = inject(Platform);
+  private hardwareBackSub?: Subscription;
 
   phoneLiveWarning: string | null = null;
   private readonly fullNameMaxLen = 20;
@@ -85,6 +91,15 @@ export class RegisterPage {
       chevronForwardOutline,
       locationOutline
     });
+  }
+
+  ngOnInit() {
+    this.hardwareBackSub = subscribeHardwareBackToMyAccount(this.platform, this.navCtrl);
+  }
+
+  ngOnDestroy(): void {
+    this.hardwareBackSub?.unsubscribe();
+    this.hardwareBackSub = undefined;
   }
 
   onRegisterPhoneKeyDown(ev: KeyboardEvent): void {
@@ -234,18 +249,26 @@ export class RegisterPage {
    * الحد الأقصى للطول: beforeinput + compositionend → clampFullNameToMax.
    */
   onFullNameInput(ev: Event): void {
-    this.userData.fullName = this.normalizeFullName(
-      readIonTextInputValueFromEvent(ev)
-    );
+    const v = readIonTextInputValueFromEvent(ev);
+    if (this.userData.fullName === v) {
+      return;
+    }
+    this.userData.fullName = v;
   }
 
-  onRegisterPhoneInput(ev: Event): void {
-    const raw = readIonTextInputValueFromEvent(ev);
+  onRegisterPhoneChange(val: string): void {
+    const raw = val || '';
     const englishRaw = orderPhoneToEnglishDigits(String(raw));
     const hadNonDigit = /[^\d]/.test(englishRaw);
     const cleaned = sanitizeOrderPhoneInput(raw);
+    const warn = getOrderPhoneFieldLiveWarning(cleaned, hadNonDigit);
+    
     this.userData.phone = cleaned;
-    this.phoneLiveWarning = getOrderPhoneFieldLiveWarning(cleaned, hadNonDigit);
+    this.phoneLiveWarning = warn;
+    
+    if (this.inputPhone) {
+      this.inputPhone.value = cleaned;
+    }
   }
 
   goBack() {

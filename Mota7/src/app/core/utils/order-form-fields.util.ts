@@ -4,6 +4,18 @@
  * بينما الـ native input داخل shadow DOM يعكس القيمة الحقيقية — نقرأه أولاً عبر composedPath.
  */
 export function readIonTextInputValueFromEvent(ev: Event): string {
+  const t = ev.target as any;
+  if (t && typeof t.value === 'string') {
+    return t.value;
+  }
+  
+  if ('detail' in ev) {
+    const detailVal = (ev as any).detail?.value;
+    if (detailVal !== undefined) {
+      return detailVal == null ? '' : String(detailVal);
+    }
+  }
+
   const path = typeof ev.composedPath === 'function' ? ev.composedPath() : [];
   for (const n of path) {
     if (n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement) {
@@ -11,22 +23,7 @@ export function readIonTextInputValueFromEvent(ev: Event): string {
     }
   }
 
-  const detailVal = (ev as CustomEvent<{ value?: string | null }>).detail?.value;
-  const detailStr = detailVal != null ? String(detailVal) : '';
-
-  const t = ev.target as { value?: unknown } | null;
-  const elStr = t && typeof t.value === 'string' ? t.value : '';
-
-  if (!detailStr && elStr) {
-    return elStr;
-  }
-  if (!elStr && detailStr) {
-    return detailStr;
-  }
-  if (elStr === detailStr) {
-    return elStr;
-  }
-  return elStr.length >= detailStr.length ? elStr : detailStr;
+  return '';
 }
 
 /**
@@ -55,9 +52,6 @@ function coerceIonicTextValue(value: unknown): string {
  */
 export function normalizeUserFreeText(value: unknown): string {
   let s = coerceIonicTextValue(value);
-  s = s.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '');
-  s = s.replace(/\u0640/g, '');
-  s = s.trim();
   return s;
 }
 

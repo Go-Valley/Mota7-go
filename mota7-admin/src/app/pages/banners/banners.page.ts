@@ -89,7 +89,11 @@ export class BannersPage implements OnInit {
   }
 
   onBannerTitleInput(ev: Event): void {
-    this.bannerData.title = readIonTextInputValueFromEvent(ev);
+    const v = readIonTextInputValueFromEvent(ev);
+    if (this.bannerData.title === v) {
+      return;
+    }
+    this.bannerData.title = v;
   }
 
   private async syncBannerTitleFromNativeInput(): Promise<void> {

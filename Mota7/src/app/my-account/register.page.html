@@ -28,9 +28,7 @@
             maxlength="20"
             placeholder="اكتب اسمك هنا"
             class="ion-text-right dark-text"
-            [(ngModel)]="userData.fullName"
-            (beforeinput)="onFullNameBeforeInput($event)"
-            (compositionend)="onFullNameCompositionEnd()"
+            [ngModel]="userData.fullName"
             (ionInput)="onFullNameInput($event)"
           ></ion-input>
         </ion-item>
@@ -43,14 +41,14 @@
             type="tel"
             maxlength="11"
             inputmode="numeric"
+            autocomplete="tel-national"
             placeholder="01xxxxxxxxx"
             class="ion-text-right dark-text"
-            [(ngModel)]="userData.phone"
-            (ionInput)="onRegisterPhoneInput($event)"
+            [ngModel]="userData.phone"
+            (ngModelChange)="onRegisterPhoneChange($event)"
             (keydown)="onRegisterPhoneKeyDown($event)"
             (beforeinput)="onRegisterPhoneBeforeInput($event)"
             (paste)="onRegisterPhonePaste($event)"
-            (compositionend)="onRegisterPhoneCompositionEnd()"
           >
           </ion-input>
         </ion-item>
@@ -60,8 +58,10 @@
         <ion-item lines="none" class="custom-input custom-select">
           <ion-icon name="location-outline" slot="start"></ion-icon>
           <ion-select [(ngModel)]="userData.city" 
-                      interface="popover" 
+                      interface="action-sheet" 
+                      mode="ios"
                       placeholder="اختر المدينة" 
+                      cancelText="إلغاء"
                       class="full-width-select dark-text"
                       toggleIcon="chevron-down-outline">
             <ion-select-option value="الخارجة">الخارجة</ion-select-option>

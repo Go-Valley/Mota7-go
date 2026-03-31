@@ -51,7 +51,7 @@
       <ion-label class="main-label">وصف مختصر*</ion-label>
       <ion-item lines="none" class="styled-item">
         <ion-input #inputShortDesc
-                   [(ngModel)]="productData.short_desc"
+                   [ngModel]="productData.short_desc"
                    (ionInput)="onShortDescInput($event)"
                    maxlength="50"
                    placeholder="اكتب الوصف الذي سيظهر للمشتري"></ion-input>
@@ -62,7 +62,7 @@
       <ion-label class="main-label">تفاصيل المنتج</ion-label>
       <ion-item lines="none" class="styled-item">
         <ion-textarea #inputFullDetails
-                      [(ngModel)]="productData.full_details"
+                      [ngModel]="productData.full_details"
                       (ionInput)="onFullDetailsInput($event)"
                       rows="4"
                       placeholder="اكتب تفاصيل المنتج هنا..."></ion-textarea>
@@ -74,11 +74,11 @@
         <ion-label class="inner-label">السعر</ion-label>
         <ion-item lines="none" class="styled-item">
           <ion-input
+            #inputPrice
             type="text"
-            [(ngModel)]="priceInputStr"
-            (ionInput)="onProductPriceInput($event)"
+            [ngModel]="priceInputStr"
+            (ngModelChange)="onProductPriceChange($event)"
             (keydown)="onProductPriceKeyDown($event)"
-            (beforeinput)="onProductPriceBeforeInput($event)"
             placeholder="أرقام فقط">
           </ion-input>
         </ion-item>
@@ -107,8 +107,12 @@
       <ion-label class="main-label">رقم الواتساب للتواصل</ion-label>
       <ion-item lines="none" class="styled-item whatsapp-field">
         <ion-icon name="logo-whatsapp" slot="start" color="success" class="whatsapp-icon-item"></ion-icon>
-        <ion-input [(ngModel)]="productData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx"
-                   (ionInput)="onWhatsappPhoneInput($event)"></ion-input>
+        <ion-input 
+          #inputWhatsappPhone
+          [ngModel]="productData.whatsappPhone" 
+          type="tel" 
+          placeholder="01xxxxxxxxx"
+          (ngModelChange)="onWhatsappPhoneChange($event)"></ion-input>
       </ion-item>
     </div>
 

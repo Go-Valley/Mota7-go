@@ -38,6 +38,7 @@ import {
 export class OtherServiceComponent implements OnInit {
 
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
+  @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
   otherItems = OTHER_SERVICES_DATA.items;
@@ -99,17 +100,22 @@ export class OtherServiceComponent implements OnInit {
     if (!chunk) {
       return;
     }
-    if (/\D/.test(orderPhoneToEnglishDigits(chunk))) {
+    const english = orderPhoneToEnglishDigits(chunk);
+    if (/\D/.test(english)) {
       ev.preventDefault();
       this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
     }
   }
 
-  onCustomerPhoneInput(ev: Event): void {
-    const raw = readIonTextInputValueFromEvent(ev);
+  onCustomerPhoneChange(val: string): void {
+    const raw = val || '';
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+    
+    if (this.inputCustomerPhone) {
+      this.inputCustomerPhone.value = st.cleaned;
+    }
   }
 
   onOtherFreeTextInput(ev: Event, field: 'customerName' | 'shortNote'): void {

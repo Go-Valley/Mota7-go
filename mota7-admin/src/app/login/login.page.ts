@@ -31,11 +31,19 @@ export class LoginPage implements OnInit {
   constructor(private router: Router) {}
 
   onAdminEmailInput(ev: Event): void {
-    this.email = readIonTextInputValueFromEvent(ev);
+    const v = readIonTextInputValueFromEvent(ev);
+    if (this.email === v) {
+      return;
+    }
+    this.email = v;
   }
 
   onAdminPassInput(ev: Event): void {
-    this.pass = readIonTextInputValueFromEvent(ev);
+    const v = readIonTextInputValueFromEvent(ev);
+    if (this.pass === v) {
+      return;
+    }
+    this.pass = v;
   }
 
   async ngOnInit() {

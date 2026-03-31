@@ -182,9 +182,11 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
    * التصحيح عند تجاوز الطول يبقى عبر beforeinput + compositionend → clampFullNameToMax.
    */
   onFullNameInput(ev: Event): void {
-    this.userData.fullName = this.normalizeFullName(
-      readIonTextInputValueFromEvent(ev)
-    );
+    const v = readIonTextInputValueFromEvent(ev);
+    if (this.userData.fullName === v) {
+      return;
+    }
+    this.userData.fullName = v;
   }
 
   changePasswordViaWA() {

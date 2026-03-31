@@ -14,6 +14,11 @@ import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
 } from '../../../../core/utils/order-form-fields.util';
+import {
+  applyOrderPhoneInputState,
+  ORDER_PHONE_DIGITS_ONLY_MSG,
+  orderPhoneToEnglishDigits,
+} from '../../../../core/utils/egyptian-phone-order.util';
 
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
@@ -28,7 +33,9 @@ import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOu
 export class StoreFormComponent implements OnInit {
   @Input() editAdData: any; 
   @ViewChild('inputStoreName', { read: IonInput }) private inputStoreName?: IonInput;
+  @ViewChild('inputWhatsappPhone', { read: IonInput }) private inputWhatsappPhone?: IonInput;
   isEditMode = false;
+  whatsappPhoneLiveWarning: string | null = null;
 
   storeCategories: any[] = [...STORES_CATEGORIES_DATA.items];
   isSubmitting = false; 
@@ -154,6 +161,34 @@ export class StoreFormComponent implements OnInit {
 
   onStoreNameInput(ev: Event): void {
     this.storeData.storeName = readIonTextInputValueFromEvent(ev);
+  }
+
+  onStoreWhatsappPhoneKeyDown(ev: KeyboardEvent): void {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
+      return;
+    }
+    const key = ev.key;
+    if (key.length !== 1) {
+      return;
+    }
+    const asDigit = key.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 1776));
+    if (/^[0-9]$/.test(asDigit)) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.whatsappPhoneLiveWarning = 'لايمكن قبول حروف - ارقام فقط';
+  }
+
+  onStoreWhatsappPhoneChange(val: string): void {
+    const raw = val || '';
+    const st = applyOrderPhoneInputState(raw);
+    this.storeData.whatsappPhone = st.cleaned;
+    this.whatsappPhoneLiveWarning = st.warning;
+    
+    if (this.inputWhatsappPhone) {
+      this.inputWhatsappPhone.value = st.cleaned;
+    }
   }
 
   private async syncStoreNameFromNativeInput(): Promise<void> {

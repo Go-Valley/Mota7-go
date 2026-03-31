@@ -22,8 +22,13 @@
       <ion-item lines="none" class="mota7-input">
         <ion-label position="stacked">عنوان البانر <span class="optional-hint">(اختياري)</span></ion-label>
         <ion-input #inputBannerTitle
-                   [(ngModel)]="bannerData.title"
+                   [ngModel]="bannerData.title"
                    (ionInput)="onBannerTitleInput($event)"
+                   autocomplete="on"
+                   autocorrect="on"
+                   autocapitalize="sentences"
+                   spellcheck="true"
+                   enterkeyhint="next"
                    placeholder="مثلاً: عروض رمضان"></ion-input>
       </ion-item>
 

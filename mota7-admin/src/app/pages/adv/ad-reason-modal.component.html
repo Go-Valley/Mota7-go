@@ -10,7 +10,8 @@
 <ion-content class="ion-padding">
   <p class="reason-hint">يمكنك كتابة نص طويل؛ سيُحفظ كاملاً في Firestore.</p>
   <ion-textarea
-    [(ngModel)]="reasonText"
+    [ngModel]="reasonText"
+    (ionInput)="onReasonIonInput($event)"
     [autoGrow]="true"
     rows="10"
     inputmode="text"

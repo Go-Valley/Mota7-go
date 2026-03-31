@@ -33,7 +33,7 @@ export class EditAdModal implements OnInit {
     }
   }
 
-  /** مزامنة ion-input/textarea مع IME العربي؛ تجنّب إعادة تعيين النموذج إن كانت القيمة مطابقة لتقليل دورات الاكتشاف مع [(ngModel)]. */
+  /** مزامنة ion-input/textarea مع IME؛ القالب يستخدم [ngModel] أحادي + هذا المعالج فقط لتحديث النموذج من الحدث (لا تستخدم [(ngModel)] هنا — صراع مع الحذف على أندرويد). */
   onEditIonInput(ev: Event, path: string): void {
     const v = readIonTextInputValueFromEvent(ev);
     const parts = path.split('.');

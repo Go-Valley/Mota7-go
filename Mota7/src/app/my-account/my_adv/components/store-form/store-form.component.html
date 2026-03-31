@@ -56,7 +56,7 @@
         </ion-label>
         <ion-item lines="none" class="input-item">
           <ion-input #inputStoreName
-                      [(ngModel)]="storeData.storeName"
+                      [ngModel]="storeData.storeName"
                       (ionInput)="onStoreNameInput($event)"
                       placeholder="أدخل اسم متجرك" 
                       class="center-input"></ion-input>
@@ -88,8 +88,20 @@
       <div class="field-box whatsapp-box" *ngIf="storeData.whatsappEnabled">
         <ion-item lines="none" class="input-item">
           <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
-          <ion-input [(ngModel)]="storeData.whatsappPhone" type="tel" placeholder="رقم الواتساب" class="center-input"></ion-input>
+          <ion-input
+            #inputWhatsappPhone
+            type="tel"
+            maxlength="11"
+            inputmode="numeric"
+            autocomplete="tel-national"
+            placeholder="01xxxxxxxxx"
+            class="center-input"
+            [ngModel]="storeData.whatsappPhone"
+            (ngModelChange)="onStoreWhatsappPhoneChange($event)"
+            (keydown)="onStoreWhatsappPhoneKeyDown($event)">
+          </ion-input>
         </ion-item>
+        <p class="phone-live-warning" *ngIf="whatsappPhoneLiveWarning" role="alert">{{ whatsappPhoneLiveWarning }}</p>
       </div>
     </div>
 

@@ -22,12 +22,15 @@
         <ion-item lines="none" class="custom-input">
           <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
           <ion-input
+            #inputPhone
             type="tel"
             maxlength="11"
+            inputmode="numeric"
+            autocomplete="tel-national"
             placeholder="01xxxxxxxxx"
             class="ion-text-right dark-text"
-            [(ngModel)]="loginData.phone"
-            (ionInput)="onLoginPhoneInput($event)"
+            [ngModel]="loginData.phone"
+            (ngModelChange)="onLoginPhoneChange($event)"
             (keydown)="onLoginPhoneKeyDown($event)"
             (beforeinput)="onLoginPhoneBeforeInput($event)">
           </ion-input>

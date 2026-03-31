@@ -32,6 +32,8 @@ export class ProductFormComponent implements OnInit {
   @Input() editAdData: any; 
   @ViewChild('inputShortDesc', { read: IonInput }) private inputShortDesc?: IonInput;
   @ViewChild('inputFullDetails', { read: IonTextarea }) private inputFullDetails?: IonTextarea;
+  @ViewChild('inputPrice', { read: IonInput }) private inputPrice?: IonInput;
+  @ViewChild('inputWhatsappPhone', { read: IonInput }) private inputWhatsappPhone?: IonInput;
 
   mainCategories: any[] = [...PRODUCTS_CATEGORY.items];
   subCategories: string[] = [];
@@ -195,27 +197,11 @@ export class ProductFormComponent implements OnInit {
     this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
   }
 
-  onProductPriceBeforeInput(ev: InputEvent): void {
-    const t = ev.inputType || '';
-    if (t !== 'insertText' && t !== 'insertCompositionText') {
-      return;
-    }
-    const chunk = ev.data ?? '';
-    if (!chunk) {
-      return;
-    }
-    const english = this.toEnglishDigits(chunk);
-    if (/\D/.test(english)) {
-      ev.preventDefault();
-      this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
-    }
-  }
-
   /**
    * السعر: أرقام فقط؛ عند أول حرف غير رقم تظهر رسالة فوراً ولا يُحتفظ بالحروف؛ لا يبدأ بـ 0.
    */
-  onProductPriceInput(ev: Event): void {
-    const raw = readIonTextInputValueFromEvent(ev);
+  onProductPriceChange(val: string): void {
+    const raw = val || '';
     const english = this.toEnglishDigits(raw);
     const hasNonDigit = /\D/.test(english);
     const digitsOnly = english.replace(/\D/g, '');
@@ -233,6 +219,10 @@ export class ProductFormComponent implements OnInit {
     this.priceInputStr = normalized;
     this.productData.price =
       normalized === '' ? null : parseInt(normalized, 10);
+      
+    if (this.inputPrice) {
+      this.inputPrice.value = normalized;
+    }
   }
 
   onMainCategoryChange(resetSub = true) {
@@ -249,9 +239,14 @@ export class ProductFormComponent implements OnInit {
     this.productData.full_details = readIonTextInputValueFromEvent(ev);
   }
 
-  onWhatsappPhoneInput(ev: Event): void {
-    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+  onWhatsappPhoneChange(val: string): void {
+    const raw = val || '';
+    const st = applyOrderPhoneInputState(raw);
     this.productData.whatsappPhone = st.cleaned;
+    
+    if (this.inputWhatsappPhone) {
+      this.inputWhatsappPhone.value = st.cleaned;
+    }
   }
 
   private async syncFreeTextFieldsFromNativeInputs(): Promise<void> {

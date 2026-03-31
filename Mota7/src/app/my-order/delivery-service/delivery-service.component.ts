@@ -48,6 +48,7 @@ import {
 export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
+  @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('inputFromLocation', { read: IonInput }) private inputFromLocation?: IonInput;
   @ViewChild('inputToLocation', { read: IonInput }) private inputToLocation?: IonInput;
 
@@ -174,11 +175,15 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
   }
 
-  onCustomerPhoneInput(ev: Event): void {
-    const raw = readIonTextInputValueFromEvent(ev);
+  onCustomerPhoneChange(val: string): void {
+    const raw = val || '';
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+    
+    if (this.inputCustomerPhone) {
+      this.inputCustomerPhone.value = st.cleaned;
+    }
   }
 
   /** مزامنة فورية مع ion-input — دمج detail + قيمة العنصر لدعم IME العربي على الموبايل */

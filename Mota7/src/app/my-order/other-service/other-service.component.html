@@ -18,7 +18,7 @@
         <ion-input
           #inputCustomerName
           type="text"
-          [(ngModel)]="orderData.customerName"
+          [ngModel]="orderData.customerName"
           (ionInput)="onOtherFreeTextInput($event, 'customerName')"
           placeholder="اكتب اسمك هنا">
         </ion-input>
@@ -27,12 +27,14 @@
       <div class="input-group">
         <label class="main-label">رقم الهاتف : <span>*</span></label>
         <ion-input
+          #inputCustomerPhone
           type="tel"
           maxlength="11"
-          [(ngModel)]="orderData.customerPhone"
-          (ionInput)="onCustomerPhoneInput($event)"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          [ngModel]="orderData.customerPhone"
+          (ngModelChange)="onCustomerPhoneChange($event)"
           (keydown)="onCustomerPhoneKeyDown($event)"
-          (beforeinput)="onCustomerPhoneBeforeInput($event)"
           placeholder="01xxxxxxxxx">
         </ion-input>
         <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
@@ -67,7 +69,7 @@
         <label class="main-label">ملاحظات إضافية : <span>*</span></label>
         <ion-textarea
           #textareaShortNote
-          [(ngModel)]="orderData.shortNote"
+          [ngModel]="orderData.shortNote"
           (ionInput)="onOtherFreeTextInput($event, 'shortNote')"
           maxlength="50"
           placeholder="اشرح ما تحتاجه باختصار"

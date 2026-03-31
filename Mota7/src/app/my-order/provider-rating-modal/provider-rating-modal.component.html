@@ -10,13 +10,17 @@
     <ion-textarea
       #ratingComment
       class="rating-textarea"
-      [(ngModel)]="commentText"
+      [ngModel]="commentText"
       (ionInput)="onCommentInput($event)"
       placeholder="اضف تعليقك للخدمة هنا"
       [maxlength]="maxComment"
       rows="3"
       inputmode="text"
+      autocomplete="on"
+      autocorrect="on"
       autocapitalize="sentences"
+      spellcheck="true"
+      enterkeyhint="done"
     ></ion-textarea>
 
     <div class="stars-row" role="group" aria-label="تقييم من 1 إلى 5">

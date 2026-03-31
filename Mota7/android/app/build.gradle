@@ -1,7 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.mota7.app"
+  signingConfigs {
+    release {
+      storeFile file('D:\\Mota7\\Apk\\keystore\\release.keystore')
+      storePassword 'Mo@777'
+      keyAlias 'mota7'
+      keyPassword 'Mo@777'
+    }
+  }
+  namespace = "com.mota7.app"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
@@ -9,13 +17,14 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // يجب أن يطابق App.getInfo().build في Capacitor — يُقارَن مع Remote Config: android_min_version_code
-        versionCode 11
-        versionName "2.0"
+        versionCode 13
+        versionName "2.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+      signingConfig signingConfigs.release
     }
 
     buildTypes {
