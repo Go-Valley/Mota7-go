@@ -5,6 +5,15 @@
 </app-mota7-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content 
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب للتحديث"
+      refreshingSpinner="circles"
+      refreshingText="جاري التحديث...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <div class="orders-container">
     
     <div *ngIf="(pendingOrders$ | async)?.length === 0" class="empty-state">

@@ -10,11 +10,10 @@ import {
   getDocs,
   onSnapshot,
   deleteDoc,
+  runTransaction,
 } from '@angular/fire/firestore';
 import type { Unsubscribe } from 'firebase/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
-import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
-import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-public-id.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, callOutline, logoWhatsapp, 
@@ -43,8 +42,6 @@ export class ClickBtnPage implements OnInit, OnDestroy {
   private location = inject(Location);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
-  private cloudinaryCleanup = inject(CloudinaryCleanupService);
-
   /** صفوف العرض المشتقة من ads (بدون أعداد اليوم — تُحدَّث من daily_logs) */
   private adBaseById = new Map<string, any>();
   /** نقرات اتصال/واتساب للفترة المعروضة: daily_stats/{date}/ads_logs/{adId} */
@@ -329,13 +326,34 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     return this.localCalendarDateKey(next);
   }
 
+  /**
+   * نقرات اليوم/الفترة من ads_logs؛ المفتاح عادةً = معرّف مستند ads.
+   * إن وُجد سجل قديم تحت `ad_id` فقط (يختلف عن id المستند) نجمع الاثنين دون ازدواجية عند التطابق.
+   */
+  private dailyClicksForAdRow(base: any): { calls: number; whatsapp: number } {
+    const docId = String(base.id ?? '');
+    const a = this.dailyClicksByAdId.get(docId);
+    const altRaw = base.ad_id;
+    const alt =
+      altRaw != null && String(altRaw).trim() !== '' && String(altRaw) !== docId
+        ? String(altRaw)
+        : '';
+    const b = alt ? this.dailyClicksByAdId.get(alt) : undefined;
+    const ca = a?.calls ?? 0;
+    const wa = a?.whatsapp ?? 0;
+    if (!b) {
+      return { calls: ca, whatsapp: wa };
+    }
+    return { calls: ca + (b.calls ?? 0), whatsapp: wa + (b.whatsapp ?? 0) };
+  }
+
   private mergeDailyIntoAdsAndPublish() {
     this.totalCalls = 0;
     this.totalWhatsapp = 0;
 
     this.allAdsStats = [];
-    this.adBaseById.forEach((base, id) => {
-      const day = this.dailyClicksByAdId.get(id) ?? { calls: 0, whatsapp: 0 };
+    this.adBaseById.forEach((base) => {
+      const day = this.dailyClicksForAdRow(base);
       this.totalCalls += day.calls;
       this.totalWhatsapp += day.whatsapp;
       this.allAdsStats.push({
@@ -367,38 +385,119 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     this.itemSlidings?.forEach((s) => void s.close());
   }
 
-  async confirmDelete(ad: any, sliding?: IonItemSliding) {
+  /** أيام الفلتر الحالي: يوم واحد أو كل الأيام في نطاق «من — إلى». */
+  private dateKeysForActiveFilter(): string[] {
+    if (this.dateFilterMode === 'single') {
+      const d = (this.selectedDate || '').trim();
+      return d ? [d] : [];
+    }
+    const from = (this.rangeFrom || '').trim();
+    const to = (this.rangeTo || '').trim();
+    if (!from || !to || from > to) {
+      return [];
+    }
+    return this.enumerateDateKeysInclusive(from, to);
+  }
+
+  /**
+   * مسح إحصائيات النقرات للفترة المعروضة فقط: حذف سجلات daily_stats وخفض المجاميع على مستند الإعلان.
+   * لا يحذف إعلان ads ولا يؤثر على ظهور الكارت في التطبيق.
+   */
+  async confirmClearClickStats(ad: any, sliding?: IonItemSliding) {
     await sliding?.close();
+    const dateKeys = this.dateKeysForActiveFilter();
+    if (!dateKeys.length) {
+      const t = await this.toastCtrl.create({
+        message: 'اختر يوماً أو فترة صالحة أولاً',
+        duration: 2200,
+        color: 'warning',
+        position: 'bottom',
+      });
+      await t.present();
+      return;
+    }
+
+    const callsRm = Number(ad.calls) || 0;
+    const waRm = Number(ad.whatsapp) || 0;
+
     const alert = await this.alertCtrl.create({
-      header: 'تأكيد الحذف',
-      message: `هل أنت متأكد من حذف إعلان "${ad.title}"؟`,
+      header: 'مسح إحصائيات النقرات',
+      message: `سيتم تصفير نقرات الاتصال/واتساب المعروضة للفترة «${this.periodLabel}» لهذا الإعلان فقط، دون حذف الإعلان من التطبيق. متابعة؟`,
       cssClass: 'mota7-alert',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
-        { 
-          text: 'حذف', 
+        {
+          text: 'مسح الإحصائيات',
           role: 'destructive',
           handler: async () => {
             try {
-              const ids = collectCloudinaryPublicIdsFromAd(ad as Record<string, unknown>);
-              if (ids.length) {
-                await this.cloudinaryCleanup.deletePublicIds(ids).catch(() => {});
-              }
-              await runInInjectionContext(this.injector, () =>
-                deleteDoc(doc(this.firestore, 'ads', ad.id))
-              );
-              const toast = await this.toastCtrl.create({
-                message: 'تم الحذف بنجاح',
-                duration: 2000,
-                color: 'success'
+              const adDocId = String(ad.id);
+              const altId =
+                ad.ad_id != null && String(ad.ad_id).trim() !== '' && String(ad.ad_id) !== adDocId
+                  ? String(ad.ad_id)
+                  : '';
+              const logIds = [adDocId, altId].filter(Boolean);
+
+              await runInInjectionContext(this.injector, async () => {
+                for (const day of dateKeys) {
+                  for (const logId of logIds) {
+                    try {
+                      await deleteDoc(doc(this.firestore, 'daily_stats', day, 'ads_logs', logId));
+                    } catch {
+                      /* مستند غير موجود */
+                    }
+                  }
+                }
               });
-              toast.present();
+
+              if (callsRm > 0 || waRm > 0) {
+                await runInInjectionContext(this.injector, async () => {
+                  const adRef = doc(this.firestore, 'ads', adDocId);
+                  await runTransaction(this.firestore, async (transaction) => {
+                    const snap = await transaction.get(adRef);
+                    if (!snap.exists()) {
+                      return;
+                    }
+                    const d = snap.data() as Record<string, unknown>;
+                    const curCc = Number(d['call_clicks'] ?? 0) || 0;
+                    const curWc = Number(d['whatsapp_clicks'] ?? 0) || 0;
+                    const stats = (d['stats'] as Record<string, unknown>) || {};
+                    const curSc = Number(stats['calls'] ?? 0) || 0;
+                    const curSw = Number(stats['whatsapp'] ?? 0) || 0;
+                    transaction.update(adRef, {
+                      call_clicks: Math.max(0, curCc - callsRm),
+                      whatsapp_clicks: Math.max(0, curWc - waRm),
+                      'stats.calls': Math.max(0, curSc - callsRm),
+                      'stats.whatsapp': Math.max(0, curSw - waRm),
+                    });
+                  });
+                });
+              }
+
+              if (this.dateFilterMode === 'range') {
+                await this.loadRangeAggregation();
+              }
+
+              const toast = await this.toastCtrl.create({
+                message: 'تم مسح إحصائيات النقرات للفترة المعروضة',
+                duration: 2000,
+                color: 'success',
+                position: 'bottom',
+              });
+              await toast.present();
             } catch (e) {
-              console.error('Delete error:', e);
+              console.error('clearClickStats error:', e);
+              const errToast = await this.toastCtrl.create({
+                message: 'تعذر إكمال المسح',
+                duration: 2500,
+                color: 'danger',
+                position: 'bottom',
+              });
+              await errToast.present();
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
     await alert.present();
   }

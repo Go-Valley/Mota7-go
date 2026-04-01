@@ -1,6 +1,15 @@
 <app-mota7-header title="إدارة الإعلانات" [showBackButton]="true" (backClick)="goBack()"></app-mota7-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content 
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب للتحديث"
+      refreshingSpinner="circles"
+      refreshingText="جاري التحديث...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <div class="admin-main-container">
 
     <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" class="status-tabs">

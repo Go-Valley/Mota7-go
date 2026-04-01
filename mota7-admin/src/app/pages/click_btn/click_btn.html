@@ -121,7 +121,7 @@
         </ion-item>
 
         <ion-item-options side="end">
-          <ion-item-option color="danger" class="delete-option" (click)="confirmDelete(ad, sliding); $event.stopPropagation()">
+          <ion-item-option color="danger" class="delete-option" (click)="confirmClearClickStats(ad, sliding); $event.stopPropagation()">
             <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
           </ion-item-option>
         </ion-item-options>

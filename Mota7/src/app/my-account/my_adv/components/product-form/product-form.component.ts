@@ -442,7 +442,10 @@ async saveProduct(isStoreProduct: boolean = false) {
         adPayload.created_at = serverTimestamp();
         adPayload.expiry_date = expiry;
         adPayload.admin_reason = '';
-        adPayload.stats = { views: 0, calls: 0, ratings: 0 };
+        adPayload.call_clicks = 0;
+        adPayload.whatsapp_clicks = 0;
+        adPayload.impression_count = 0;
+        adPayload.stats = { views: 0, calls: 0, whatsapp: 0, ratings: 0 };
         await setDoc(doc(this.firestore, 'ads', adId), adPayload);
         ntfySnapshot = {
           ad_type: adPayload.ad_type,

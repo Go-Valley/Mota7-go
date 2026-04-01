@@ -46,6 +46,17 @@ export class PindingOrderPage implements OnInit {
   }
 
   ngOnInit() {
+    this.loadPendingOrders();
+  }
+
+  doRefresh(event: any) {
+    this.loadPendingOrders();
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
+  loadPendingOrders() {
     runInInjectionContext(this.injector, () => {
       const ordersRef = collection(this.firestore, 'orders');
       const q = query(ordersRef, where('status', '==', 'pending'), orderBy('createdAt', 'desc'));

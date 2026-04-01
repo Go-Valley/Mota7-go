@@ -82,6 +82,13 @@ export class AdvPage implements OnInit {
     this.fetchAds();
   }
 
+  doRefresh(event: any) {
+    this.fetchAds();
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
   fetchAds() {
     this.isLoading = true;
     runInInjectionContext(this.injector, () => {
@@ -392,10 +399,14 @@ export class AdvPage implements OnInit {
   }
 
   async promptReason(adId: string, status: string) {
+    const ad = this.adsList.find((a) => a.id === adId);
+    const initialReason = ad?.admin_reason || ad?.reject_reason || '';
+
     const modal = await this.modalCtrl.create({
       component: AdReasonModalComponent,
       componentProps: {
         headerTitle: status === 'rejected' ? 'سبب الرفض' : 'سبب الإيقاف',
+        initialReason: initialReason,
       },
       mode: 'ios',
       cssClass: 'mota7-reason-modal',

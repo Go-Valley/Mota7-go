@@ -5,9 +5,18 @@
 </app-mota7-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content 
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب للتحديث"
+      refreshingSpinner="circles"
+      refreshingText="جاري التحديث...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <div class="users-container">
     
-<div class="search-section">
+    <div class="search-sort-section">
       <div class="search-bar-wrapper">
         <ion-icon name="search-outline" class="search-icon"></ion-icon>
         <input 
@@ -17,6 +26,19 @@
           (input)="filterUsers()"
           class="search-input"
         >
+      </div>
+
+      <div class="sort-selector-wrapper">
+        <ion-item lines="none" class="sort-item">
+          <ion-icon name="funnel-outline" slot="start" class="sort-icon"></ion-icon>
+          <ion-select [value]="sortBy" (ionChange)="onSortChange($event)" interface="popover" placeholder="فرز حسب" class="sort-select" toggleIcon="chevron-down-outline">
+            <ion-select-option value="createdAt">الأحدث أولاً</ion-select-option>
+            <ion-select-option value="phone">الرقم (الأصغر للأكبر)</ion-select-option>
+            <ion-select-option value="isActive">حالة الحساب (نشط)</ion-select-option>
+            <ion-select-option value="fullName">الاسم (أبجدياً)</ion-select-option>
+            <ion-select-option value="city">المدينة</ion-select-option>
+          </ion-select>
+        </ion-item>
       </div>
     </div>
 

@@ -17,8 +17,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // يجب أن يطابق App.getInfo().build في Capacitor — يُقارَن مع Remote Config: android_min_version_code
-        versionCode 13
-        versionName "2.2"
+        versionCode 15
+        versionName "2.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         aaptOptions {

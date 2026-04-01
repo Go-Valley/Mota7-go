@@ -65,6 +65,17 @@ export class BannersPage implements OnInit {
   }
 
   ngOnInit() {
+    this.loadBanners();
+  }
+
+  doRefresh(event: any) {
+    this.loadBanners();
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
+  loadBanners() {
     runInInjectionContext(this.injector, () => {
       const bannersRef = collection(this.firestore, 'banners');
       const q = query(bannersRef, orderBy('createdAt', 'desc'));

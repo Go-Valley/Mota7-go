@@ -12,11 +12,14 @@
   <ion-textarea
     [ngModel]="reasonText"
     (ionInput)="onReasonIonInput($event)"
+    (ionChange)="onReasonIonInput($event)"
     [autoGrow]="true"
     rows="10"
     inputmode="text"
     placeholder="اكتب السبب هنا للمستخدم..."
     class="reason-textarea"
+    maxlength="10000"
+    [counter]="true"
   ></ion-textarea>
 </ion-content>
 

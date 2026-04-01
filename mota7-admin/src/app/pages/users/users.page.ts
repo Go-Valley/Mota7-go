@@ -27,7 +27,8 @@ import { addIcons } from 'ionicons';
 import { 
   personOutline, ellipsisVerticalOutline, trashOutline, createOutline, 
   banOutline, ribbonOutline, starOutline, closeOutline, checkmarkCircleOutline,
-  closeCircleOutline, searchOutline // إضافة أيقونة البحث
+  closeCircleOutline, searchOutline, // إضافة أيقونة البحث
+  funnelOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -52,12 +53,14 @@ export class UsersPage implements OnInit {
   usersList: any[] = [];
   filteredUsers: any[] = []; // قائمة المستخدمين بعد الفلترة
   searchQuery: string = '';   // نص البحث
+  sortBy: string = 'createdAt'; // خيار الفرز الافتراضي
 
   constructor() {
     addIcons({ 
       personOutline, ellipsisVerticalOutline, trashOutline, createOutline, 
       banOutline, ribbonOutline, starOutline, closeOutline, checkmarkCircleOutline,
-      closeCircleOutline, searchOutline
+      closeCircleOutline, searchOutline,
+      funnelOutline // إضافة أيقونة الفلتر/الفرز
     });
   }
 
@@ -65,27 +68,79 @@ export class UsersPage implements OnInit {
     this.fetchUsers();
   }
 
+  doRefresh(event: any) {
+    this.fetchUsers();
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
   fetchUsers() {
     runInInjectionContext(this.injector, () => {
       const usersRef = collection(this.firestore, 'users');
       onSnapshot(usersRef, (snapshot) => {
         this.usersList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        this.filterUsers();
+        this.filterAndSortUsers();
       });
     });
   }
 
-  // دالة الفلترة للبحث برقم الهاتف أو الاسم
-  filterUsers() {
-    const query = this.searchQuery.trim().toLowerCase();
-    if (!query) {
-      this.filteredUsers = [...this.usersList];
-    } else {
-      this.filteredUsers = this.usersList.filter(user => 
-        (user.phone && user.phone.toString().includes(query)) || 
-        (user.fullName && user.fullName.toLowerCase().includes(query))
+  // دالة الفلترة والفرز
+  filterAndSortUsers() {
+    let list = [...this.usersList];
+
+    // 1. الفلترة حسب البحث
+    const queryStr = this.searchQuery.trim().toLowerCase();
+    if (queryStr) {
+      list = list.filter(user => 
+        (user.phone && user.phone.toString().includes(queryStr)) || 
+        (user.fullName && user.fullName.toLowerCase().includes(queryStr))
       );
     }
+
+    // 2. الفرز حسب الخيار المختار
+    list.sort((a, b) => {
+      switch (this.sortBy) {
+        case 'phone': {
+          const numA = parseInt(String(a.phone || '0').replace(/\D/g, '')) || 0;
+          const numB = parseInt(String(b.phone || '0').replace(/\D/g, '')) || 0;
+          return numA - numB; // من الأصغر للأكبر (تصاعدي)
+        }
+        case 'createdAt': {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || 0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || 0);
+          return dateB - dateA; // الأحدث أولاً (تنازلي)
+        }
+        case 'isActive': {
+          return (a.isActive === b.isActive) ? 0 : (a.isActive ? -1 : 1); // النشط أولاً
+        }
+        case 'fullName': {
+          const nameA = (a.fullName || '').toLowerCase();
+          const nameB = (b.fullName || '').toLowerCase();
+          return nameA.localeCompare(nameB, 'ar');
+        }
+        case 'city': {
+          const cityA = (a.city || '').toLowerCase();
+          const cityB = (b.city || '').toLowerCase();
+          return cityA.localeCompare(cityB, 'ar');
+        }
+        default:
+          return 0;
+      }
+    });
+
+    this.filteredUsers = list;
+  }
+
+  // دالة تغيير نوع الفرز
+  onSortChange(event: any) {
+    this.sortBy = event.detail.value;
+    this.filterAndSortUsers();
+  }
+
+  // دالة الفلترة للبحث برقم الهاتف أو الاسم
+  filterUsers() {
+    this.filterAndSortUsers();
   }
 
   async openArabicList(user: any) {

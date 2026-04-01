@@ -274,7 +274,16 @@ export class StoreFormComponent implements OnInit {
         admin_reason: this.isEditMode ? (this.editAdData.admin_reason || '') : '',
         created_at: this.isEditMode ? this.editAdData.created_at : serverTimestamp(),
         updated_at: serverTimestamp(),
-        stats: this.isEditMode ? this.editAdData.stats : { views: 0, calls: 0, ratings: 0 },
+        stats: this.isEditMode
+          ? this.editAdData.stats
+          : { views: 0, calls: 0, whatsapp: 0, ratings: 0 },
+        ...(this.isEditMode
+          ? {}
+          : {
+              call_clicks: 0,
+              whatsapp_clicks: 0,
+              impression_count: 0,
+            }),
       };
 
       if (!this.isEditMode) {

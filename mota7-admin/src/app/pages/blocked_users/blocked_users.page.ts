@@ -30,6 +30,17 @@ export class BlockedUsersPage implements OnInit {
   }
 
   ngOnInit() {
+    this.loadBlockedUsers();
+  }
+
+  doRefresh(event: any) {
+    this.loadBlockedUsers();
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
+  loadBlockedUsers() {
     runInInjectionContext(this.injector, () => {
       const blockedRef = collection(this.firestore, 'blocked_users');
       const q = query(blockedRef, orderBy('blockedAt', 'desc'));

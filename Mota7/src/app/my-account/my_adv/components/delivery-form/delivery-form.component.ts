@@ -346,6 +346,10 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         adPayload.status = 'pending';
         adPayload.created_at = serverTimestamp();
         adPayload.reject_reason = '';
+        adPayload.call_clicks = 0;
+        adPayload.whatsapp_clicks = 0;
+        adPayload.impression_count = 0;
+        adPayload.stats = { views: 0, calls: 0, whatsapp: 0 };
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
         adPayload.expiry_date = expiry;

@@ -74,6 +74,15 @@ export class DashboardPage implements OnInit {
     runInInjectionContext(this.injector, () => this.loadRealTimeStats());
   }
 
+  doRefresh(event: any) {
+    // إعادة تحميل الإحصائيات (بما أنها Real-time قد لا نحتاج لها فعلياً، ولكننا نؤكد التحديث للمستخدم)
+    runInInjectionContext(this.injector, () => this.loadRealTimeStats());
+    
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
   loadRealTimeStats() {
     // 1. إحصائيات الإعلانات
     const adsRef = collection(this.firestore, 'ads');

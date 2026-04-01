@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController, Platform, ToastController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
-import { readIonTextInputValueFromEvent } from '../../core/utils/ion-text-input.util';
+import { readIonTextInputValueFromEvent, normalizeUserFreeText } from '../../core/utils/ion-text-input.util';
 
 /**
  * مودال لإدخال سبب الرفض/الإيقاف — بدلاً من ion-alert + textarea الذي يقصّ النص في كثير من المنصات.
@@ -55,8 +55,10 @@ export class AdReasonModalComponent implements OnInit, OnDestroy {
   }
 
   async save(): Promise<void> {
-    const reason = this.reasonText ?? '';
-    if (!reason.trim()) {
+    const rawReason = this.reasonText ?? '';
+    const reason = normalizeUserFreeText(rawReason);
+    
+    if (!reason) {
       const t = await this.toastCtrl.create({
         message: 'يرجى كتابة السبب',
         duration: 2200,
