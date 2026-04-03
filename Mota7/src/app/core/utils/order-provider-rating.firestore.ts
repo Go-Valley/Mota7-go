@@ -26,31 +26,67 @@ async function findProviderAdId(
   if (!ownerPhone) return null;
 
   const serviceType = order['serviceType'];
-  const constraints: QueryConstraint[] = [where('owner_phone', '==', ownerPhone)];
+  const constraints: QueryConstraint[] = [await runInInjectionContext(injector, () => where('owner_phone', '==', ownerPhone))];
 
   if (serviceType === 'delivery') {
     const k = order['delivery_match_key'];
     if (k == null || String(k).trim() === '') return null;
-    constraints.push(where('ad_type', '==', 'delivery'));
-    constraints.push(where('delivery_match_key', '==', k));
+    constraints.push(await runInInjectionContext(injector, () => where('ad_type', '==', 'delivery')));
+    constraints.push(await runInInjectionContext(injector, () => where('delivery_match_key', '==', k)));
   } else if (serviceType === 'education') {
     const k = order['education_match_key'];
     if (k == null || String(k).trim() === '') return null;
-    constraints.push(where('ad_type', '==', 'education'));
-    constraints.push(where('education_match_key', '==', k));
+    constraints.push(await runInInjectionContext(injector, () => where('ad_type', '==', 'education')));
+    constraints.push(await runInInjectionContext(injector, () => where('education_match_key', '==', k)));
   } else if (serviceType === 'other') {
     const k = order['other_match_key'];
     if (k == null || String(k).trim() === '') return null;
-    constraints.push(where('ad_type', '==', 'other'));
-    constraints.push(where('other_match_key', '==', k));
+    constraints.push(await runInInjectionContext(injector, () => where('ad_type', '==', 'other')));
+    constraints.push(await runInInjectionContext(injector, () => where('other_match_key', '==', k)));
   } else {
     return null;
   }
 
-  const q = query(collection(firestore, 'ads'), ...constraints, limit(3));
-  const snap = await runInInjectionContext(injector, () => getDocs(q));
-  if (snap.empty) return null;
-  return snap.docs[0].id;
+  try {
+    const q = await runInInjectionContext(injector, () => 
+      query(collection(firestore, 'ads'), ...constraints, limit(3))
+    );
+    const snap = await runInInjectionContext(injector, () => getDocs(q));
+    if (snap.empty) return null;
+    return snap.docs[0].id;
+  } catch (error) {
+    console.warn('findProviderAdId: Index query failed, trying fallback approach', error);
+    
+    // Fallback: البحث بدون delivery_match_key في حالة عدم وجود الفهرس
+    const fallbackConstraints = constraints.filter(c => 
+      !(c instanceof Object && 'fieldPath' in c && c.fieldPath === 'delivery_match_key') &&
+      !(c instanceof Object && 'fieldPath' in c && c.fieldPath === 'education_match_key') &&
+      !(c instanceof Object && 'fieldPath' in c && c.fieldPath === 'other_match_key')
+    );
+    
+    const fallbackQ = await runInInjectionContext(injector, () => 
+      query(collection(firestore, 'ads'), ...fallbackConstraints, limit(10))
+    );
+    const fallbackSnap = await runInInjectionContext(injector, () => getDocs(fallbackQ));
+    
+    if (fallbackSnap.empty) return null;
+    
+    // البحث يدويًا عن الإعلان المناسب بناءً على delivery_match_key
+    for (const doc of fallbackSnap.docs) {
+      const adData = doc.data();
+      if (serviceType === 'delivery' && adData['delivery_match_key'] === order['delivery_match_key']) {
+        return doc.id;
+      }
+      if (serviceType === 'education' && adData['education_match_key'] === order['education_match_key']) {
+        return doc.id;
+      }
+      if (serviceType === 'other' && adData['other_match_key'] === order['other_match_key']) {
+        return doc.id;
+      }
+    }
+    
+    return null;
+  }
 }
 
 /** حفظ تقييم طالب الخدمة على الطلب وعلى الإعلان (متوسط تراكمي). */

@@ -32,11 +32,13 @@ import {
   eyeOffOutline,
   pin,
   location,
-  map
+  map,
+  locationOutline
 } from 'ionicons/icons';
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
+  ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs,
   openMapsUrlWithFallback,
@@ -78,6 +80,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
   isIgnoredView: boolean = false;
   showConfirmIgnore: boolean = false;
   isVisible: boolean = true;
+  isUpdatingLocation: boolean = false;
   remainingTime: string = '--:--';
   acceptedRemainingTime: string = '--:--';
   timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -101,7 +104,8 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
       eyeOffOutline,
       pin,
       location,
-      map
+      map,
+      locationOutline
     });
   }
 
@@ -459,6 +463,73 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  /**
+   * تفعيل الموقع لمقدم الخدمة وتحديث إحداثياته الحالية في Firestore
+   */
+  async activateProviderLocation() {
+    if (this.isUpdatingLocation) return;
+    this.isUpdatingLocation = true;
+    try {
+      let pos: any;
+      if (Capacitor.isNativePlatform()) {
+        let perm = await Geolocation.checkPermissions();
+        if (perm.location !== 'granted') {
+          perm = await Geolocation.requestPermissions();
+        }
+        if (perm.location === 'granted') {
+          pos = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 15000
+          });
+        }
+      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        pos = await new Promise<any>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve(p),
+            reject,
+            { enableHighAccuracy: true, timeout: 15000 }
+          );
+        });
+      }
+
+      if (pos) {
+        const { latitude, longitude } = pos.coords;
+        await runInInjectionContext(this.injector, () =>
+          updateDoc(doc(this.firestore, 'orders', this.order.id), {
+            providerLat: latitude,
+            providerLng: longitude,
+            lastUpdate: Timestamp.now()
+          })
+        );
+        this.order.providerLat = latitude;
+        this.order.providerLng = longitude;
+        
+        // إذا لم يكن التتبع المباشر يعمل، نقوم بتفعيله
+        if (!this.watchId) {
+          this.startLiveTracking();
+        }
+        
+        const toast = await this.toastController.create({
+          message: 'تم تفعيل موقعك وإرساله للعميل',
+          duration: 2500,
+          color: 'success'
+        });
+        await toast.present();
+      } else {
+        const toast = await this.toastController.create({
+          message: 'فشل الحصول على الموقع، تأكد من تفعيل الـ GPS',
+          duration: 2500,
+          color: 'warning'
+        });
+        await toast.present();
+      }
+    } catch (e) {
+      console.error('activateProviderLocation error:', e);
+    } finally {
+      this.isUpdatingLocation = false;
+    }
+  }
+
   async onIgnoreClick() {
     try {
       this.showConfirmIgnore = false;
@@ -541,11 +612,14 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
 
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+      const createdAtMs = orderFieldToMs(this.order.createdAt, now.toMillis());
+      const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
 
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'orders', id), {
           status: 'completed',
           completedAt: now,
+          expiresAt,
           isArchiving: true,
           uiArchiveUntil,
         })
@@ -553,6 +627,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
 
       this.order.status = 'completed';
       this.order.completedAt = now;
+      this.order.expiresAt = expiresAt;
       this.order.uiArchiveUntil = uiArchiveUntil;
 
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());

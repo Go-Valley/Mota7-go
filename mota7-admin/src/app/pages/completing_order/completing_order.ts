@@ -382,7 +382,23 @@ export class CompletingOrderPage implements OnInit {
     await alert.present();
   }
 
-  goBack() {
-    this.router.navigate(['/dashboard']);
+
+
+  private async updateOrderExpiresAt(orderId: string, expiresAt: Timestamp) {
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'orders', orderId), { expiresAt })
+      );
+      const toast = await this.toastCtrl.create({
+        message: 'تم تحديث تاريخ الانتهاء بنجاح',
+        duration: 2000,
+        color: 'success'
+      });
+      await toast.present();
+    } catch (e) {
+      console.error(e);
+    }
   }
+
+  goBack() { this.router.navigate(['/dashboard']); }
 }

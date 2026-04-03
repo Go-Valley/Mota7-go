@@ -27,6 +27,7 @@ import {
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
+  ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs
 } from 'src/app/core/utils/order-lifecycle.util';
@@ -392,11 +393,14 @@ export class EducationalCardComponent implements OnInit, OnDestroy, OnChanges {
 
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+      const createdAtMs = orderFieldToMs(this.order.createdAt, now.toMillis());
+      const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
 
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'orders', id), {
           status: 'completed',
           completedAt: now,
+          expiresAt,
           isArchiving: true,
           uiArchiveUntil,
         })
@@ -404,6 +408,7 @@ export class EducationalCardComponent implements OnInit, OnDestroy, OnChanges {
 
       this.order.status = 'completed';
       this.order.completedAt = now;
+      this.order.expiresAt = expiresAt;
       this.order.uiArchiveUntil = uiArchiveUntil;
       this.isVisible = true;
       this.startCountdown(ORDER_ARCHIVE_UI_MS, () => void this.afterArchiveDone());

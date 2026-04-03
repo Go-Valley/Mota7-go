@@ -21,6 +21,7 @@ import {
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
+  ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs
 } from '../../core/utils/order-lifecycle.util';
@@ -315,11 +316,14 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
       this.clearMainCountdown();
       const now = Timestamp.now();
       const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+      const createdAtMs = orderFieldToMs(this.order.createdAt, now.toMillis());
+      const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
 
       this.archivingStarted.emit();
       this.isArchiving = true;
       this.order.status = 'completed';
       this.order.completedAt = now;
+      this.order.expiresAt = expiresAt;
       this.order.uiArchiveUntil = uiArchiveUntil;
       this.startArchiveTimer();
 
@@ -327,6 +331,7 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
         updateDoc(doc(this.firestore, 'orders', orderId), {
           status: 'completed',
           completedAt: now,
+          expiresAt,
           isArchiving: true,
           uiArchiveUntil
         })

@@ -26,14 +26,14 @@
     <div class="stars-row" role="group" aria-label="تقييم من 1 إلى 5">
       <button
         type="button"
-        *ngFor="let n of starSlots"
+        *ngFor="let n of starSlots; let i = index"
         class="star-btn"
-        [class.star-btn--active]="n <= selectedStars"
-        (click)="setStars(n)"
-        [attr.aria-pressed]="n <= selectedStars"
-        [attr.aria-label]="'نجمة ' + n"
+        [class.star-btn--active]="(5 - i) <= selectedStars"
+        (click)="setStars(5 - i)"
+        [attr.aria-pressed]="(5 - i) <= selectedStars"
+        [attr.aria-label]="'نجمة ' + (5 - i)"
       >
-        <ion-icon [name]="n <= selectedStars ? 'star' : 'star-outline'"></ion-icon>
+        <ion-icon [name]="(5 - i) <= selectedStars ? 'star' : 'star-outline'"></ion-icon>
       </button>
     </div>
 

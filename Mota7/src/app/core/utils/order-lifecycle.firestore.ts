@@ -16,6 +16,7 @@ import {
   ORDER_ARCHIVE_UI_MS,
   ORDER_DB_RETENTION_AFTER_UI_MS,
   timestampPlusMs,
+  orderFieldToMs,
 } from './order-lifecycle.util';
 
 export async function finalizeOrderRemovedFromUi(
@@ -30,7 +31,11 @@ export async function finalizeOrderRemovedFromUi(
   if (d['removedFromUiAt']) return;
   const nowMs = Date.now();
   const now = Timestamp.fromMillis(nowMs);
-  const expiresAt = Timestamp.fromMillis(nowMs + ORDER_DB_RETENTION_AFTER_UI_MS);
+  
+  // حساب تاريخ الانتهاء النهائي (30 يوماً من تاريخ الإنشاء)
+  const createdAtMs = orderFieldToMs(d['createdAt'], nowMs);
+  const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
+
   await runInInjectionContext(injector, () =>
     updateDoc(ref, {
       removedFromUiAt: now,
@@ -57,10 +62,16 @@ export async function completeAcceptedOrderWhenWindowElapsed(
   if (d['status'] !== 'accepted') return false;
   const now = Timestamp.now();
   const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+  
+  // حساب تاريخ الانتهاء النهائي (30 يوماً من تاريخ الإنشاء)
+  const createdAtMs = orderFieldToMs(d['createdAt'], now.toMillis());
+  const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
+
   await runInInjectionContext(injector, () =>
     updateDoc(ref, {
       status: 'completed',
       completedAt: now,
+      expiresAt, // إضافة تاريخ الانتهاء هنا أيضاً
       isArchiving: true,
       uiArchiveUntil,
     })

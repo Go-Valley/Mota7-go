@@ -21,19 +21,11 @@ import {
   releaseCustomerProviderRatingPromptReservation,
   reserveCustomerProviderRatingPrompt,
 } from '../provider-rating-modal/provider-rating-modal.presenter';
-import {
-  checkmarkCircle,
-  carSportOutline,
-  businessOutline,
-  cashOutline,
-  callOutline,
-  logoWhatsapp,
-  navigateOutline,
-  refreshOutline
-} from 'ionicons/icons';
+import { checkmarkCircle, carSportOutline, businessOutline, cashOutline, callOutline, logoWhatsapp, navigateOutline, refreshOutline, locationOutline } from 'ionicons/icons';
 import {
   ORDER_ACCEPTED_WINDOW_MS,
   ORDER_ARCHIVE_UI_MS,
+  ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs,
   openMapsUrlWithFallback,
@@ -57,6 +49,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
 
   remainingTime: string = '00:00';
   isVisible: boolean = true;
+  isUpdatingLocation: boolean = false;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
   private firestore = inject(Firestore);
@@ -77,7 +70,8 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
       callOutline,
       logoWhatsapp,
       navigateOutline,
-      refreshOutline
+      refreshOutline,
+      locationOutline
     });
   }
 
@@ -268,8 +262,11 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
               reserveCustomerProviderRatingPrompt(orderId);
               const now = Timestamp.now();
               const uiArchiveUntil = timestampPlusMs(now, ORDER_ARCHIVE_UI_MS);
+              const createdAtMs = orderFieldToMs(this.order.createdAt, now.toMillis());
+              const expiresAt = Timestamp.fromMillis(createdAtMs + ORDER_DB_RETENTION_AFTER_UI_MS);
               this.order.status = 'completed';
               this.order.completedAt = now;
+              this.order.expiresAt = expiresAt;
               this.order.uiArchiveUntil = uiArchiveUntil;
               this.suppressCustomerProviderRatingModal = true;
               this.checkStatusAndTimer();
@@ -278,6 +275,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
                 updateDoc(doc(this.firestore, 'orders', orderId), {
                   status: 'completed',
                   completedAt: now,
+                  expiresAt,
                   isArchiving: true,
                   uiArchiveUntil
                 })
@@ -451,6 +449,58 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
       return;
     }
     await this.navigateToProvider();
+  }
+
+  /**
+   * تفعيل الموقع لطالب الخدمة وتحديثه في Firestore ليراه مقدم الخدمة
+   */
+  async activateCustomerLocation() {
+    if (this.isUpdatingLocation) return;
+    this.isUpdatingLocation = true;
+    try {
+      let pos: any;
+      if (Capacitor.isNativePlatform()) {
+        let perm = await Geolocation.checkPermissions();
+        if (perm.location !== 'granted') {
+          perm = await Geolocation.requestPermissions();
+        }
+        if (perm.location === 'granted') {
+          pos = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 15000
+          });
+        }
+      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        pos = await new Promise<any>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve(p),
+            reject,
+            { enableHighAccuracy: true, timeout: 15000 }
+          );
+        });
+      }
+
+      if (pos) {
+        const { latitude, longitude } = pos.coords;
+        await runInInjectionContext(this.injector, () =>
+          updateDoc(doc(this.firestore, 'orders', this.order.id), {
+            lat: latitude,
+            lng: longitude,
+            location_name: 'تم التحديد عبر GPS'
+          })
+        );
+        this.order.lat = latitude;
+        this.order.lng = longitude;
+        await this.presentToast('تم تفعيل موقعك بنجاح');
+      } else {
+        await this.presentToast('فشل الحصول على الموقع، تأكد من تفعيل الـ GPS');
+      }
+    } catch (e) {
+      console.error('activateCustomerLocation error:', e);
+      await this.presentToast('حدث خطأ أثناء تفعيل الموقع');
+    } finally {
+      this.isUpdatingLocation = false;
+    }
   }
 
   async presentToast(msg: string) {
