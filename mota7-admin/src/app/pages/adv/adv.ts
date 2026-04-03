@@ -274,29 +274,38 @@ export class AdvPage implements OnInit {
   }
 
   private normalizeText(input: any): string {
-    return (input ?? '').toString()
+    if (input === null || input === undefined) return '';
+    return input.toString()
       .toLowerCase()
+      .trim()
       .normalize('NFKD')
-      .replace(/[\u064B-\u065F]/g, '')
+      .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
       .replace(/[إأآا]/g, 'ا')
       .replace(/ى/g, 'ي')
       .replace(/ؤ/g, 'و')
       .replace(/ئ/g, 'ي')
       .replace(/ة/g, 'ه')
-      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ') // إزالة الرموز الخاصة
+      .replace(/\s+/g, ' '); // توحيد المسافات
   }
 
-  private matchesSearch(ad: any, query: string): boolean {
-    if (!query || query.trim().length < 2) return true;
-    const term = this.normalizeText(query);
-    
-    // تجميع النصوص القابلة للبحث من الإعلان
-    const searchHaystack = [
+  private tokenizeText(text: string): string[] {
+    const normalized = this.normalizeText(text);
+    if (!normalized) return [];
+    // تقسيم النص لكلمات، مع تجاهل الكلمات القصيرة جداً (أقل من حرفين)
+    return normalized.split(' ').filter(word => word.length >= 2);
+  }
+
+  private buildSearchHaystack(ad: any): string {
+    const parts = [
       ad.owner_name,
       ad.owner_phone,
       ad.phone,
+      ad.userId,
+      ad.ad_type,
+      ad.category_id,
+      ad.city,
+      ad.status,
       ad.details?.title,
       ad.details?.store_name,
       ad.details?.product_name,
@@ -305,12 +314,22 @@ export class AdvPage implements OnInit {
       ad.details?.teacher_name,
       ad.details?.short_desc,
       ad.details?.full_details,
-      ad.ad_type,
-      ad.category_id,
-      ad.city
-    ].filter(Boolean).map(val => this.normalizeText(val)).join(' ');
+      ad.details?.whatsapp_phone,
+      ad.details?.location_name,
+      ad.details?.subject,
+      ad.details?.stage
+    ];
+    return parts.filter(Boolean).join(' ');
+  }
 
-    return searchHaystack.includes(term);
+  private matchesSearch(ad: any, query: string): boolean {
+    const tokens = this.tokenizeText(query);
+    if (tokens.length === 0) return true;
+
+    const haystack = this.normalizeText(this.buildSearchHaystack(ad));
+    
+    // يجب أن توجد كل كلمة من كلمات البحث داخل نص الإعلان (AND logic)
+    return tokens.every(token => haystack.includes(token));
   }
 
   getFilteredAds(status: string): any[] {

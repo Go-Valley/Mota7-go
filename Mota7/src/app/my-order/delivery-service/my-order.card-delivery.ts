@@ -135,7 +135,8 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
       if (diff > 0) {
         this.startTimer(diff, () => this.expirePendingHardDelete());
       } else {
-        this.expirePendingHardDelete();
+        // إذا انتهى الوقت بالفعل عند تحميل الكارت (مثلاً بعد فتح التطبيق)
+        void this.expirePendingHardDelete();
       }
       return;
     }
