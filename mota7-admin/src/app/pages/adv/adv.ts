@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { IonicModule, ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
 import { Firestore, collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
@@ -16,7 +17,9 @@ import {
   personCircleOutline,
   trashOutline,
   documentTextOutline,
-  chevronDownCircleOutline
+  chevronDownCircleOutline,
+  searchOutline,
+  closeOutline
 } from 'ionicons/icons';
 
 // استيراد الـ 5 كروت المختصرة
@@ -38,7 +41,7 @@ import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-pu
   styleUrls: ['./adv.scss'],
   standalone: true,
   imports: [
-    CommonModule, IonicModule, Mota7HeaderComponent,
+    CommonModule, IonicModule, Mota7HeaderComponent, FormsModule,
     DeliveryCard, EducationCard, OtherCard, ProductCard, StoreCard
   ]
 })
@@ -57,6 +60,8 @@ export class AdvPage implements OnInit {
       trashOutline,
       documentTextOutline,
       'chevron-down-circle-outline': chevronDownCircleOutline,
+      'search-outline': searchOutline,
+      'close-outline': closeOutline,
     });
   }
 
@@ -73,6 +78,7 @@ export class AdvPage implements OnInit {
   isLoading: boolean = true;
   selectedTab: string = 'pending';
   selectedType: string = 'all';
+  searchQuery: string = '';
 
   readonly longPressMs = 500;
   selectionMode = false;
@@ -82,6 +88,15 @@ export class AdvPage implements OnInit {
 
   ngOnInit() {
     this.fetchAds();
+  }
+
+  onSearchInput() {
+    this.pruneAdSelectionToVisible();
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.pruneAdSelectionToVisible();
   }
 
   doRefresh(event: any) {
@@ -227,18 +242,18 @@ export class AdvPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              await runInInjectionContext(this.injector, async () => {
-                for (const id of ids) {
-                  const ad = this.adsList.find((a) => a.id === id);
-                  if (ad) {
-                    const cloudIds = collectCloudinaryPublicIdsFromAd(ad as Record<string, unknown>);
-                    if (cloudIds.length) {
-                      await this.cloudinaryCleanup.deletePublicIds(cloudIds).catch(() => {});
-                    }
+              for (const id of ids) {
+                const ad = this.adsList.find((a) => a.id === id);
+                if (ad) {
+                  const cloudIds = collectCloudinaryPublicIdsFromAd(ad as Record<string, unknown>);
+                  if (cloudIds.length) {
+                    await this.cloudinaryCleanup.deletePublicIds(cloudIds).catch(() => {});
                   }
-                  await deleteDoc(doc(this.firestore, 'ads', id));
                 }
-              });
+                await runInInjectionContext(this.injector, () => 
+                  deleteDoc(doc(this.firestore, 'ads', id))
+                );
+              }
               this.selectedAdIds = new Set();
               this.selectionMode = false;
               const toast = await this.toastCtrl.create({
@@ -258,12 +273,58 @@ export class AdvPage implements OnInit {
     await alert.present();
   }
 
+  private normalizeText(input: any): string {
+    return (input ?? '').toString()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u064B-\u065F]/g, '')
+      .replace(/[إأآا]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ؤ/g, 'و')
+      .replace(/ئ/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private matchesSearch(ad: any, query: string): boolean {
+    if (!query || query.trim().length < 2) return true;
+    const term = this.normalizeText(query);
+    
+    // تجميع النصوص القابلة للبحث من الإعلان
+    const searchHaystack = [
+      ad.owner_name,
+      ad.owner_phone,
+      ad.phone,
+      ad.details?.title,
+      ad.details?.store_name,
+      ad.details?.product_name,
+      ad.details?.service_name,
+      ad.details?.driver_name,
+      ad.details?.teacher_name,
+      ad.details?.short_desc,
+      ad.details?.full_details,
+      ad.ad_type,
+      ad.category_id,
+      ad.city
+    ].filter(Boolean).map(val => this.normalizeText(val)).join(' ');
+
+    return searchHaystack.includes(term);
+  }
+
   getFilteredAds(status: string): any[] {
-    let statusFiltered = this.adsList.filter(ad => ad.status === status);
+    let filtered = this.adsList.filter(ad => ad.status === status);
+    
     if (this.selectedType !== 'all') {
-      statusFiltered = statusFiltered.filter(ad => ad.ad_type === this.selectedType);
+      filtered = filtered.filter(ad => ad.ad_type === this.selectedType);
     }
-    if (status !== 'active') return statusFiltered;
+
+    if (this.searchQuery && this.searchQuery.trim().length >= 2) {
+      filtered = filtered.filter(ad => this.matchesSearch(ad, this.searchQuery));
+    }
+
+    if (status !== 'active') return filtered;
 
     const getSort = (a: any) => Number.isFinite(a?.sort_order) ? a.sort_order : 999;
     const getVer = (a: any) => a?.verification_level || 'none';
@@ -273,7 +334,7 @@ export class AdvPage implements OnInit {
       return d ? new Date(d).getTime() : 0;
     };
 
-    return [...statusFiltered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const sa = getSort(a);
       const sb = getSort(b);
       const aManual = sa < 999;
@@ -576,17 +637,21 @@ async openUserDetails(ad: any) {
   async fetchUserData(phone: string) {
     try {
       const cleanPhone = phone.toString().trim();
-      return await runInInjectionContext(this.injector, async () => {
-        const docRef = doc(this.firestore, 'users', cleanPhone);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) return docSnap.data();
+      
+      // 1. محاولة الجلب المباشر عبر المعرف (ID)
+      const docSnap = await runInInjectionContext(this.injector, () => 
+        getDoc(doc(this.firestore, 'users', cleanPhone))
+      );
+      
+      if (docSnap.exists()) return docSnap.data();
 
-        const qPhone = query(
+      // 2. إذا لم يوجد، نحاول البحث عبر حقل الهاتف
+      return await runInInjectionContext(this.injector, () => {
+        const q = query(
           collection(this.firestore, 'users'),
           where('phone', '==', cleanPhone)
         );
-        const snapPhone = await getDocs(qPhone);
-        return !snapPhone.empty ? snapPhone.docs[0].data() : null;
+        return getDocs(q).then(snap => !snap.empty ? snap.docs[0].data() : null);
       });
     } catch (e) {
       console.error('Error fetching user data:', e);

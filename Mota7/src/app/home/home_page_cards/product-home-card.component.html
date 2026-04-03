@@ -1,4 +1,9 @@
-<div class="mota7-card-wrapper" *ngIf="ad" [appAdImpressionTrack]="ad.id || ad.ad_id">
+<div
+  class="mota7-card-wrapper home-premium-card home-premium--product"
+  *ngIf="ad"
+  [appAdImpressionTrack]="ad.id || ad.ad_id"
+>
+  <div class="home-premium-accent" aria-hidden="true"></div>
   <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
   <div class="clickable-content" (click)="openProductDetails()">
     <div class="product-description-header">

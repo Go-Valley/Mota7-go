@@ -12,6 +12,25 @@
 
   <div class="admin-main-container">
 
+    <div class="search-section">
+      <div class="search-bar-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+        <input 
+          type="text" 
+          placeholder="ابحث بالاسم، الرقم، المتجر، المنتج..." 
+          [(ngModel)]="searchQuery"
+          (input)="onSearchInput()"
+          aria-label="بحث في الإعلانات"
+        >
+        <ion-icon
+          name="close-outline"
+          *ngIf="searchQuery"
+          (click)="clearSearch()"
+          class="search-clear-icon">
+        </ion-icon>
+      </div>
+    </div>
+
     <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" class="status-tabs">
       <ion-segment-button value="pending">
         <ion-label>قيد المراجعة</ion-label>

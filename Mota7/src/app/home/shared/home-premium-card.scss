@@ -1,0 +1,669 @@
+/**
+ * تصميم موحّد فاخر لكروت الإعلانات في الرئيسية (نقل، تعليم، خدمات أخرى، منتجات).
+ * يُستورد من كل مكوّن كارت مع تعديلات طفيفة حسب القسم.
+ */
+
+@keyframes home-premium-shine {
+  0%,
+  100% {
+    background-position: 130% 50%;
+  }
+  50% {
+    background-position: -30% 50%;
+  }
+}
+
+@keyframes home-premium-float {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.home-premium-card.mota7-card-wrapper {
+  --hp-text: #0c1222;
+  --hp-text-soft: #475569;
+  --hp-gold: #c9a227;
+  --hp-gold-soft: rgba(201, 162, 39, 0.18);
+  --hp-border: rgba(201, 162, 39, 0.2);
+  --hp-inner-border: rgba(226, 232, 240, 0.95);
+  --hp-shadow-1: rgba(12, 18, 34, 0.08);
+  --hp-shadow-2: rgba(12, 18, 34, 0.04);
+  --hp-glow: rgba(99, 102, 241, 0.08);
+
+  position: relative;
+  overflow: hidden;
+  direction: rtl;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 520px;
+  margin: 10px auto;
+  padding: 11px 13px 12px;
+  border-radius: 20px;
+  background: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #fafbfc 42%,
+    #f3f4f6 100%
+  );
+  border: 1px solid var(--hp-border);
+  box-shadow:
+  0 1px 0 #b1b1b1 inset, 
+  0 2px 6px rgb(0 0 0), 
+  0 12px 32px -10px #00000094, 
+  0 28px 56px -24px #0000009c;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+  box-shadow 0.28s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      125deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.45) 49.5%,
+      rgba(255, 255, 255, 0) 57%,
+      transparent 100%
+    );
+    background-size: 260% 100%;
+    animation: home-premium-shine 9s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.55;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: -20%;
+    inset-inline-end: -20%;
+    bottom: -40%;
+    height: 55%;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      var(--hp-glow) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+    animation: home-premium-float 6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      animation: none;
+    }
+    &::before {
+      opacity: 0.2;
+    }
+  }
+
+  &:active {
+    transform: translateY(1px) scale(0.997);
+  }
+
+  /* ألوان تمييز حسب القسم */
+  &.home-premium--delivery {
+    --hp-accent-a: #6366f1;
+    --hp-accent-b: #4f46e5;
+    --hp-accent-c: #3b82f6;
+    --hp-glow: rgba(79, 70, 229, 0.12);
+    --hp-icon-tint: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
+    --hp-icon-border: rgba(199, 210, 254, 0.85);
+    --hp-icon-color: #4f46e5;
+  }
+
+  &.home-premium--education {
+    --hp-accent-a: #0f766e;
+    --hp-accent-b: #14b8a6;
+    --hp-accent-c: #2dd4bf;
+    --hp-glow: rgba(20, 184, 166, 0.11);
+    --hp-icon-tint: linear-gradient(145deg, #ecfdf5 0%, #ccfbf1 100%);
+    --hp-icon-border: rgba(153, 246, 228, 0.9);
+    --hp-icon-color: #0d9488;
+  }
+
+  &.home-premium--other {
+    --hp-accent-a: #7c3aed;
+    --hp-accent-b: #a855f7;
+    --hp-accent-c: #c084fc;
+    --hp-glow: rgba(168, 85, 247, 0.12);
+    --hp-icon-tint: linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%);
+    --hp-icon-border: rgba(216, 180, 254, 0.9);
+    --hp-icon-color: #7c3aed;
+  }
+
+  &.home-premium--product {
+    --hp-accent-a: #b45309;
+    --hp-accent-b: #d97706;
+    --hp-accent-c: #fbbf24;
+    --hp-glow: rgba(217, 119, 6, 0.1);
+    --hp-icon-tint: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+    --hp-icon-border: rgba(252, 211, 77, 0.75);
+    --hp-icon-color: #b45309;
+  }
+
+  .clickable-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .home-premium-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(
+      90deg,
+      var(--hp-accent-a) 0%,
+      var(--hp-accent-b) 45%,
+      var(--hp-accent-c) 100%
+    );
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.35) inset;
+  }
+
+  &.is-unavailable {
+    opacity: 0.58;
+    filter: grayscale(0.22) saturate(0.85);
+    box-shadow: 0 4px 14px rgba(12, 18, 34, 0.06);
+    border-color: rgba(148, 163, 184, 0.28);
+
+    &::before,
+    &::after {
+      opacity: 0.12;
+      animation: none;
+    }
+  }
+
+  &.mota7-faded {
+    opacity: 0.58;
+    filter: grayscale(0.22) saturate(0.85);
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(12, 18, 34, 0.06);
+    border-color: rgba(148, 163, 184, 0.28);
+
+    &::before,
+    &::after {
+      opacity: 0.12;
+      animation: none;
+    }
+
+    .contact-icons {
+      display: none !important;
+    }
+  }
+
+  /* عناوين موحّدة */
+  .vehicle-title-header,
+  .service-title-header,
+  .product-description-header {
+    position: relative;
+    z-index: 1;
+    color: #720101;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    margin: 2px 0 15px;
+  }
+
+  .title-and-badge-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .vehicle-title-header {
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .modern-stage-badge {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+      color: #5b21b6;
+      background: linear-gradient(
+        135deg,
+        rgba(167, 139, 250, 0.2),
+        rgba(196, 181, 253, 0.12)
+      );
+      border: 1px solid rgba(167, 139, 250, 0.35);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    }
+  }
+
+  /* صف المعلومات الرئيسي — توصيل / تعليم / منتج */
+  .main-info-row,
+  .provider-info-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    margin-bottom: 9px;
+    border-radius: 16px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(248, 250, 252, 0.94) 100%
+    );
+    border: 1px solid var(--hp-inner-border);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.92) inset,
+      0 6px 18px rgba(12, 18, 34, 0.045);
+  }
+
+  .provider-info-row {
+    justify-content: space-between;
+  }
+
+  .avatar-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* أيقونة / صورة دائرية أو مستطيلة */
+  .vehicle-icon-bg,
+  .logo-circle {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hp-icon-tint);
+    border: 1px solid var(--hp-icon-border);
+    box-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.88) inset,
+      0 8px 18px rgba(12, 18, 34, 0.06);
+
+    ion-icon {
+      font-size: 26px;
+      color: var(--hp-icon-color);
+    }
+  }
+
+  .avatar-container .logo-circle {
+    border-radius: 15px;
+  }
+
+  .verification-badge {
+    position: absolute;
+    bottom: -10px;
+    inset-inline-end: 35px;
+    width: 22px;
+    height: 22px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .verify-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+      filter: drop-shadow(0 2px 5px rgba(12, 18, 34, 0.25));
+    }
+  }
+
+  .image-wrapper .vehicle-icon-bg {
+    margin: 0 auto;
+  }
+
+  /* أسماء */
+  .owner-details .name-value,
+  .provider-name-wrapper .provider-name,
+  .owner-details .product-main-title {
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: #0b005c;
+    line-height: 2;
+    overflow-wrap: anywhere;
+  }
+
+  .owner-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .owner-details .owner-name-row {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .name-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .provider-name-wrapper {
+    min-width: 0;
+  }
+
+  /* أزرار اتصال */
+  .contact-icons,
+  .icon-contact-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+    margin-inline-start: auto;
+  }
+
+  .contact-icons .icon-btn,
+  .icon-contact-actions .icon-btn,
+  .contact-buttons-row .action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.38) inset,
+      0 5px 14px rgba(12, 18, 34, 0.12);
+    transition: transform 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease;
+
+    &:active {
+      transform: scale(0.93);
+      filter: brightness(0.96);
+    }
+
+    &.call {
+      background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+
+    &.whatsapp {
+      background: linear-gradient(145deg, #22c55e 0%, #15803d 100%);
+    }
+  }
+
+  /* شبكة معلومات سفلية — تعليم / خدمات أخرى / منتج */
+  .meta-grid-modern,
+  .info-grid {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+
+  .meta-grid-modern .grid-item,
+  .info-grid .grid-item {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    min-height: 38px;
+    border-radius: 13px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-align: center;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+    ion-icon {
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+  }
+
+  .meta-grid-modern .grid-item:not(.status-toggle):not(.price-item):not(.condition-item),
+  .info-grid .grid-item.city-box {
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+    color: var(--hp-text);
+    border-color: rgba(203, 213, 225, 0.85);
+
+    ion-icon {
+      color: #ef4444;
+    }
+  }
+
+  .meta-grid-modern .grid-item.status-toggle,
+  .info-grid .grid-item.status-toggle {
+    &.active {
+      background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+      color: #047857;
+      border-color: rgba(52, 211, 153, 0.35);
+    }
+
+    &.inactive {
+      background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
+      color: #b91c1c;
+      border-color: rgba(252, 165, 165, 0.45);
+    }
+  }
+
+  .meta-grid-modern .grid-item.price-item {
+    background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #166534;
+    border-color: rgba(134, 239, 172, 0.45);
+
+    ion-icon {
+      color: #16a34a;
+    }
+  }
+
+  .meta-grid-modern .grid-item.condition-item {
+    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    border-color: rgba(147, 197, 253, 0.45);
+
+    ion-icon {
+      color: #2563eb;
+    }
+  }
+
+  /* سطر البائع — منتج */
+  .owner-line-full {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 9px;
+    padding-inline-start: 4px;
+
+    .label {
+      color: var(--hp-text-soft);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .name {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #6d0000;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  /* صورة المنتج */
+  .main-info-row .image-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+
+    .product-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 6px 16px rgba(12, 18, 34, 0.08);
+    }
+  }
+
+  /* منتجات: شارة التوثيق أسفل يمين صورة المنتج (زاوية الصورة) */
+  &.home-premium--product .main-info-row .image-wrapper .verification-badge {
+    bottom: -10px;
+    right: -12px;
+    left: auto;
+    inset-inline-end: auto;
+  }
+
+  /* منتجات: العنوان يأخذ المساحة، الاتصال والواتساب بجانب بعض كباقي الكروت */
+  &.home-premium--product .main-info-row .owner-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  &.home-premium--product .name-and-title-section {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &.home-premium--product .contact-buttons-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    margin-inline-start: auto;
+  }
+
+  /* شرائح التوصيل */
+  .info-chips {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 2px;
+
+    &.info-chips--split .chips-row {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      align-items: stretch;
+
+      .grid-item {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+
+    .chips-row--all {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 6px;
+
+      .grid-item {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+  }
+
+  .info-chips .chips-row .grid-item,
+  .info-chips .chips-row--all .grid-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 6px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.68rem;
+    min-height: 36px;
+    line-height: 1.2;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+
+    ion-icon {
+      flex-shrink: 0;
+      font-size: 15px;
+    }
+
+    .chip-label {
+      display: block;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    &.city-box {
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+      color: var(--hp-text);
+      border-color: rgba(203, 213, 225, 0.85);
+
+      ion-icon {
+        color: #ef4444;
+      }
+    }
+
+    &.status-toggle {
+      &.active {
+        background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+        color: #047857;
+        border-color: rgba(52, 211, 153, 0.35);
+      }
+
+      &.inactive {
+        background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
+        color: #b91c1c;
+        border-color: rgba(252, 165, 165, 0.45);
+      }
+    }
+  }
+}

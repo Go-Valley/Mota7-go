@@ -32,6 +32,7 @@ import { StoreHomeCardComponent } from './home_page_cards/store-home-card.compon
 import { BannersComponent } from './banners/banners.component';
 import { Mota7HeaderComponent } from '../top_header/header';
 import { slimAdForHomeFeed } from '../core/utils/ad-home-feed-slim.util';
+import { sortHomeFeedAdsForDisplay } from './home_page_cards/home-feed-display-sort.util';
 import { DELIVERY_CATEGORY } from '../core/constants/delivery-data';
 import { EDUCATION_CATEGORY } from '../core/constants/educational-data';
 import { OTHER_SERVICES_DATA } from '../core/constants/other-services-data';
@@ -629,7 +630,7 @@ export class HomePage implements OnInit, OnDestroy {
       filtered = filtered.filter(a => a.category_id === this.selectedStoreType);
     }
 
-    this.adsList = this.sortForDisplay(filtered);
+    this.adsList = sortHomeFeedAdsForDisplay(filtered);
     this.hasMore = false; // بما أننا جلبنا الكل في الـ Pool فلا نحتاج Infinite Scroll هنا
   }
 
@@ -781,23 +782,6 @@ export class HomePage implements OnInit, OnDestroy {
     return tokens.every((tk: string) => this.tokenMatches(tk, haystack, haystackWords));
   }
 
-  private getHourlySeed(): number {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    const h = d.getHours();
-    return y * 1000000 + m * 10000 + day * 100 + h;
-  }
-
-  private makeRng(seed: number): () => number {
-    let s = seed >>> 0;
-    return () => {
-      s = (s * 1664525 + 1013904223) >>> 0;
-      return (s >>> 0) / 4294967296;
-    };
-  }
-
   private getStaticName(id: string): string {
     const names: { [key: string]: string } = {
       'transportation': 'نقل وتوصيل',
@@ -841,7 +825,7 @@ export class HomePage implements OnInit, OnDestroy {
         this.matchesSearch(ad, this.searchText)
       );
       const merged = [...this.searchList, ...filtered];
-      this.searchList = this.sortForDisplay(merged);
+      this.searchList = sortHomeFeedAdsForDisplay(merged);
       if (pageDocs.length < 20) this.searchHasMore = false;
     } catch (err) {
       console.error('Error fetching search page:', err);
@@ -934,7 +918,7 @@ export class HomePage implements OnInit, OnDestroy {
         (ad: any) => ad.status === 'active' && this.isCityMatch(ad.city)
       );
       const merged = [...this.adsList, ...filtered];
-      this.adsList = this.sortForDisplay(merged);
+      this.adsList = sortHomeFeedAdsForDisplay(merged);
       if (pageDocs.length < 20) this.hasMore = false;
     } catch (err) {
       console.error('Error fetching ads page:', err);
@@ -959,63 +943,4 @@ export class HomePage implements OnInit, OnDestroy {
     await this.fetchAdsPage(adType, event);
   }
 
-  /** عدد مشاهدات الإعلان في القائمة (للترتيب والعرض). */
-  private adImpressionCount(a: any): number {
-    const ic = a?.impression_count;
-    const sv = a?.stats?.views;
-    const na = typeof ic === 'number' && Number.isFinite(ic) && ic >= 0 ? ic : 0;
-    const nb = typeof sv === 'number' && Number.isFinite(sv) && sv >= 0 ? sv : 0;
-    return Math.max(na, nb);
-  }
-
-  /** متوسط تقييم خدمة المزود؛ ‎-1‎ إن لم يوجد. */
-  private adAvgServiceRating(a: any): number {
-    const c = a?.provider_service_rating_count;
-    const s = a?.provider_service_rating_sum;
-    if (typeof c !== 'number' || c <= 0 || typeof s !== 'number' || !Number.isFinite(s)) return -1;
-    const x = s / c;
-    return Number.isFinite(x) ? x : -1;
-  }
-
-  private compareEngagementThenRand(a: any, b: any, tieRand: (x: any) => number): number {
-    const ia = this.adImpressionCount(a);
-    const ib = this.adImpressionCount(b);
-    if (ib !== ia) return ib - ia;
-    const ra = this.adAvgServiceRating(a);
-    const rb = this.adAvgServiceRating(b);
-    if (rb !== ra) return rb - ra;
-    return tieRand(a) - tieRand(b);
-  }
-
-  private sortForDisplay(ads: any[]): any[] {
-    const getSort = (a: any) => Number.isFinite(a?.sort_order) ? a.sort_order : 999;
-    const getVer = (a: any) => a?.verification_level || 'none';
-    const verRank = (v: any) => v === 'gold' ? 0 : (v === 'blue' ? 1 : 2);
-    const seed = this.getHourlySeed();
-    const tieRand = (a: any) => {
-      const id = String(a?.id || a?.ad_id || '');
-      let h = seed;
-      for (let i = 0; i < id.length; i++) {
-        h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-      }
-      const rng = this.makeRng(h >>> 0);
-      return rng();
-    };
-    const manual = ads.filter(a => getSort(a) < 999).sort((a, b) => {
-      const sa = getSort(a), sb = getSort(b);
-      if (sa !== sb) return sa - sb;
-      const va = verRank(getVer(a)), vb = verRank(getVer(b));
-      if (va !== vb) return va - vb;
-      return this.compareEngagementThenRand(a, b, tieRand);
-    });
-    const verifiedDefault = ads.filter(a => getSort(a) === 999 && verRank(getVer(a)) < 2)
-      .sort((a, b) => {
-        const va = verRank(getVer(a)), vb = verRank(getVer(b));
-        if (va !== vb) return va - vb;
-        return this.compareEngagementThenRand(a, b, tieRand);
-      });
-    const normal = ads.filter(a => getSort(a) === 999 && verRank(getVer(a)) === 2);
-    const sortedNormal = [...normal].sort((a, b) => this.compareEngagementThenRand(a, b, tieRand));
-    return [...manual, ...verifiedDefault, ...sortedNormal];
-  }
 }

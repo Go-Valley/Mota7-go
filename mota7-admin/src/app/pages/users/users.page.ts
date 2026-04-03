@@ -137,7 +137,7 @@ export class UsersPage implements OnInit {
         idsToDelete.forEach(id => {
           batch.delete(doc(this.firestore, 'users', id));
         });
-        await batch.commit();
+        return batch.commit();
       });
       this.showToast(`تم حذف ${idsToDelete.length} مستخدم بنجاح`);
       this.exitSelectionMode();
@@ -284,12 +284,12 @@ export class UsersPage implements OnInit {
   async toggleStatus(user: any) {
     const willDeactivate = user.isActive === true;
     try {
-      await runInInjectionContext(this.injector, async () => {
-        if (willDeactivate) {
-          await this.rejectAllAdsForDeactivatedUser(user);
-        }
-        await updateDoc(doc(this.firestore, 'users', user.id), { isActive: !user.isActive });
-      });
+      if (willDeactivate) {
+        await this.rejectAllAdsForDeactivatedUser(user);
+      }
+      await runInInjectionContext(this.injector, () => 
+        updateDoc(doc(this.firestore, 'users', user.id), { isActive: !user.isActive })
+      );
       this.showToast(
         willDeactivate
           ? 'تم تعطيل الحساب ورفض الإعلانات المرتبطة'
@@ -303,11 +303,10 @@ export class UsersPage implements OnInit {
   /** عند تعطيل الحساب: جعل كل إعلانات المستخدم مرفوضة مع سبب إداري موحّد. */
   private async rejectAllAdsForDeactivatedUser(user: any): Promise<void> {
     const reason = UsersPage.DEACTIVATE_ACCOUNT_REJECTION_REASON;
-    const adsRef = collection(this.firestore, 'ads');
     const adIds = new Set<string>();
 
-    const snapByUserId = await getDocs(
-      query(adsRef, where('userId', '==', user.id))
+    const snapByUserId = await runInInjectionContext(this.injector, () => 
+      getDocs(query(collection(this.firestore, 'ads'), where('userId', '==', user.id)))
     );
     snapByUserId.docs.forEach((d) => adIds.add(d.id));
 
@@ -319,9 +318,13 @@ export class UsersPage implements OnInit {
       phoneKeys.add(String(user.id).trim());
     }
     for (const p of phoneKeys) {
-      const byOwner = await getDocs(query(adsRef, where('owner_phone', '==', p)));
+      const byOwner = await runInInjectionContext(this.injector, () => 
+        getDocs(query(collection(this.firestore, 'ads'), where('owner_phone', '==', p)))
+      );
       byOwner.docs.forEach((d) => adIds.add(d.id));
-      const byPhone = await getDocs(query(adsRef, where('phone', '==', p)));
+      const byPhone = await runInInjectionContext(this.injector, () => 
+        getDocs(query(collection(this.firestore, 'ads'), where('phone', '==', p)))
+      );
       byPhone.docs.forEach((d) => adIds.add(d.id));
     }
 
@@ -330,16 +333,18 @@ export class UsersPage implements OnInit {
 
     const chunkSize = 400;
     for (let i = 0; i < ids.length; i += chunkSize) {
-      const batch = writeBatch(this.firestore);
-      for (const adId of ids.slice(i, i + chunkSize)) {
-        batch.update(doc(this.firestore, 'ads', adId), {
-          status: 'rejected',
-          admin_reason: reason,
-          reject_reason: reason,
-          updated_at: serverTimestamp(),
-        });
-      }
-      await batch.commit();
+      await runInInjectionContext(this.injector, () => {
+        const batch = writeBatch(this.firestore);
+        for (const adId of ids.slice(i, i + chunkSize)) {
+          batch.update(doc(this.firestore, 'ads', adId), {
+            status: 'rejected',
+            admin_reason: reason,
+            reject_reason: reason,
+            updated_at: serverTimestamp(),
+          });
+        }
+        return batch.commit();
+      });
     }
   }
 

@@ -1,5 +1,10 @@
-<div class="mota7-card-wrapper" *ngIf="ad" [class.mota7-faded]="!ad.details?.is_available"
-     [appAdImpressionTrack]="ad.id || ad.ad_id">
+<div
+  class="mota7-card-wrapper home-premium-card home-premium--delivery"
+  *ngIf="ad"
+  [class.mota7-faded]="!ad.details?.is_available"
+  [appAdImpressionTrack]="ad.id || ad.ad_id"
+>
+  <div class="home-premium-accent" aria-hidden="true"></div>
 
   <div class="vehicle-title-header">
     {{ getCategoryName(ad.category_id) }}
