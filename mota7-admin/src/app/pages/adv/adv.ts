@@ -16,6 +16,7 @@ import {
   personCircleOutline,
   trashOutline,
   documentTextOutline,
+  chevronDownCircleOutline
 } from 'ionicons/icons';
 
 // استيراد الـ 5 كروت المختصرة
@@ -55,6 +56,7 @@ export class AdvPage implements OnInit {
       personCircleOutline,
       trashOutline,
       documentTextOutline,
+      'chevron-down-circle-outline': chevronDownCircleOutline,
     });
   }
 

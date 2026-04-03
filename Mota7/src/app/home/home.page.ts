@@ -212,6 +212,8 @@ export class HomePage implements OnInit, OnDestroy {
   selectCity(city: string) {
     this.selectedCityLabel = city;
     this.showCityPopover = false;
+    // مسح الكاش لإجبار إعادة الجلب من الخادم لمدينة جديدة
+    this.tabCountsPoolCache = null;
     this.loadAdsForCategory(this.selectedCategory);
     // إذا كان هناك بحث نشط عند تغيير المدينة، يتم تحديث نتائجه
     if (this.searchText.length >= 2) {
@@ -222,7 +224,7 @@ export class HomePage implements OnInit, OnDestroy {
   // --- دوال الفلاتر ---
   selectDeliveryCategory(categoryId: string) {
     this.selectedDeliveryCategory = categoryId;
-    this.loadAdsForCategory(this.selectedCategory);
+    this.syncAdsListWithPool();
   }
 
   selectEducationStage(stageId: string) {
@@ -230,17 +232,18 @@ export class HomePage implements OnInit, OnDestroy {
     this.selectedEducationSubject = 'all';
     const stage = this.educationStages.find((s: any) => s.id === stageId);
     this.educationSubjects = stageId !== 'all' ? (stage?.subjects || []) : [];
-    this.loadAdsForCategory(this.selectedCategory);
+    // تحديث أعداد المواد للقسم المختار
+    void this.refreshSectionTabCounts();
   }
 
   selectEducationSubject(subject: string) {
     this.selectedEducationSubject = subject;
-    this.loadAdsForCategory(this.selectedCategory);
+    this.syncAdsListWithPool();
   }
 
   selectOtherService(serviceId: string) {
     this.selectedOtherService = serviceId;
-    this.loadAdsForCategory(this.selectedCategory);
+    this.syncAdsListWithPool();
   }
 
   selectProductCategory(categoryId: string) {
@@ -248,17 +251,18 @@ export class HomePage implements OnInit, OnDestroy {
     this.selectedProductSubcategory = 'all';
     const cat = this.productCategories.find((c: any) => c.id === categoryId);
     this.productSubcategories = categoryId !== 'all' ? (cat?.subcategories || []) : [];
-    this.loadAdsForCategory(this.selectedCategory);
+    // تحديث أعداد الأقسام الفرعية للمنتجات
+    void this.refreshSectionTabCounts();
   }
 
   selectProductSubcategory(sub: string) {
     this.selectedProductSubcategory = sub;
-    this.loadAdsForCategory(this.selectedCategory);
+    this.syncAdsListWithPool();
   }
 
   selectStoreType(typeId: string) {
     this.selectedStoreType = typeId;
-    this.loadAdsForCategory(this.selectedCategory);
+    this.syncAdsListWithPool();
   }
 
   openService(service: any) {
@@ -300,8 +304,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.hasMore = true;
     this.isLoadingPage = false;
 
+    // refreshSectionTabCounts سيقوم بجلب البيانات وتحديث adsList داخلياً
     void this.refreshSectionTabCounts();
-    this.fetchAdsPage(adType, true);
   }
 
   backToHome() {
@@ -552,7 +556,6 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
-  /** يحدّث أعداد التبويبات لتطابق فلتر المدينة والإعلانات المفعلة (مثل قائمة العرض). */
   private async refreshSectionTabCounts(): Promise<void> {
     const cat = this.selectedCategory;
     if (!cat) {
@@ -567,21 +570,67 @@ export class HomePage implements OnInit, OnDestroy {
     const cache = this.tabCountsPoolCache;
     if (cache && cache.adType === adType && cache.cityLabel === cityLabel) {
       this.applyTabCountsForCategory(cat, cache.pool);
+      this.syncAdsListWithPool();
       return;
     }
 
     const reqId = ++this.tabCountsRequestId;
     try {
+      this.isLoadingPage = true;
       const raw = await this.fetchAllRawAdsByType(adType);
       if (reqId !== this.tabCountsRequestId) {
         return;
       }
-      const pool = raw.filter((ad) => this.passesBaseHomeFilters(ad));
+      // تحويل الإعلانات إلى النسخة الخفيفة وتصفيتها حسب المدينة
+      const pool = raw
+        .map(ad => slimAdForHomeFeed(ad, adType))
+        .filter((ad) => this.passesBaseHomeFilters(ad));
+        
       this.tabCountsPoolCache = { adType, cityLabel, pool };
       this.applyTabCountsForCategory(cat, pool);
+      this.syncAdsListWithPool();
     } catch (e) {
       console.error('refreshSectionTabCounts', e);
+    } finally {
+      this.isLoadingPage = false;
     }
+  }
+
+  /**
+   * تحديث قائمة الإعلانات المعروضة (adsList) بناءً على التبويب الفرعي المختار
+   * من خلال مجمع الإعلانات (Pool) الموجود في الذاكرة.
+   */
+  private syncAdsListWithPool() {
+    if (!this.tabCountsPoolCache) return;
+    
+    const cat = this.selectedCategory;
+    let filtered = this.tabCountsPoolCache.pool;
+
+    // تصفية حسب القسم الفرعي المختار
+    if (cat === 'transportation' && this.selectedDeliveryCategory !== 'all') {
+      filtered = filtered.filter(a => a.category_id === this.selectedDeliveryCategory);
+    } else if (cat === 'education') {
+      if (this.selectedEducationStage !== 'all') {
+        filtered = filtered.filter(a => a.category_id === this.selectedEducationStage);
+      }
+      if (this.selectedEducationSubject !== 'all') {
+        filtered = filtered.filter(a => a?.details?.subject === this.selectedEducationSubject);
+      }
+    } else if (cat === 'other_services' && this.selectedOtherService !== 'all') {
+      filtered = filtered.filter(a => a.category_id === this.selectedOtherService);
+    } else if (cat === 'products') {
+      if (this.selectedProductCategory !== 'all') {
+        filtered = filtered.filter(a => a.category_id === this.selectedProductCategory);
+      }
+      if (this.selectedProductSubcategory !== 'all') {
+        filtered = filtered.filter(a => a.sub_category_name === this.selectedProductSubcategory);
+      }
+    } else if (cat === 'stores_types' && this.selectedStoreType !== 'all') {
+      filtered = filtered.filter(a => a.category_id === this.selectedStoreType);
+    }
+
+    this.adsList = this.sortForDisplay(filtered);
+    this.hasMore = false; // بما أننا جلبنا الكل في الـ Pool فلا نحتاج Infinite Scroll هنا
   }
 
   private tokenizeText(text: string): string[] {
@@ -813,13 +862,13 @@ export class HomePage implements OnInit, OnDestroy {
 
   // دالة معالجة سحب الشاشة لأسفل لعمل refresh
   async handleRefresh(event: any) {
-    console.log('جاري تحديث الصفحة...');
-    
-    // إعادة تحميل البيانات الحالية
-    setTimeout(() => {
-      console.log('تم تحديث الصفحة بنجاح');
-      event.target.complete();
-    }, 1000);
+    this.tabCountsPoolCache = null; // مسح الكاش لإجبار إعادة التحميل من الخادم
+    if (this.selectedCategory) {
+      await this.refreshSectionTabCounts();
+    } else if (this.searchText.length >= 2) {
+      await this.loadSearchResults();
+    }
+    event.target.complete();
   }
 
   /**

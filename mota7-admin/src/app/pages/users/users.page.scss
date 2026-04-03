@@ -4,6 +4,56 @@
   min-height: 100%;
 }
 
+/* --- Selection Toolbar --- */
+.selection-toolbar {
+  background: #ffffff;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eee;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideDown 0.3s ease-out;
+
+  .toolbar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .count-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      color: #333;
+
+      .count-badge {
+        background: #FF6B00;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+      }
+    }
+
+    .bulk-actions {
+      display: flex;
+      gap: 5px;
+      
+      ion-button {
+        --padding-start: 8px;
+        --padding-end: 8px;
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .search-sort-section {
   margin-bottom: 20px;
   display: flex;
@@ -71,14 +121,32 @@
 }
 
 .user-card-luxury {
-background: #ffffff;
-    border-radius: 22px;
-    padding: 5px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 14px;
-    box-shadow: 0px 0px 14px 6px rgb(0 0 0 / 83%);
-    border: 1px solid #f1f5f9;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+  box-shadow: 0px 0px 14px 6px rgb(0 0 0 / 83%);
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+  user-select: none; /* لمنع تحديد النص أثناء الضغط المطول */
+
+  &.is-selected {
+    border: 2px solid #FF6B00;
+    background: #fff9f5;
+    transform: scale(0.98);
+  }
+
+  .selection-checkbox {
+    margin-right: 12px;
+    margin-left: 5px;
+    ion-checkbox {
+      --size: 24px;
+      --checkbox-background-checked: #FF6B00;
+      --border-color: #ccc;
+    }
+  }
 
   .user-avatar {
     width: 52px; height: 52px;
@@ -92,7 +160,34 @@ background: #ffffff;
   .user-info {
     flex: 1;
     margin-right: 15px;
-    h3 { margin: 0; font-weight: 800; color: #000000; font-size: 1.2rem; }
+    
+    .name-date-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+
+      h3 { margin: 0; font-weight: 800; color: #000000; font-size: 1.2rem; }
+      
+      .user-creation-date {
+            display: flex;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 4px 4px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+        
+        ion-icon {
+          margin-left: 5px;
+          color: #FF6B00;
+          font-size: 14px;
+        }
+      }
+    }
+    
     p { margin: 4px 0; color: #000000; font-size: 1.1rem; font-weight: 700; }
     .badges-row { 
       display: flex; gap: 6px; margin-top: 3px; 

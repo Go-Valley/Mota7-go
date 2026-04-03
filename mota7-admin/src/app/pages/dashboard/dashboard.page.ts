@@ -19,7 +19,8 @@ import {
   logOutOutline,
   personRemoveOutline,
   checkmarkDoneCircle,
-  layersOutline
+  layersOutline,
+  chevronDownCircleOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -66,7 +67,8 @@ export class DashboardPage implements OnInit {
       logOutOutline,
       personRemoveOutline,
       checkmarkDoneCircle,
-      layersOutline
+      layersOutline,
+      'chevron-down-circle-outline': chevronDownCircleOutline
     });
   }
 

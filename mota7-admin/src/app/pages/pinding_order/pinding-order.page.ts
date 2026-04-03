@@ -15,7 +15,8 @@ import {
   locationOutline,
   personOutline,
   callOutline,
-  chevronBackOutline
+  chevronBackOutline,
+  chevronDownCircleOutline
 } from 'ionicons/icons';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
@@ -41,7 +42,8 @@ export class PindingOrderPage implements OnInit {
       logoWhatsapp, trashOutline, createOutline, 
       schoolOutline, carOutline, constructOutline, 
       calendarOutline, locationOutline, personOutline, callOutline,
-      chevronBackOutline
+      chevronBackOutline,
+      'chevron-down-circle-outline': chevronDownCircleOutline
     });
   }
 

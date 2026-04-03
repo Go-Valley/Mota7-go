@@ -1,0 +1,43 @@
+<app-mota7-header title="إعادة تصنيف إعلانات الترحيل" (backClick)="goBack()"></app-mota7-header>
+
+<ion-content class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>إعلانات mig_legacy_*</ion-card-title>
+      <ion-card-subtitle
+        >تصحيح category_id و other_match_key / delivery_match_key بنفس منطق استيراد الخدمات القديمة.</ion-card-subtitle
+      >
+    </ion-card-header>
+    <ion-card-content>
+      <p class="hint">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        يُفضّل وجود حقل <code>legacy_source</code> على المستند (يُملأ تلقائياً عند الاستيراد من التطبيق). للإعلانات القديمة
+        المصنّفة خطأً كـ «حدادة» فقط، يُستخدم احتياطياً تصنيف «مقاولات وتوريدات».
+      </p>
+
+      <ion-item lines="none">
+        <ion-checkbox slot="start" [(ngModel)]="dryRun"></ion-checkbox>
+        <ion-label>
+          <h3>وضع المحاكاة فقط</h3>
+          <p>اعرض الأعداد دون كتابة على Firestore</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-button expand="block" class="ion-margin-top" (click)="runReclassify()">
+        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+        {{ dryRun ? 'تشغيل محاكاة' : 'تطبيق التحديث' }}
+      </ion-button>
+
+      <div *ngIf="lastSummary" class="summary ion-margin-top">
+        <h4>آخر تشغيل</h4>
+        <ul>
+          <li>مستندات مطابقة للاستعلام: {{ lastSummary.scanned }}</li>
+          <li>ستُحدَّث / حُدِّثت: {{ lastSummary.updated }}</li>
+          <li>بدون تغيير: {{ lastSummary.unchanged }}</li>
+          <li>تُخطى (لا يُستنتج التصنيف): {{ lastSummary.skipUnresolved }}</li>
+          <li *ngIf="lastSummary.skipNotMigrated > 0">ليس mig_legacy: {{ lastSummary.skipNotMigrated }}</li>
+        </ul>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

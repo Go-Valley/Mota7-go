@@ -28,7 +28,10 @@ import {
   personOutline, ellipsisVerticalOutline, trashOutline, createOutline, 
   banOutline, ribbonOutline, starOutline, closeOutline, checkmarkCircleOutline,
   closeCircleOutline, searchOutline, // إضافة أيقونة البحث
-  funnelOutline
+  funnelOutline,
+  chevronDownCircleOutline,
+  chevronDownOutline,
+  calendarOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -55,13 +58,98 @@ export class UsersPage implements OnInit {
   searchQuery: string = '';   // نص البحث
   sortBy: string = 'createdAt'; // خيار الفرز الافتراضي
 
+  // --- متغيرات التحديد المتعدد ---
+  selectionMode = false;
+  selectedUserIds = new Set<string>();
+  private longPressTimer: any;
+  private readonly longPressDuration = 600;
+
   constructor() {
     addIcons({ 
       personOutline, ellipsisVerticalOutline, trashOutline, createOutline, 
       banOutline, ribbonOutline, starOutline, closeOutline, checkmarkCircleOutline,
       closeCircleOutline, searchOutline,
-      funnelOutline // إضافة أيقونة الفلتر/الفرز
+      funnelOutline, // إضافة أيقونة الفلتر/الفرز
+      'chevron-down-circle-outline': chevronDownCircleOutline,
+      'chevron-down-outline': chevronDownOutline,
+      'calendar-outline': calendarOutline
     });
+  }
+
+  // --- منطق التحديد والضغط المطول ---
+  onPointerDown(user: any) {
+    if (this.selectionMode) return;
+    this.longPressTimer = setTimeout(() => {
+      this.enterSelectionMode(user);
+    }, this.longPressDuration);
+  }
+
+  onPointerUp() {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+    }
+  }
+
+  private enterSelectionMode(user: any) {
+    this.selectionMode = true;
+    this.toggleUserSelection(user);
+  }
+
+  toggleUserSelection(user: any) {
+    if (this.selectedUserIds.has(user.id)) {
+      this.selectedUserIds.delete(user.id);
+      if (this.selectedUserIds.size === 0) {
+        this.exitSelectionMode();
+      }
+    } else {
+      this.selectedUserIds.add(user.id);
+    }
+  }
+
+  exitSelectionMode() {
+    this.selectionMode = false;
+    this.selectedUserIds.clear();
+  }
+
+  async confirmBulkDelete() {
+    const count = this.selectedUserIds.size;
+    const alert = await this.alertCtrl.create({
+      header: 'تأكيد الحذف الجماعي',
+      message: `هل أنت متأكد من حذف ${count} مستخدم نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'حذف الكل',
+          role: 'destructive',
+          handler: () => this.executeBulkDelete()
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async executeBulkDelete() {
+    const idsToDelete = Array.from(this.selectedUserIds);
+    try {
+      await runInInjectionContext(this.injector, async () => {
+        const batch = writeBatch(this.firestore);
+        idsToDelete.forEach(id => {
+          batch.delete(doc(this.firestore, 'users', id));
+        });
+        await batch.commit();
+      });
+      this.showToast(`تم حذف ${idsToDelete.length} مستخدم بنجاح`);
+      this.exitSelectionMode();
+    } catch (e) {
+      this.showToast('حدث خطأ أثناء الحذف الجماعي');
+    }
+  }
+
+  onUserClick(user: any) {
+    if (this.selectionMode) {
+      this.toggleUserSelection(user);
+    }
   }
 
   ngOnInit() {
@@ -102,26 +190,34 @@ export class UsersPage implements OnInit {
     list.sort((a, b) => {
       switch (this.sortBy) {
         case 'phone': {
-          const numA = parseInt(String(a.phone || '0').replace(/\D/g, '')) || 0;
-          const numB = parseInt(String(b.phone || '0').replace(/\D/g, '')) || 0;
-          return numA - numB; // من الأصغر للأكبر (تصاعدي)
+          const strA = String(a.phone || '').replace(/\D/g, '');
+          const strB = String(b.phone || '').replace(/\D/g, '');
+          return strA.localeCompare(strB); // ترتيب تصاعدي للأرقام
         }
         case 'createdAt': {
-          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || 0);
-          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || 0);
-          return dateB - dateA; // الأحدث أولاً (تنازلي)
+          const getTime = (val: any, fallbackVal: any) => {
+            const v = val || fallbackVal;
+            if (!v) return 0;
+            if (typeof v.toDate === 'function') return v.toDate().getTime(); // Firestore Timestamp
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? 0 : d.getTime(); // ISO String or Date
+          };
+          const timeA = getTime(a.createdAt, a.created_at);
+          const timeB = getTime(b.createdAt, b.created_at);
+          return timeB - timeA; // الأحدث أولاً (تنازلي)
         }
         case 'isActive': {
-          return (a.isActive === b.isActive) ? 0 : (a.isActive ? -1 : 1); // النشط أولاً
+          if (a.isActive === b.isActive) return 0;
+          return a.isActive ? -1 : 1; // النشط أولاً
         }
         case 'fullName': {
-          const nameA = (a.fullName || '').toLowerCase();
-          const nameB = (b.fullName || '').toLowerCase();
+          const nameA = (a.fullName || '').trim().toLowerCase();
+          const nameB = (b.fullName || '').trim().toLowerCase();
           return nameA.localeCompare(nameB, 'ar');
         }
         case 'city': {
-          const cityA = (a.city || '').toLowerCase();
-          const cityB = (b.city || '').toLowerCase();
+          const cityA = (a.city || '').trim().toLowerCase();
+          const cityB = (b.city || '').trim().toLowerCase();
           return cityA.localeCompare(cityB, 'ar');
         }
         default:

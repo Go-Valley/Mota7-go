@@ -1,11 +1,28 @@
 <app-mota7-header 
   title="إدارة المستخدمين" 
-  [showBackButton]="true" 
+  [showBackButton]="!selectionMode" 
   (backClick)="goBack()">
 </app-mota7-header>
 
+<div class="selection-toolbar" *ngIf="selectionMode">
+  <div class="toolbar-content">
+    <div class="count-box">
+      <span>تم تحديد</span>
+      <span class="count-badge">{{ selectedUserIds.size }}</span>
+    </div>
+    <div class="bulk-actions">
+      <ion-button fill="clear" color="danger" (click)="confirmBulkDelete()">
+        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" color="dark" (click)="exitSelectionMode()">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
+</div>
+
 <ion-content>
-  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)" *ngIf="!selectionMode">
     <ion-refresher-content 
       pullingIcon="chevron-down-circle-outline"
       pullingText="اسحب للتحديث"
@@ -16,7 +33,7 @@
 
   <div class="users-container">
     
-    <div class="search-sort-section">
+    <div class="search-sort-section" *ngIf="!selectionMode">
       <div class="search-bar-wrapper">
         <ion-icon name="search-outline" class="search-icon"></ion-icon>
         <input 
@@ -42,13 +59,31 @@
       </div>
     </div>
 
-    <div class="user-card-luxury" *ngFor="let user of filteredUsers">
-      <div class="user-avatar">
+    <div class="user-card-luxury" 
+         *ngFor="let user of filteredUsers" 
+         [class.is-selected]="selectedUserIds.has(user.id)"
+         (click)="onUserClick(user)"
+         (mousedown)="onPointerDown(user)"
+         (mouseup)="onPointerUp()"
+         (touchstart)="onPointerDown(user)"
+         (touchend)="onPointerUp()">
+      
+      <div class="selection-checkbox" *ngIf="selectionMode">
+        <ion-checkbox [checked]="selectedUserIds.has(user.id)" mode="ios"></ion-checkbox>
+      </div>
+
+      <div class="user-avatar" *ngIf="!selectionMode">
         <ion-icon name="person-outline"></ion-icon>
       </div>
 
       <div class="user-info">
-        <h3>{{ user.fullName || 'مستخدم غير معروف' }}</h3>
+        <div class="name-date-row">
+          <h3>{{ user.fullName || 'مستخدم غير معروف' }}</h3>
+          <div class="user-creation-date" *ngIf="user.createdAt || user.created_at">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>{{ (user.createdAt || user.created_at)?.toDate ? (user.createdAt || user.created_at).toDate() : (user.createdAt || user.created_at) | date:'yyyy-MM-dd' }}</span>
+          </div>
+        </div>
         <p>{{ user.phone }}</p>
         
         <div class="badges-row">
@@ -61,7 +96,7 @@
         </div>
       </div>
 
-      <ion-button fill="clear" color="dark" (click)="openArabicList(user)">
+      <ion-button fill="clear" color="dark" (click)="openArabicList(user); $event.stopPropagation()" *ngIf="!selectionMode">
         <ion-icon slot="icon-only" name="ellipsis-vertical-outline"></ion-icon>
       </ion-button>
     </div>

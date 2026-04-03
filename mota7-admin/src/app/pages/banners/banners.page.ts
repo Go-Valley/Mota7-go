@@ -13,6 +13,7 @@ import {
   checkmarkCircleOutline,
   closeCircleOutline,
   calendarOutline,
+  chevronDownCircleOutline
 } from 'ionicons/icons';
 import { Observable } from 'rxjs';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
@@ -61,6 +62,7 @@ export class BannersPage implements OnInit {
       checkmarkCircleOutline,
       closeCircleOutline,
       calendarOutline,
+      'chevron-down-circle-outline': chevronDownCircleOutline,
     });
   }
 

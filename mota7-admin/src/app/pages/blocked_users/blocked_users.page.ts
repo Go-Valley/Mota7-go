@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, orderBy, Timestamp } from '@angular/fire/firestore';
 import { addIcons } from 'ionicons';
-import { personRemoveOutline, addOutline, trashOutline, callOutline, timeOutline, documentTextOutline, chevronForwardOutline, shieldHalfOutline } from 'ionicons/icons';
+import { personRemoveOutline, addOutline, trashOutline, callOutline, timeOutline, documentTextOutline, chevronForwardOutline, shieldHalfOutline, chevronDownCircleOutline } from 'ionicons/icons';
 import { Observable } from 'rxjs';
 // استيراد الهيدر الخاص بمتاح
 import { Mota7HeaderComponent } from '../../mota7-header/header';
@@ -26,7 +26,7 @@ export class BlockedUsersPage implements OnInit {
   blockedUsers$: Observable<any[]> | undefined;
 
   constructor() {
-    addIcons({ personRemoveOutline, addOutline, trashOutline, callOutline, timeOutline, documentTextOutline, chevronForwardOutline, shieldHalfOutline });
+    addIcons({ personRemoveOutline, addOutline, trashOutline, callOutline, timeOutline, documentTextOutline, chevronForwardOutline, shieldHalfOutline, 'chevron-down-circle-outline': chevronDownCircleOutline });
   }
 
   ngOnInit() {
