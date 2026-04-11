@@ -8,6 +8,7 @@
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
+@import "theme/service-cta";
 
 :root {
   --ion-statusbar-padding: env(safe-area-inset-top);

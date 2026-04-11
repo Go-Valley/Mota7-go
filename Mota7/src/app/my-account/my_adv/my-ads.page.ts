@@ -10,11 +10,21 @@ import { Auth, onAuthStateChanged } from '@angular/fire/auth';
 import { addIcons } from 'ionicons';
 import { Mota7HeaderComponent } from '../../top_header/header';
 import { FormsModule } from '@angular/forms';
-import { 
-  rocketOutline, addCircleOutline, arrowForwardOutline, 
-  callOutline, personOutline, locationOutline, chevronForwardOutline,
-  documentTextOutline, createOutline, personCircle, gridOutline, carSportOutline,
-  sparklesOutline
+import {
+  rocketOutline,
+  addCircleOutline,
+  arrowForwardOutline,
+  callOutline,
+  personOutline,
+  locationOutline,
+  chevronForwardOutline,
+  documentTextOutline,
+  createOutline,
+  personCircle,
+  gridOutline,
+  carSportOutline,
+  sparklesOutline,
+  megaphoneOutline,
 } from 'ionicons/icons';
 
 // الكروت والعمليات
@@ -70,11 +80,21 @@ export class MyAdsPage implements OnInit, OnDestroy {
   hasAds: boolean = false; 
 
   constructor() {
-    addIcons({ 
-      rocketOutline, addCircleOutline, arrowForwardOutline, 
-      callOutline, personOutline, locationOutline, chevronForwardOutline,
-      documentTextOutline, createOutline, personCircle, gridOutline, carSportOutline,
-      sparklesOutline
+    addIcons({
+      rocketOutline,
+      addCircleOutline,
+      arrowForwardOutline,
+      callOutline,
+      personOutline,
+      locationOutline,
+      chevronForwardOutline,
+      documentTextOutline,
+      createOutline,
+      personCircle,
+      gridOutline,
+      carSportOutline,
+      sparklesOutline,
+      'megaphone-outline': megaphoneOutline,
     });
   }
 

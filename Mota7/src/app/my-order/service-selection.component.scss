@@ -33,12 +33,12 @@
   .card-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between; // توزيع المحتوى على الطرفين
+    justify-content: space-between;
     background: #ffffff;
     border-radius: 24px;
-    padding: 20px;
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    padding: 15px;
+    border: 2px solid #001081;
+    box-shadow: 0 10px 11px #000000;
     transition: 0.3s all ease;
     
     &:active {

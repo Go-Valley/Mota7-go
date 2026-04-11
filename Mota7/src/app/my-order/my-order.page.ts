@@ -3,7 +3,7 @@ import { NavController, ModalController, AlertController } from '@ionic/angular'
 import { addIcons } from 'ionicons';
 import {
   chevronForwardOutline,
-  searchOutline,
+  briefcaseOutline,
   sparklesOutline,
   carOutline,
   schoolOutline,
@@ -60,7 +60,7 @@ export class MyOrderPage implements OnInit, OnDestroy {
   ) {
     addIcons({
       'chevron-forward-outline': chevronForwardOutline,
-      'search-outline': searchOutline,
+      'briefcase-outline': briefcaseOutline,
       'sparkles-outline': sparklesOutline,
       'close-outline': closeOutline,
       'time-outline': timeOutline,

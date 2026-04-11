@@ -98,6 +98,20 @@ export class HomePage implements OnInit, OnDestroy {
   isLoadingSearch: boolean = false;
   searchResults$: Observable<any[]> | undefined;
   searchText: string = ''; // سيتم ربطه بـ ngModel في الـ HTML
+  private searchQueryTokens: string[] = [];
+  private readonly searchSynonymGroupsRaw: string[][] = [
+    ['توصيل', 'نقل', 'مشوار', 'سواق', 'سائق', 'سياره', 'سيارة', 'تاكسي', 'تكسي', 'delivery', 'transport'],
+    ['تعليم', 'تعليمي', 'مدرس', 'مدرسه', 'مدرسة', 'ماده', 'مادة', 'درس', 'دروس', 'education', 'teacher', 'tutor'],
+    ['منتج', 'منتجات', 'بيع', 'شراء', 'سعر', 'بضاعه', 'بضاعة', 'product', 'products', 'item'],
+    ['متجر', 'متاجر', 'سوبر', 'ماركت', 'محل', 'محلات', 'سوق', 'store', 'market', 'shop'],
+    ['خدمه', 'خدمة', 'خدمات', 'صيانة', 'تصليح', 'تركيب', 'service', 'services', 'repair'],
+    ['دليفري', 'ديليفري', 'delivery'],
+    ['واتساب', 'whatsapp', 'واتس', 'wts'],
+    ['القاهره', 'القاهرة', 'cairo'],
+    ['اسكندريه', 'الاسكندريه', 'الإسكندرية', 'alex', 'alexandria'],
+  ];
+  private searchSynonymGroups: string[][] = [];
+  private searchHaystackCache = new Map<string, { haystack: string; words: string[] }>();
 
   // --- متغيرات زر المدينة ---
   showCityPopover: boolean = false;
@@ -153,6 +167,9 @@ export class HomePage implements OnInit, OnDestroy {
       basket, bandage, restaurant, shirt, tv, hammer, bed, bicycle, bus,
       medkit, 'hardware-chip': hardwareChip,
     });
+    this.searchSynonymGroups = this.searchSynonymGroupsRaw.map((group) =>
+      Array.from(new Set(group.map((g) => this.normalizeText(g)).filter(Boolean)))
+    );
   }
 
   ngOnDestroy(): void {
@@ -390,6 +407,8 @@ export class HomePage implements OnInit, OnDestroy {
   clearSearch() {
     this.searchText = '';
     this.searchResults$ = undefined;
+    this.searchQueryTokens = [];
+    this.searchHaystackCache.clear();
   }
 
   onGlobalClick() {
@@ -403,6 +422,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.searchLastVisible = null;
     this.searchHasMore = true;
     this.isLoadingSearch = false;
+    this.searchHaystackCache.clear();
+    this.searchQueryTokens = this.tokenizeText(this.searchText);
     await this.fetchSearchPageSearch();
   }
 
@@ -637,27 +658,25 @@ export class HomePage implements OnInit, OnDestroy {
   private tokenizeText(text: string): string[] {
     const normalized = this.normalizeText(text);
     if (!normalized) return [];
-    const tokens = normalized.split(' ').filter(t => t.length >= 2);
+    const tokens = normalized
+      .split(' ')
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 1);
     return Array.from(new Set(tokens));
   }
 
-  private expandTokens(tokens: string[]): string[] {
-    const groups = [
-      ['توصيل', 'نقل', 'مشوار', 'سواق', 'سائق', 'سياره', 'سيارة', 'تاكسي', 'تكسي'],
-      ['تعليم', 'تعليمي', 'مدرس', 'مدرسه', 'مدرسة', 'ماده', 'مادة', 'درس', 'دروس'],
-      ['منتج', 'منتجات', 'بيع', 'شراء', 'سعر', 'بضاعه', 'بضاعة'],
-      ['متجر', 'متاجر', 'سوبر', 'ماركت', 'محل', 'محلات', 'سوق'],
-      ['خدمه', 'خدمة', 'خدمات', 'صيانة', 'تصليح', 'تركيب']
-    ].map(group => group.map(g => this.normalizeText(g)));
-
-    const expanded = new Set<string>(tokens);
-    for (const tk of tokens) {
-      for (const group of groups) {
-        if (group.some(g => tk.includes(g) || g.includes(tk))) {
-          group.forEach(g => expanded.add(g));
-        }
+  private expandTokenAlternatives(token: string): string[] {
+    const tk = this.normalizeText(token);
+    if (!tk) return [];
+    const expanded = new Set<string>([tk]);
+    for (const group of this.searchSynonymGroups) {
+      if (group.some((g) => g === tk || g.includes(tk) || tk.includes(g))) {
+        group.forEach((g) => expanded.add(g));
       }
     }
+    // صيغة مع/بدون "ال" التعريف
+    if (tk.startsWith('ال') && tk.length > 3) expanded.add(tk.slice(2));
+    if (!tk.startsWith('ال') && tk.length > 2) expanded.add(`ال${tk}`);
     return Array.from(expanded);
   }
 
@@ -737,49 +756,113 @@ export class HomePage implements OnInit, OnDestroy {
     return data.join(' ');
   }
 
-  private isCloseMatch(a: string, b: string): boolean {
-    if (a.length < 4 || b.length < 4) return false;
-    if (Math.abs(a.length - b.length) > 1) return false;
-    let i = 0;
-    let j = 0;
-    let edits = 0;
-    while (i < a.length && j < b.length) {
-      if (a[i] === b[j]) {
-        i++;
-        j++;
-        continue;
+  private editDistance(a: string, b: string, maxDistance = 2): number {
+    if (a === b) return 0;
+    const al = a.length;
+    const bl = b.length;
+    if (Math.abs(al - bl) > maxDistance) return maxDistance + 1;
+    if (!al) return bl;
+    if (!bl) return al;
+
+    const prev = new Array<number>(bl + 1);
+    const curr = new Array<number>(bl + 1);
+    for (let j = 0; j <= bl; j++) prev[j] = j;
+
+    for (let i = 1; i <= al; i++) {
+      curr[0] = i;
+      let rowMin = curr[0];
+      for (let j = 1; j <= bl; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(
+          prev[j] + 1,
+          curr[j - 1] + 1,
+          prev[j - 1] + cost
+        );
+        if (curr[j] < rowMin) rowMin = curr[j];
       }
-      edits++;
-      if (edits > 1) return false;
-      if (a.length > b.length) {
-        i++;
-      } else if (b.length > a.length) {
-        j++;
-      } else {
-        i++;
-        j++;
-      }
+      if (rowMin > maxDistance) return maxDistance + 1;
+      for (let j = 0; j <= bl; j++) prev[j] = curr[j];
     }
-    if (i < a.length || j < b.length) edits++;
-    return edits <= 1;
+    return prev[bl];
   }
 
-  private tokenMatches(token: string, haystack: string, haystackWords: string[]): boolean {
-    if (!token) return true;
-    if (haystack.includes(token)) return true;
-    for (const word of haystackWords) {
-      if (word.includes(token) || token.includes(word)) return true;
-      if (this.isCloseMatch(token, word)) return true;
-    }
-    return false;
-  }
+  private getSearchIndexForAd(ad: any): { haystack: string; words: string[] } {
+    const adId = String(ad?.id || ad?.ad_id || '');
+    const cacheKey = adId || JSON.stringify([ad?.ad_type, ad?.owner_name, ad?.city, ad?.category_id]);
+    const cached = this.searchHaystackCache.get(cacheKey);
+    if (cached) return cached;
 
-  private matchesSearch(ad: any, term: string): boolean {
-    const tokens = this.expandTokens(this.tokenizeText(term));
-    if (tokens.length === 0) return true;
     const haystack = this.normalizeText(this.buildSearchHaystack(ad));
-    const haystackWords = haystack ? haystack.split(' ').filter(Boolean) : [];
-    return tokens.every((tk: string) => this.tokenMatches(tk, haystack, haystackWords));
+    const words = haystack ? Array.from(new Set(haystack.split(' ').filter(Boolean))) : [];
+    const payload = { haystack, words };
+    this.searchHaystackCache.set(cacheKey, payload);
+    return payload;
+  }
+
+  private tokenMatchScore(token: string, haystack: string, haystackWords: string[]): number {
+    if (!token) return 0;
+    const alternatives = this.expandTokenAlternatives(token);
+    let bestScore = 0;
+
+    for (const alt of alternatives) {
+      if (!alt) continue;
+      if (
+        haystack.includes(` ${alt} `) ||
+        haystack.startsWith(`${alt} `) ||
+        haystack.endsWith(` ${alt}`) ||
+        haystack === alt
+      ) {
+        bestScore = Math.max(bestScore, 120);
+      } else if (haystack.includes(alt)) {
+        bestScore = Math.max(bestScore, 95);
+      }
+
+      for (const word of haystackWords) {
+        if (!word) continue;
+        if (word === alt) {
+          bestScore = Math.max(bestScore, 125);
+          continue;
+        }
+        if (word.startsWith(alt) || alt.startsWith(word)) {
+          bestScore = Math.max(bestScore, 90);
+          continue;
+        }
+        if (word.includes(alt) || alt.includes(word)) {
+          bestScore = Math.max(bestScore, 70);
+          continue;
+        }
+        const distance = this.editDistance(alt, word, 2);
+        if (distance <= 1) {
+          bestScore = Math.max(bestScore, 65);
+        } else if (distance === 2 && alt.length >= 5 && word.length >= 5) {
+          bestScore = Math.max(bestScore, 45);
+        }
+      }
+    }
+
+    return bestScore;
+  }
+
+  private computeAdSearchScore(ad: any, tokens: string[]): number {
+    if (!tokens.length) return 0;
+    const { haystack, words } = this.getSearchIndexForAd(ad);
+    if (!haystack) return 0;
+
+    let total = 0;
+    let matchedTokens = 0;
+    for (const token of tokens) {
+      const tokenScore = this.tokenMatchScore(token, haystack, words);
+      if (tokenScore > 0) {
+        matchedTokens++;
+        total += tokenScore;
+      }
+    }
+    if (matchedTokens === 0) return 0;
+
+    const coverage = matchedTokens / tokens.length;
+    if (coverage < 0.55) return 0;
+    const coverageBoost = coverage >= 1 ? 1.25 : coverage >= 0.8 ? 1.1 : 1;
+    return Math.round(total * coverageBoost);
   }
 
   private getStaticName(id: string): string {
@@ -819,13 +902,23 @@ export class HomePage implements OnInit, OnDestroy {
         const data: any = d.data() as any;
         return Object.assign({ id: d.id }, data || {});
       });
-      const filtered = pageAds.filter((ad: any) =>
-        ad.status === 'active' &&
-        this.isCityMatch(ad.city) &&
-        this.matchesSearch(ad, this.searchText)
-      );
-      const merged = [...this.searchList, ...filtered];
-      this.searchList = sortHomeFeedAdsForDisplay(merged);
+      const queryTokens = this.searchQueryTokens.length
+        ? this.searchQueryTokens
+        : this.tokenizeText(this.searchText);
+      const scored = pageAds
+        .filter((ad: any) => ad.status === 'active' && this.isCityMatch(ad.city))
+        .map((ad: any) => ({ ad, score: this.computeAdSearchScore(ad, queryTokens) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((x) => x.ad);
+
+      const merged = [...this.searchList, ...scored];
+      const dedupMap = new Map<string, any>();
+      for (const ad of merged) {
+        const id = String(ad?.id || ad?.ad_id || '');
+        if (!id || !dedupMap.has(id)) dedupMap.set(id || JSON.stringify(ad), ad);
+      }
+      this.searchList = sortHomeFeedAdsForDisplay(Array.from(dedupMap.values()));
       if (pageDocs.length < 20) this.searchHasMore = false;
     } catch (err) {
       console.error('Error fetching search page:', err);

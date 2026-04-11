@@ -1,35 +1,57 @@
 <div class="store-icon-card" *ngIf="ad" [appAdImpressionTrack]="ad.id || ad.ad_id">
-  <div class="store-circle" (click)="toggleProducts($event)">
-    <div class="store-circle-frame">
-      <img [src]="storeLogoThumb()"
-           loading="lazy"
-           decoding="async"
-           (error)="$any($event.target).src = 'assets/mota7.png'"
-           alt="لوجو المتجر">
+  <div class="store-logo-row" dir="rtl">
+    <button
+      type="button"
+      class="store-contact-btn store-contact-btn--call"
+      *ngIf="hasStoreContact"
+      (click)="contactAction('call', $event)"
+      aria-label="اتصال هاتفي"
+    >
+      <ion-icon name="call" aria-hidden="true"></ion-icon>
+    </button>
+
+    <div class="store-circle" (click)="toggleProducts($event)">
+      <div class="store-circle-frame">
+        <img [src]="storeLogoThumb()"
+             loading="lazy"
+             decoding="async"
+             (error)="$any($event.target).src = 'assets/mota7.png'"
+             alt="لوجو المتجر">
+      </div>
+
+      <div
+        class="verification-badge"
+        *ngIf="ad.verification_level && ad.verification_level !== 'none'"
+        [ngClass]="ad.verification_level"
+      >
+        <img
+          loading="lazy"
+          decoding="async"
+          src="assets/gold.avif"
+          *ngIf="ad.verification_level === 'gold'"
+          class="verify-img"
+          alt="شارة التحقق الذهبية"
+          title="متجر موثَّق - ذهبية">
+        <img
+          loading="lazy"
+          decoding="async"
+          src="assets/blue.webp"
+          *ngIf="ad.verification_level === 'blue'"
+          class="verify-img"
+          alt="شارة التحقق الزرقاء"
+          title="متجر موثَّق - زرقاء">
+      </div>
     </div>
 
-    <div
-      class="verification-badge"
-      *ngIf="ad.verification_level && ad.verification_level !== 'none'"
-      [ngClass]="ad.verification_level"
+    <button
+      type="button"
+      class="store-contact-btn store-contact-btn--whatsapp"
+      *ngIf="hasStoreContact"
+      (click)="contactAction('whatsapp', $event)"
+      aria-label="واتساب"
     >
-      <img
-        loading="lazy"
-        decoding="async"
-        src="assets/gold.avif"
-        *ngIf="ad.verification_level === 'gold'"
-        class="verify-img"
-        alt="شارة التحقق الذهبية"
-        title="متجر موثَّق - ذهبية">
-      <img
-        loading="lazy"
-        decoding="async"
-        src="assets/blue.webp"
-        *ngIf="ad.verification_level === 'blue'"
-        class="verify-img"
-        alt="شارة التحقق الزرقاء"
-        title="متجر موثَّق - زرقاء">
-    </div>
+      <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+    </button>
   </div>
 
   <div class="store-name">{{ ad.store_name }}</div>

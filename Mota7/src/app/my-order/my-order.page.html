@@ -15,12 +15,21 @@
     </div>
 
     <div class="action-container">
-      <button type="button" class="mota7-main-btn" (click)="openServiceSelection()">
-        <div class="btn-content">
-          <ion-icon name="search-outline"></ion-icon>
-          <span>محتاج تطلب إيه؟</span>
+      <ion-button
+        expand="block"
+        class="service-cta service-cta--order"
+        (click)="openServiceSelection()"
+      >
+        <div class="service-cta__row">
+          <div class="service-cta__icon" aria-hidden="true">
+            <ion-icon name="briefcase-outline"></ion-icon>
+          </div>
+          <div class="service-cta__copy">
+            <span class="service-cta__title">محتاج تطلب إيه؟</span>
+            <span class="service-cta__sub">ابدأ طلبك بخطوة واحدة</span>
+          </div>
         </div>
-      </button>
+      </ion-button>
     </div>
 
     <div class="recent-requests" *ngIf="hasActiveRequest && activeOrders.length > 0">

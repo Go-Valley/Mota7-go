@@ -8,7 +8,17 @@ import {
   runInInjectionContext,
 } from '@angular/core';
 import { addIcons } from 'ionicons';
-import { personOutline, homeOutline, addCircleOutline, person, home, addCircle, closeOutline } from 'ionicons/icons';
+import {
+  personOutline,
+  homeOutline,
+  addCircleOutline,
+  person,
+  home,
+  addCircle,
+  closeOutline,
+  briefcaseOutline,
+  megaphoneOutline,
+} from 'ionicons/icons';
 import { NavController } from '@ionic/angular';
 import { Auth, authState } from '@angular/fire/auth';
 
@@ -31,14 +41,16 @@ export class TabsPage implements OnInit {
   private pendingNavigation: string | null = null;
 
   constructor() {
-    addIcons({ 
-      'person-outline': personOutline, 
-      'home-outline': homeOutline, 
+    addIcons({
+      'person-outline': personOutline,
+      'home-outline': homeOutline,
       'add-circle-outline': addCircleOutline,
-      'person': person, 
-      'home': home, 
+      person: person,
+      home: home,
       'add-circle': addCircle,
-      'close-outline': closeOutline
+      'close-outline': closeOutline,
+      'briefcase-outline': briefcaseOutline,
+      'megaphone-outline': megaphoneOutline,
     });
   }
 

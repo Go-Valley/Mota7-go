@@ -48,6 +48,7 @@ import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
 } from 'src/app/core/utils/order-lifecycle.firestore';
+import { attachProviderAdIdToOrder } from 'src/app/core/utils/order-provider-rating.firestore';
 import {
   presentProviderRatesCustomerModal,
   releaseProviderRatesCustomerRatingPromptReservation,
@@ -586,6 +587,13 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
           providerUID: user?.uid
         })
       );
+      void attachProviderAdIdToOrder(this.injector, this.firestore, this.order.id, {
+        ...this.order,
+        providerId: this.providerId,
+        providerPhone: this.providerId,
+        serviceType: 'delivery',
+        status: 'accepted',
+      });
       this.order.status = 'accepted';
       this.order.acceptedAt = Timestamp.now();
       this.order.providerName = finalName;

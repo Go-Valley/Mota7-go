@@ -54,8 +54,8 @@ export class StoreHomeCardComponent implements OnInit {
 
   constructor() {
     addIcons({
-      logoWhatsapp,
       call,
+      'logo-whatsapp': logoWhatsapp,
       checkmarkCircle,
       ribbon,
       shieldCheckmark,
@@ -77,6 +77,12 @@ export class StoreHomeCardComponent implements OnInit {
   storeLogoThumb(): string {
     const u = cloudinaryListThumbnailUrl(this.ad?.logo || '');
     return u || 'assets/mota7.png';
+  }
+
+  /** رقم للتواصل (واتساب أو هاتف المالك) */
+  get hasStoreContact(): boolean {
+    const p = this.ad?.whatsapp_phone ?? this.ad?.owner_phone;
+    return typeof p === 'string' ? p.trim().length > 0 : !!p;
   }
 
   async toggleProducts(event?: Event) {
@@ -157,8 +163,9 @@ export class StoreHomeCardComponent implements OnInit {
 
   async contactAction(type: 'whatsapp' | 'call', event?: Event) {
     if (event) event.stopPropagation();
-    const phone = this.ad?.whatsapp_phone || this.ad?.owner_phone;
-    if (!phone) return;
+    const raw = this.ad?.whatsapp_phone || this.ad?.owner_phone;
+    if (raw == null || String(raw).trim() === '') return;
+    const phone = String(raw).replace(/\s/g, '');
     await this.trackContactClick(this.ad, type);
 
     if (type === 'whatsapp') {

@@ -48,8 +48,20 @@
           <div class="section-item">خدمة توصيل</div>
           <div class="section-item">خدمة تعليمية</div>
           <div class="section-item">خدمات حرفية ومتنوعة</div>
-          <ion-button expand="block" class="service-action-btn" (click)="goToServiceOrder()">
-            اضغط هنا -  لطلب خدمة
+          <ion-button
+            expand="block"
+            class="service-cta service-cta--order"
+            (click)="goToServiceOrder()"
+          >
+            <div class="service-cta__row">
+              <div class="service-cta__icon" aria-hidden="true">
+                <ion-icon name="briefcase-outline"></ion-icon>
+              </div>
+              <div class="service-cta__copy">
+                <span class="service-cta__title">طلب خدمة</span>
+                <span class="service-cta__sub">ابدأ طلبك بخطوة واحدة</span>
+              </div>
+            </div>
           </ion-button>
         </div>
 
@@ -61,8 +73,20 @@
           <div class="section-item">منتج</div>
           <div class="section-item">متجر</div>
           <div class="section-note">افتح حساب جديد أو سجل دخولك , وانشر إعلانك فورا ..</div>
-          <ion-button expand="block" class="service-action-btn" (click)="goToAdvertiseNow()">
-            اضغط هنا -  لنشر اعلان
+          <ion-button
+            expand="block"
+            class="service-cta service-cta--ad"
+            (click)="goToAdvertiseNow()"
+          >
+            <div class="service-cta__row">
+              <div class="service-cta__icon" aria-hidden="true">
+                <ion-icon name="megaphone-outline"></ion-icon>
+              </div>
+              <div class="service-cta__copy">
+                <span class="service-cta__title">نشر إعلان</span>
+                <span class="service-cta__sub">اعرض خدمتك أو منتجك بسرعة</span>
+              </div>
+            </div>
           </ion-button>
         </div>
       </div>

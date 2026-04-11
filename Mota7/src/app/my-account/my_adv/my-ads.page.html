@@ -44,12 +44,22 @@
     </div>
 
     <div class="cta-container">
-      <button class="modern-add-btn" [disabled]="!acct.accountUsable()" (click)="openAddAdModal()">
-        <div class="btn-inner">
-          <ion-icon name="add-circle-outline"></ion-icon>
-          <span>إضافة إعلان جديد</span>
+      <ion-button
+        expand="block"
+        class="service-cta service-cta--ad"
+        [disabled]="!acct.accountUsable()"
+        (click)="openAddAdModal()"
+      >
+        <div class="service-cta__row">
+          <div class="service-cta__icon" aria-hidden="true">
+            <ion-icon name="megaphone-outline"></ion-icon>
+          </div>
+          <div class="service-cta__copy">
+            <span class="service-cta__title">إضافة إعلان جديد</span>
+            <span class="service-cta__sub">اعرض خدمتك أو منتجك بسرعة</span>
+          </div>
         </div>
-      </button>
+      </ion-button>
     </div>
 
     <ion-segment [(ngModel)]="selectedTab" mode="ios" class="custom-segment">

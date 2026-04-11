@@ -1,0 +1,105 @@
+/* Shared primary CTAs — same look as tabs modal «طلب خدمة» / «نشر إعلان» */
+
+.service-cta {
+  --border-width: 0;
+  --border-radius: 20px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-top: 10px;
+  margin-inline: 2px;
+  min-height: 64px;
+  height: auto;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: visible;
+
+  &::part(native) {
+    padding: 1px 1px;
+    min-height: 64px;
+    border-radius: 20px;
+    overflow: hidden;
+    transition:
+      transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1),
+      filter 0.2s ease;
+  }
+
+  &:active::part(native) {
+    transform: scale(0.985);
+    filter: brightness(0.97);
+  }
+
+  .service-cta__row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+    min-height: 36px;
+  }
+
+  .service-cta__icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: inset 1px 0px 1px #000000, 0 0px 9px #000000;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    ion-icon {
+      font-size: 26px;
+      color: #ffffff;
+    }
+  }
+
+  .service-cta__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: start;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .service-cta__title {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1.7;
+    color: #ffffff;
+    text-shadow: 0 1px 1px #000000;
+  }
+
+  .service-cta__sub {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+.service-cta--order {
+  --background: linear-gradient(135deg, #ff9800ff 0%, #ffb342 52%, #ff9800ff 100%);
+  --background-activated: linear-gradient(135deg, #1d4ed8 0%, #4338ca 55%, #6d28d9 100%);
+  --background-hover: linear-gradient(135deg, #666 0%, #666 50%, #666 100%);
+  --box-shadow: 0 1px 0 rgba(255, 107, 0, 0.15) inset, 0 1px 1px #666, 0 1px 5px #666, 0 5px 0 #666;
+  --ripple-color: rgba(255, 107, 0, 0.15);
+}
+
+.service-cta--ad {
+  --background: linear-gradient(135deg, #191970ff 0%, #243df3 48%, #191970ff 100%);
+  --background-activated: linear-gradient(135deg, #115e59 0%, #047857 52%, #059669 100%);
+  --background-hover: linear-gradient(135deg, #14b8a6 0%, #10b981 50%, #34d399 100%);
+  --box-shadow: 0 1px 0 rgba(255, 107, 0, 0.15) inset, 0 1px 1px #666, 0 1px 5px #666, 0 5px 0 #666;
+  --ripple-color: rgb(211 0 0);}

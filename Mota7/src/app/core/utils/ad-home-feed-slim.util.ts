@@ -91,5 +91,11 @@ export function slimAdForHomeFeed(ad: any, adType: string): any {
   if (clone.details && typeof clone.details === 'object') {
     clone.details = slimGenericDetails(clone.details as Record<string, unknown>);
   }
+  /* يظهر متوسط التقييم في الرئيسية من حقول الإعلان — لا تُحذف عند التقليص */
+  if (adType === 'delivery' || adType === 'education' || adType === 'other') {
+    clone.provider_service_rating_count = ad.provider_service_rating_count;
+    clone.provider_service_rating_sum = ad.provider_service_rating_sum;
+    clone.last_provider_rating = ad.last_provider_rating;
+  }
   return clone;
 }

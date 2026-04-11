@@ -344,8 +344,8 @@
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.85);
-      border: 1.5px solid rgb(191 191 255);
-      box-shadow: 4px -3px 12px 0px rgba(83, 89, 124, 0.6);
+      border: .5px solid rgb(191, 191, 255);
+      box-shadow: 2px -3px 4px 1px #666;
       transition: transform 0.25s ease;
 
       ion-icon {
