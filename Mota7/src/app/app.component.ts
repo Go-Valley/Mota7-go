@@ -18,7 +18,7 @@ import { UserAccountStatusService } from './my-account/user-account-status.servi
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
-const NATIVE_LAUNCH_LOGO_MIN_MS = 4000;
+const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
 
 @Component({
   selector: 'app-root',

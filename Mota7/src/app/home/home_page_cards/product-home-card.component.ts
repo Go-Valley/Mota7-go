@@ -24,6 +24,8 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
 })
 export class ProductHomeCardComponent implements OnInit {
   @Input() ad: any;
+  /** يمنع تكدّس مودالات تفاصيل المنتج عند النقر المتكرر على الكارت */
+  private productDetailsModalBusy = false;
   private modalCtrl = inject(ModalController);
   private analytics = inject(Analytics, { optional: true });
   private firestore = inject(Firestore);
@@ -66,30 +68,39 @@ export class ProductHomeCardComponent implements OnInit {
   }
 
   async openProductDetails() {
-    const id = this.ad?.id;
-    let adForModal = this.ad;
-    if (id && this.ad?._feedSlim) {
-      try {
-        const snap = await runInInjectionContext(this.injector, () =>
-          getDoc(doc(this.firestore, 'ads', id))
-        );
-        if (snap.exists()) {
-          adForModal = Object.assign({ id: snap.id }, snap.data());
-        }
-      } catch (e) {
-        console.error('openProductDetails fetch full ad', e);
-      }
+    if (this.productDetailsModalBusy) {
+      return;
     }
-    const modal = await this.modalCtrl.create({
-      component: ProductDetailsComponent,
-      componentProps: {
-        ad: adForModal,
-        ownerName: this.displayName,
-      },
-      mode: 'ios',
-      cssClass: 'mota7-global-modal',
-    });
-    return await modal.present();
+    this.productDetailsModalBusy = true;
+    try {
+      const id = this.ad?.id;
+      let adForModal = this.ad;
+      if (id && this.ad?._feedSlim) {
+        try {
+          const snap = await runInInjectionContext(this.injector, () =>
+            getDoc(doc(this.firestore, 'ads', id))
+          );
+          if (snap.exists()) {
+            adForModal = Object.assign({ id: snap.id }, snap.data());
+          }
+        } catch (e) {
+          console.error('openProductDetails fetch full ad', e);
+        }
+      }
+      const modal = await this.modalCtrl.create({
+        component: ProductDetailsComponent,
+        componentProps: {
+          ad: adForModal,
+          ownerName: this.displayName,
+        },
+        mode: 'ios',
+        cssClass: 'mota7-global-modal',
+      });
+      await modal.present();
+      await modal.onDidDismiss();
+    } finally {
+      this.productDetailsModalBusy = false;
+    }
   }
 
   async trackContactClick(ad: any, type: 'call' | 'whatsapp') {
