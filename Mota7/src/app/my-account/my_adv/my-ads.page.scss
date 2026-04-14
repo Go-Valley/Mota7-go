@@ -5,31 +5,6 @@
   --danger: #ff3b30;
 }
 
-// تنسيق السجمينت الجديد (الإصلاح البصري)
-.custom-segment {
-  background: #f0f0f0;
-  border-radius: 16px;
-  padding: 4px;
-  margin: 10px 0 20px 0;
-
-  ion-segment-button {
-    --indicator-color: #ffffff;
-    --color: #666;
-    --color-checked: #ec840c;
-    --border-radius: 12px;
-    font-weight: 700;
-    min-height: 45px;
-
-    ion-label {
-      font-size: 0.9rem;
-      margin-bottom: 2px;
-    }
-    ion-icon {
-      font-size: 1.2rem;
-    }
-  }
-}
-
 .main-wrapper {
   padding: 15px;
   background: linear-gradient(165deg, #eef1f6 0%, #f8f9fa 45%, #f0f2f8 100%);

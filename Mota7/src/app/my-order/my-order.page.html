@@ -32,6 +32,13 @@
       </ion-button>
     </div>
 
+    <p
+      class="empty-orders-message"
+      *ngIf="customerPhone && ordersQuerySettled && !hasActiveRequest"
+    >
+      لا توجد طلبات نشطة حالياً برقمك
+    </p>
+
     <div class="recent-requests" *ngIf="hasActiveRequest && activeOrders.length > 0">
       <h3 class="section-label">طلباتك الحالية</h3>
       

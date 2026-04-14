@@ -6,12 +6,7 @@ import { MyOrderPage } from './my-order.page';
 import { ExploreContainerComponentModule } from '../explore-container/explore-container.module';
 
 import { MyOrderPageRoutingModule } from './my-order-routing.module';
-
-// استيراد المكونات الرئيسية (النماذج)
-import { ServiceSelectionComponent } from './service-selection.component';
-import { DeliveryServiceComponent } from './delivery-service/delivery-service.component';
-import { EducationalServiceComponent } from './educational-service/educational-service.component';
-import { OtherServiceComponent } from './other-service/other-service.component';
+import { ServiceRequestModalsModule } from './service-request-modals.module';
 
 // استيراد مكونات الكروت المستقلة (التي صممناها للعرض)
 import { MyOrderCardDeliveryComponent } from './delivery-service/my-order.card-delivery';
@@ -29,14 +24,11 @@ import { Mota7HeaderComponent } from '../top_header/header';
     FormsModule,
     ExploreContainerComponentModule,
     Mota7HeaderComponent,
-    MyOrderPageRoutingModule
+    MyOrderPageRoutingModule,
+    ServiceRequestModalsModule,
   ],
   declarations: [
     MyOrderPage,
-    ServiceSelectionComponent,
-    DeliveryServiceComponent,
-    EducationalServiceComponent,
-    OtherServiceComponent,
     // تسجيل الكروت هنا ضروري جداً لتعمل الصفحة
     MyOrderCardDeliveryComponent,
     MyOrderCardEducationalComponent,

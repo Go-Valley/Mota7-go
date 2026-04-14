@@ -32,22 +32,26 @@
   <ng-template>
     <div class="service-modal-wrapper">
       <div class="service-modal-header">
-        <div class="service-modal-title">طلب خدمة / نشر اعلان</div>
+        <div class="service-modal-title">طلب خدمة / نشر إعلان</div>
         <button
           type="button"
           class="service-modal-close"
           (click)="closeServiceModal($event)"
+          aria-label="إغلاق"
         >
           <ion-icon name="close-outline"></ion-icon>
         </button>
       </div>
 
       <div class="service-modal-body">
-        <div class="service-section">
-          <div class="section-title">لو محتاج تطلب:</div>
-          <div class="section-item">خدمة توصيل</div>
-          <div class="section-item">خدمة تعليمية</div>
-          <div class="section-item">خدمات حرفية ومتنوعة</div>
+        <section class="service-section" aria-labelledby="modal-section-order-heading">
+          <div class="section-head">
+            <span class="section-kicker">خدمات الأفراد</span>
+            <h2 class="section-title" id="modal-section-order-heading">لو محتاج تطلب:</h2>
+          </div>
+          <p class="section-copy">
+            خدمة توصيل، خدمة تعليمية، خدمات حرفية ومتنوعة.
+          </p>
           <ion-button
             expand="block"
             class="service-cta service-cta--order"
@@ -63,16 +67,19 @@
               </div>
             </div>
           </ion-button>
-        </div>
+        </section>
 
-        <div class="service-divider"></div>
+        <div class="service-divider" aria-hidden="true"></div>
 
-        <div class="service-section">
-          <div class="section-title">لو عايز تعرض إعلانك:</div>
-          <div class="section-item">خدمة</div>
-          <div class="section-item">منتج</div>
-          <div class="section-item">متجر</div>
-          <div class="section-note">افتح حساب جديد أو سجل دخولك , وانشر إعلانك فورا ..</div>
+        <section class="service-section" aria-labelledby="modal-section-ad-heading">
+          <div class="section-head">
+            <span class="section-kicker">لأصحاب الأعمال</span>
+            <h2 class="section-title" id="modal-section-ad-heading">لو عايز تعرض إعلانك:</h2>
+          </div>
+          <p class="section-copy">خدمة، منتج، متجر.</p>
+          <p class="section-note">
+            افتح حساب جديد أو سجّل دخولك، وانشر إعلانك فورًا
+          </p>
           <ion-button
             expand="block"
             class="service-cta service-cta--ad"
@@ -84,11 +91,27 @@
               </div>
               <div class="service-cta__copy">
                 <span class="service-cta__title">نشر إعلان</span>
-                <span class="service-cta__sub">اعرض خدمتك أو منتجك بسرعة</span>
+                <span class="service-cta__sub">إعرض إعلانك بسهولة</span>
               </div>
             </div>
           </ion-button>
-        </div>
+          <div class="service-inline-divider" role="presentation" aria-hidden="true"></div>
+          <ion-button
+            expand="block"
+            class="service-cta service-cta--my-orders"
+            (click)="goToMyOrdersPage()"
+          >
+            <div class="service-cta__row">
+              <div class="service-cta__icon" aria-hidden="true">
+                <ion-icon name="list-outline"></ion-icon>
+              </div>
+              <div class="service-cta__copy">
+                <span class="service-cta__title">عرض طلباتي</span>
+                <span class="service-cta__sub">متابعة طلباتك النشطة</span>
+              </div>
+            </div>
+          </ion-button>
+        </section>
       </div>
     </div>
   </ng-template>

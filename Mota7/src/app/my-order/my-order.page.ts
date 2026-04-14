@@ -43,10 +43,12 @@ import { presentProviderRatingModal } from './provider-rating-modal/provider-rat
 })
 export class MyOrderPage implements OnInit, OnDestroy {
   selectedCategory: boolean = true;
-  selectedCategoryName: string = 'طلب خدمة';
+  selectedCategoryName: string = 'طلباتي';
   hasActiveRequest: boolean = false;
   activeOrders: any[] = [];
   customerPhone: string = '';
+  /** أول استجابة من Firestore لطلبات هذا الرقم — لتفادي عرض «لا توجد طلبات» قبل التحميل */
+  ordersQuerySettled: boolean = false;
   unsubscribeOrders: any;
 
   private injector = inject(EnvironmentInjector);
@@ -89,9 +91,12 @@ export class MyOrderPage implements OnInit, OnDestroy {
     const savedPhone = localStorage.getItem('last_customer_phone');
     if (savedPhone) {
       this.customerPhone = savedPhone;
+      this.ordersQuerySettled = false;
       runInInjectionContext(this.injector, () => {
         this.listenToActiveOrders();
       });
+    } else {
+      this.ordersQuerySettled = false;
     }
   }
 
@@ -126,12 +131,14 @@ export class MyOrderPage implements OnInit, OnDestroy {
           orderVisibleForCustomer(o, this.customerPhone)
         );
         this.hasActiveRequest = this.activeOrders.length > 0;
+        this.ordersQuerySettled = true;
 
         void purgeFirestoreOrdersPastExpiresAt(this.injector, this.firestore);
         void this.tryPresentCustomerRatingModalForUnratedCompleted();
       },
       (error) => {
         console.error('Snapshot error:', error);
+        this.ordersQuerySettled = true;
       }
     );
   }

@@ -12,45 +12,6 @@
 <ion-content class="ion-padding">
   <div class="mota7-wrapper" dir="rtl">
     <div class="form-card-container">
-      
-      <div class="input-group">
-        <label class="main-label">الأسم : <span>*</span></label>
-        <ion-input
-          #inputCustomerName
-          type="text"
-          [ngModel]="orderData.customerName"
-          (ionInput)="onDeliveryFreeTextInput($event, 'customerName')"
-          placeholder="اكتب اسمك هنا">
-        </ion-input>
-      </div>
-
-      <div class="input-group">
-        <label class="main-label">رقم الهاتف : <span>*</span></label>
-        <ion-input
-          #inputCustomerPhone
-          type="tel"
-          maxlength="11"
-          inputmode="numeric"
-          autocomplete="tel-national"
-          [ngModel]="orderData.customerPhone"
-          (ngModelChange)="onCustomerPhoneChange($event)"
-          (keydown)="onCustomerPhoneKeyDown($event)"
-          (beforeinput)="onCustomerPhoneBeforeInput($event)"
-          placeholder="01xxxxxxxxx">
-        </ion-input>
-        <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
-      </div>
-
-      <div class="input-group">
-        <label class="main-label">المدينة : <span>*</span></label>
-        <ion-select [(ngModel)]="orderData.city" 
-                    interface="action-sheet" 
-                    mode="ios" 
-                    placeholder="اختر المدينة"
-                    cancelText="إلغاء">
-          <ion-select-option *ngFor="let city of availableCities" [value]="city">{{city}}</ion-select-option>
-        </ion-select>
-      </div>
 
       <div class="input-group">
         <label class="main-label">نوع المركبة : <span>*</span></label>
@@ -98,6 +59,45 @@
           placeholder="أرقام فقط — مثلاً: 30">
         </ion-input>
         <p class="phone-live-warning" *ngIf="priceLiveWarning" role="alert">{{ priceLiveWarning }}</p>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">الأسم : <span>*</span></label>
+        <ion-input
+          #inputCustomerName
+          type="text"
+          [ngModel]="orderData.customerName"
+          (ionInput)="onDeliveryFreeTextInput($event, 'customerName')"
+          placeholder="اكتب اسمك هنا">
+        </ion-input>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">رقم الهاتف : <span>*</span></label>
+        <ion-input
+          #inputCustomerPhone
+          type="tel"
+          maxlength="11"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          [ngModel]="orderData.customerPhone"
+          (ngModelChange)="onCustomerPhoneChange($event)"
+          (keydown)="onCustomerPhoneKeyDown($event)"
+          (beforeinput)="onCustomerPhoneBeforeInput($event)"
+          placeholder="01xxxxxxxxx">
+        </ion-input>
+        <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
+      </div>
+
+      <div class="input-group">
+        <label class="main-label">المدينة : <span>*</span></label>
+        <ion-select [(ngModel)]="orderData.city" 
+                    interface="action-sheet" 
+                    mode="ios" 
+                    placeholder="اختر المدينة"
+                    cancelText="إلغاء">
+          <ion-select-option *ngFor="let city of availableCities" [value]="city">{{city}}</ion-select-option>
+        </ion-select>
       </div>
 
       <div class="footer-action">

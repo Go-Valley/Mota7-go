@@ -25,10 +25,6 @@
   &:active { transform: scale(0.95); }
 }
 
-.main-content {
-  // يستخدم الخلفية الموحدة من global.scss
-}
-
 .order-container {
   padding: 30px 20px 30px 20px;
   text-align: center;
@@ -50,11 +46,98 @@
   .action-container {
     width: 100%;
     margin-bottom: 10px;
+  }
 
-    .service-cta {
-      margin-top: 0;
-      margin-inline: 0;
+  /* نفس شكل زر «طلب خدمة» في مودال التبويبات (tabs.page.scss) */
+  ion-button.service-cta {
+    --background: #ffffff;
+    --background-activated: #f8fafc;
+    --background-hover: #ffffff;
+    --box-shadow: none;
+    --border-width: 1px;
+    --border-style: solid;
+    --border-color: #0000004d;
+    --color: #1a1a2e;
+    --ripple-color: rgba(255, 107, 0, 0.12);
+    margin-top: 10px;
+    min-height: 56px;
+    border-radius: 90px;
+    box-shadow: 0 6px 6px rgb(0, 0, 0) !important;
+    --padding-top: 0;
+    --padding-bottom: 0;
+    --padding-start: 0;
+    --padding-end: 0;
+
+    &::part(native) {
+      border-radius: 90px;
+      min-height: 0px;
+      padding: 5px 10px;
     }
+
+    .service-cta__row {
+      justify-content: flex-start;
+      align-items: center;
+      gap: 40px;
+      width: 100%;
+      min-height: auto;
+      padding-inline: 37px;
+    }
+
+    .service-cta__icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #fff7ed;
+      border: 1px solid #ffedd5;
+      box-shadow: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+
+      ion-icon {
+        font-size: 22px;
+        color: #ff6b00;
+      }
+    }
+
+    .service-cta__copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 2px;
+    }
+
+    .service-cta__title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--ion-color-warning-contrast);
+      text-shadow: none;
+    }
+
+    .service-cta__sub {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #6b7280;
+    }
+  }
+
+  .empty-orders-message {
+    margin: 28px auto 0;
+    max-width: 22rem;
+    padding: 14px 18px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #bc0000;
+    line-height: 1.6;
+    background: rgba(248, 250, 252, 0.9);
+    border-radius: 16px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
   }
 
   .recent-requests {

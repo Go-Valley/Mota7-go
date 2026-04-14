@@ -1,6 +1,15 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, ModalController, AlertController, NavController, ViewWillEnter } from '@ionic/angular';
+import {
+  IonicModule,
+  ModalController,
+  AlertController,
+  NavController,
+  Platform,
+  ViewWillEnter,
+} from '@ionic/angular';
+import type { Subscription } from 'rxjs';
+import { HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY } from '../../core/utils/hardware-back-my-account.util';
 import { getDeliveryAdCurrentLocation } from '../../core/utils/delivery-ad-geolocation.util';
 import { addIcons } from 'ionicons';
 import { 
@@ -26,8 +35,10 @@ import { UserAccountStatusService } from '../user-account-status.service';
   standalone: true,
   imports: [IonicModule,Mota7HeaderComponent, CommonModule]
 })
-export class AddAdTypePage implements ViewWillEnter {
+export class AddAdTypePage implements ViewWillEnter, OnDestroy {
   private acct = inject(UserAccountStatusService);
+  private platform = inject(Platform);
+  private hardwareBackSub?: Subscription;
 
   constructor(
     private modalCtrl: ModalController,
@@ -47,14 +58,46 @@ export class AddAdTypePage implements ViewWillEnter {
     });
   }
 
+  ngOnInit(): void {
+    this.hardwareBackSub = this.platform.backButton.subscribeWithPriority(
+      HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY,
+      () => void this.handlePageBack()
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.hardwareBackSub?.unsubscribe();
+    this.hardwareBackSub = undefined;
+  }
+
   ionViewWillEnter(): void {
     if (!this.acct.accountUsable()) {
       void this.navCtrl.navigateRoot('/login');
     }
   }
 
-  goBack() {
-    this.navCtrl.back();
+  goBack(): void {
+    void this.handlePageBack();
+  }
+
+  /**
+   * زر الرجوع بالجهاز / الهيدر: يغلق مودال النوع إن وُجد، وإلا يفرّغ من المكدس (مثلاً من «إدارة إعلاناتي»)،
+   * وإن لم يوجد مكدس ننتقل لتبويب «حسابي» (مسار مودال «نشر إعلان» من الطلب).
+   */
+  private async handlePageBack(): Promise<void> {
+    try {
+      const top = await this.modalCtrl.getTop();
+      if (top) {
+        await top.dismiss();
+        return;
+      }
+    } catch {
+      /* نكمل للتنقل */
+    }
+    const popped = await this.navCtrl.pop();
+    if (!popped) {
+      void this.navCtrl.navigateRoot('/tabs/my-account', { animated: true });
+    }
   }
 
   async selectType(type: string) {

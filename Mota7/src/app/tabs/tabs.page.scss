@@ -116,14 +116,15 @@ ion-modal.service-request-modal {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 12px;
-  border-bottom: 4px solid #a19e9c94;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 
   .service-modal-title {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    color: #1a1a2e;
+    color: #0f172a;
+    letter-spacing: -0.02em;
     flex: 1;
     text-align: center;
     margin-left: 36px; /* موازنة زر الإغلاق الموجود على اليمين */
@@ -157,41 +158,201 @@ ion-modal.service-request-modal {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1px;
   padding-bottom: 40px;
 }
 
 .service-section {
-  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: stretch;
+  gap: 21px;
+  text-align: center;
+}
 
-  .section-title {
-    color: #dc2626; /* Red color */
-    font-size: 1.4rem;
-    font-weight: 800;
-    margin-bottom: 8px;
-  }
+.section-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
 
-  .section-item {
-    color: #111827; /* Black color */
-    font-size: 1.1rem;
-    font-weight: 700;
-  }
+.section-kicker {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #0051c3;
+  text-transform: none;
+  background: none;
+  border: none;
+  padding: 15px;
+  margin: -6px;
+}
 
-  .section-note {
-    color: #4b5563;
-    font-size: 0.95rem;
-    margin-top: 8px;
-    padding: 0 15px;
-    line-height: 1.5;
-    font-weight: 600;
-  }
+.service-section .section-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.section-copy {
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 0 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #a80100;
+  line-height: 1.75;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.section-note {
+  margin: 0 auto;
+  max-width: 19.5rem;
+  padding: 0 7px;
+  font-size: .9rem;
+  font-weight: 500;
+  color: #c80000;
+  line-height: 1.7;
+  text-align: center;
+  background: none;
+  border: none;
 }
 
 .service-divider {
-  height: 4px;
-  background: linear-gradient(to right, #e9ad0300, #ff9800, transparent);
-  margin: 20px 1px;
+  height: 1px;
+  margin: 22px 8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(15, 23, 42, 0.12) 20%,
+    rgba(255, 107, 0, 0.35) 50%,
+    rgba(15, 23, 42, 0.12) 80%,
+    transparent
+  );
+}
+
+/** فاصل خطي بين «نشر إعلان» و«عرض طلباتي» */
+.service-inline-divider {
+  height: 2px;
+    margin: 24px 14px 20px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(337deg, #7e510000 0%, rgba(15, 23, 42, 0.04) 18%, rgb(230 134 0) 50%, rgba(15, 23, 42, 0.04) 82%, transparent 100%);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 90%), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* «طلب خدمة» و«نشر إعلان» — نفس التنسيق، النص في منتصف الزر */
+ion-modal.service-request-modal ion-button.service-cta {
+  --background: #ffffff;
+  --background-activated: #f8fafc;
+  --background-hover: #ffffff;
+  --box-shadow: none;
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: #0000004d;
+  --color: #1a1a2e;
+  --ripple-color: rgba(255, 107, 0, 0.12);
+  margin-top: 10px;
+  min-height: 56px;
+  border-radius: 90px;
+  box-shadow: 0 4px 6px rgb(0 0 0), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+
+  &::part(native) {
+    border-radius: 90px;
+    min-height: 56px;
+    padding: 10px 16px;
+  }
+
+  .service-cta__row {
+    justify-content: right;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    min-height: auto;
+    padding-inline: 37px;
+  }
+
+  .service-cta__icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fff7ed;
+    border: 1px solid #ffedd5;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    ion-icon {
+      font-size: 22px;
+      color: #ff6b00;
+    }
+  }
+
+  .service-cta__copy {
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+  }
+
+  .service-cta__title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--ion-color-warning-contrast);
+    text-shadow: none;
+  }
+
+  .service-cta__sub {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #6b7280;
+  }
+}
+
+/** «عرض طلباتي» — أحمر فاتح عصري مع تباين واضح للنص */
+ion-modal.service-request-modal ion-button.service-cta--my-orders {
+  --background: linear-gradient(165deg, #fff5f5 0%, #ffe4e6 48%, #fecdd3 100%);
+  --background-activated: #fecaca;
+  --background-hover: #fff1f2;
+  --border-color: rgba(220, 38, 38, 0.22);
+  --color: #7f1d1d;
+  --ripple-color: rgba(185, 28, 28, 0.16);
+  box-shadow: 0 4px 6px rgb(0 0 0), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+  margin-top: 0;
+
+  &::part(native) {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .service-cta__icon {
+    background: linear-gradient(145deg, #fff1f2, #ffe4e6);
+    border: 1px solid rgba(251, 113, 133, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+
+    ion-icon {
+      color: #dc2626;
+    }
+  }
+
+  .service-cta__title {
+    color: #991b1b;
+    font-weight: 800;
+  }
+
+  .service-cta__sub {
+    color: #9f1239;
+    opacity: 0.88;
+    font-weight: 600;
+  }
 }

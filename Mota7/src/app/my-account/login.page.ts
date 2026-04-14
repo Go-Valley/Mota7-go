@@ -1,5 +1,21 @@
-import { Component, inject, EnvironmentInjector, runInInjectionContext, ViewChild } from '@angular/core';
-import { IonInput, IonicModule, NavController, LoadingController, ToastController } from '@ionic/angular';
+import {
+  Component,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+  ViewChild,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
+import {
+  IonInput,
+  IonicModule,
+  NavController,
+  LoadingController,
+  ToastController,
+  Platform,
+} from '@ionic/angular';
+import type { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
@@ -12,6 +28,7 @@ import {
 } from '@angular/fire/auth';
 import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../top_header/header';
+import { subscribeHardwareBackToMyAccount } from '../core/utils/hardware-back-my-account.util';
 import {
   applyOrderPhoneInputState,
   isOrderPhoneValid,
@@ -55,13 +72,15 @@ import {
   standalone: true,
   imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
 })
-export class LoginPage {
+export class LoginPage implements OnInit, OnDestroy {
 
   @ViewChild('inputPhone', { read: IonInput }) private inputPhone?: IonInput;
 
   // حقن الخدمات الجديدة
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
+  private platform = inject(Platform);
+  private hardwareBackSub?: Subscription;
 
   /** تحذير فوري تحت حقل الهاتف (نفس منطق طلبات الخدمات) */
   phoneLiveWarning: string | null = null;
@@ -84,6 +103,15 @@ export class LoginPage {
       lockClosedOutline, 
       chevronForwardOutline 
     });
+  }
+
+  ngOnInit(): void {
+    this.hardwareBackSub = subscribeHardwareBackToMyAccount(this.platform, this.navCtrl);
+  }
+
+  ngOnDestroy(): void {
+    this.hardwareBackSub?.unsubscribe();
+    this.hardwareBackSub = undefined;
   }
 
   // العودة لصفحة حسابي الشخصية وتفريغ الذاكرة

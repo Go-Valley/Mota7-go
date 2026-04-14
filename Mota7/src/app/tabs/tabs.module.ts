@@ -5,13 +5,15 @@ import { FormsModule } from '@angular/forms';
 
 import { TabsPageRoutingModule } from './tabs-routing.module';
 import { TabsPage } from './tabs.page';
+import { ServiceRequestModalsModule } from '../my-order/service-request-modals.module';
 
 @NgModule({
   imports: [
     IonicModule,
     CommonModule,
     FormsModule,
-    TabsPageRoutingModule
+    TabsPageRoutingModule,
+    ServiceRequestModalsModule,
   ],
   declarations: [TabsPage]
 })
