@@ -1,13 +1,27 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { addIcons } from 'ionicons';
 import { VerificationModalComponent } from '../verification-modal.component';
+import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
+import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 import { 
   trashOutline, createOutline, locationOutline, call, 
-  logoWhatsapp, alertCircleOutline, timeOutline, checkmarkCircle, shieldCheckmark, shieldCheckmarkOutline,
+  logoWhatsapp, alertCircleOutline, timeOutline, checkmarkCircle, checkmarkDoneCircle, closeCircle, shieldCheckmark, shieldCheckmarkOutline,
   hammer, cut, flash, water, colorPalette, construct, business, grid, card, tv,
   flame, carSport, pricetag, megaphone, cube, cog
 } from 'ionicons/icons';
@@ -17,29 +31,52 @@ import {
   templateUrl: './other-services-card.component.html',
   styleUrls: ['./other-services-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
 })
 
-export class OtherServicesCardComponent implements OnInit {
+export class OtherServicesCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   @Output() edit = new EventEmitter<any>();
   @Output() delete = new EventEmitter<string>();
   @Output() refresh = new EventEmitter<void>();
 
+  manageCardFaded = false;
+
   private firestore = inject(Firestore);
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
 
   constructor() {
     addIcons({ 
       trashOutline, createOutline, locationOutline, call, logoWhatsapp, 
-      alertCircleOutline, timeOutline, 'time-outline': timeOutline, checkmarkCircle, shieldCheckmark, shieldCheckmarkOutline,
+      alertCircleOutline, timeOutline, 'time-outline': timeOutline, checkmarkCircle, checkmarkDoneCircle, closeCircle, shieldCheckmark, shieldCheckmarkOutline,
       hammer, cut, flash, water, colorPalette, construct, business, grid, card, tv,
       flame, carSport, pricetag, megaphone, cube, cog
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.syncManageCardFaded();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['ad']) {
+      this.syncManageCardFaded();
+    }
+  }
+
+  private syncManageCardFaded() {
+    if (!this.ad) {
+      this.manageCardFaded = false;
+      return;
+    }
+    this.manageCardFaded = computeMyAdManageCardFaded(
+      this.ad.status,
+      this.ad.is_available,
+      true
+    );
+  }
 
   getCategoryName(id: string): string {
     const item = OTHER_SERVICES_DATA.items.find(i => i.id === id);
@@ -55,14 +92,23 @@ export class OtherServicesCardComponent implements OnInit {
   }
 
   async toggleAvailability() {
-    const newValue = !this.ad.is_available;
+    const adId = this.ad?.id || this.ad?.ad_id;
+    if (!adId) return;
+    const prev = !!this.ad.is_available;
+    const newValue = !prev;
+    this.ad.is_available = newValue;
+    this.syncManageCardFaded();
+    this.cdr.detectChanges();
     try {
       await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, `ads/${this.ad.ad_id}`), { is_available: newValue })
+        updateDoc(doc(this.firestore, `ads/${adId}`), { is_available: newValue })
       );
-      this.ad.is_available = newValue;
     } catch (error) {
       console.error("Update Error:", error);
+      this.ad.is_available = prev;
+      this.syncManageCardFaded();
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 

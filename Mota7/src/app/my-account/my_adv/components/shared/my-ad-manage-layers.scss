@@ -1,0 +1,416 @@
+/**
+ * طبقات واجهة «إدارة إعلاناتي» فوق تصميم home-premium-card
+ * (حالة الإعلان، أزرار الإدارة، صناديق التواصل مع الإدارة، وصف إضافي).
+ */
+
+/**
+ * إعلان مرفوض أو منتهي: لا بهتان داخل «إدارة إعلاناتي».
+ * الظهور في الرئيسية يُستبعد عبر استعلامات التغذية (status) وليس عبر شفافية الكارت هنا.
+ */
+.home-premium-card.my-ad-manage-card.my-ad-no-fade-inactive {
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  pointer-events: auto !important;
+
+  &.is-unavailable,
+  &.mota7-faded {
+    opacity: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    pointer-events: auto !important;
+  }
+
+  &.is-unavailable::before,
+  &.is-unavailable::after,
+  &.mota7-faded::before,
+  &.mota7-faded::after {
+    opacity: 0.55;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &.is-unavailable::before,
+    &.mota7-faded::before {
+      opacity: 0.2;
+    }
+  }
+}
+
+.home-premium-card.my-ad-manage-card {
+  .status-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 12px;
+    padding: 8px 11px;
+    border-radius: 14px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(248, 250, 252, 0.9) 100%
+    );
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 4px 14px rgba(12, 18, 34, 0.04);
+
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.7rem;
+      letter-spacing: 0.03em;
+      border: 1px solid transparent;
+
+      &.pending {
+        background: rgba(251, 191, 36, 0.18);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+
+      &.active {
+        background: rgba(52, 211, 153, 0.16);
+        color: #047857;
+        border-color: rgba(16, 185, 129, 0.32);
+      }
+
+      &.expired,
+      &.rejected {
+        background: rgba(252, 165, 165, 0.2);
+        color: #991b1b;
+        border-color: rgba(248, 113, 113, 0.38);
+      }
+    }
+
+    .ad-date {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      white-space: nowrap;
+    }
+  }
+
+  .mota7-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+
+    .manage-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 10px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 0.82rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        filter 0.16s ease;
+      font-family: inherit;
+
+      ion-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      &:active {
+        transform: scale(0.98);
+        filter: brightness(0.97);
+      }
+
+      &.edit {
+        background: linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%);
+        color: #312e81;
+        border-color: rgba(99, 102, 241, 0.25);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.65) inset,
+          0 6px 16px rgba(79, 70, 229, 0.12);
+      }
+
+      &.delete {
+        background: linear-gradient(145deg, #fee2e2 0%, #fecaca 100%);
+        color: #991b1b;
+        border-color: rgba(248, 113, 113, 0.35);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.65) inset,
+          0 6px 16px rgba(220, 38, 38, 0.1);
+      }
+    }
+  }
+
+  .verification-request-section {
+    position: relative;
+    z-index: 2;
+    margin-top: 10px;
+
+    .verification-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(202, 138, 4, 0.35);
+      background: linear-gradient(135deg, #fde68a 0%, #fbbf24 55%, #f59e0b 100%);
+      color: #422006;
+      font-weight: 800;
+      font-size: 0.82rem;
+      cursor: pointer;
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.45) inset,
+        0 8px 22px rgba(245, 158, 11, 0.22);
+      font-family: inherit;
+
+      ion-icon {
+        font-size: 18px;
+        color: #422006;
+      }
+
+      &:active {
+        transform: scale(0.99);
+      }
+    }
+  }
+
+  .admin-box {
+    position: relative;
+    z-index: 2;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-weight: 600;
+    border: 1px solid transparent;
+
+    p {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      text-align: center;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .admin-reason-label {
+      color: #dc2626;
+      font-weight: 800;
+    }
+
+    .admin-reason-text {
+      color: #0a0a0a;
+      font-weight: 600;
+    }
+
+    &.pending {
+      background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+      color: #1e3a8a;
+      border-color: rgba(59, 130, 246, 0.22);
+    }
+
+    &.rejected {
+      background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
+      color: #991b1b;
+      border-color: rgba(248, 113, 113, 0.28);
+    }
+
+    .admin-btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 11px;
+      font-weight: 800;
+      font-size: 0.82rem;
+      background: linear-gradient(145deg, #22c55e 0%, #15803d 100%);
+      color: #ffffff;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
+
+      &:active {
+        transform: scale(0.99);
+      }
+    }
+  }
+
+  .description-box {
+    position: relative;
+    z-index: 2;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 13px;
+    background: linear-gradient(180deg, rgba(250, 245, 255, 0.85), rgba(243, 232, 255, 0.65));
+    border: 1px solid rgba(167, 139, 250, 0.22);
+
+    p {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #5b21b6;
+      line-height: 1.6;
+      text-align: right;
+    }
+  }
+
+  /* تفاعلية شبيهة بالرئيسية لشرائح التوصيل */
+  .info-chips .grid-item.status-toggle {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .meta-grid-modern .grid-item.status-toggle,
+  .info-grid .grid-item.status-toggle {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* بطاقة المتجر — نفس فكرة صف اللوجو في الرئيسية */
+  &.home-premium--store {
+    --hp-accent-a: #c2410c;
+    --hp-accent-b: #ea580c;
+    --hp-accent-c: #fb923c;
+    --hp-glow: rgba(234, 88, 12, 0.1);
+    --hp-icon-tint: linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%);
+    --hp-icon-border: rgba(253, 186, 116, 0.85);
+    --hp-icon-color: #c2410c;
+
+    .store-manage-body {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 0 4px;
+    }
+
+    .store-logo-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .store-contact-btn {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        transform 0.16s ease,
+        filter 0.16s ease;
+
+      ion-icon {
+        font-size: 22px;
+        color: #fff;
+      }
+
+      &:active {
+        transform: scale(0.94);
+        filter: brightness(0.96);
+      }
+    }
+
+    .store-contact-btn--call {
+      background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.28) inset,
+        0 6px 18px rgba(37, 99, 235, 0.28);
+    }
+
+    .store-contact-btn--whatsapp {
+      background: linear-gradient(145deg, #22c55e 0%, #15803d 100%);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.28) inset,
+        0 6px 18px rgba(22, 163, 74, 0.28);
+    }
+
+    .store-circle {
+      width: 86px;
+      height: 86px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      isolation: isolate;
+    }
+
+    .store-circle-frame {
+      position: relative;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow:
+        0 8px 28px rgba(12, 18, 34, 0.12),
+        0 0 0 1px rgba(251, 191, 36, 0.35) inset;
+      border: 2px solid rgba(251, 191, 36, 0.65);
+      background: #fff;
+      box-sizing: border-box;
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .store-circle .verification-badge {
+      position: absolute;
+      z-index: 2;
+      bottom: 4px;
+      inset-inline-end: 4px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+
+      .verify-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+        filter: drop-shadow(0 2px 5px rgba(12, 18, 34, 0.25));
+      }
+    }
+
+    .store-name-premium {
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #7f1d1d;
+      text-align: center;
+      line-height: 1.25;
+      max-width: 100%;
+      padding: 0 8px;
+    }
+  }
+}

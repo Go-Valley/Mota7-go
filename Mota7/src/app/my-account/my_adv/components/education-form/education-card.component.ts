@@ -1,4 +1,16 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ModalController } from '@ionic/angular'; // أضفنا ModalController
 import { addIcons } from 'ionicons';
@@ -12,21 +24,28 @@ import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data';
 // استيراد الفورم لفتحه كمودال
 import { EducationFormComponent } from './education-form.component';
+import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
+import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+
 @Component({
   selector: 'app-education-card',
   templateUrl: './education-card.component.html',
   styleUrls: ['./education-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
 })
-export class EducationCardComponent implements OnInit {
+export class EducationCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   @Output() delete = new EventEmitter<string>();
   @Output() refresh = new EventEmitter<void>();
 
+  /** يُربَط بـ is-unavailable لتحديث فوري للبهتان */
+  manageCardFaded = false;
+
   private firestore = inject(Firestore);
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
 
   constructor() {
     addIcons({ 
@@ -36,7 +55,27 @@ export class EducationCardComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.syncManageCardFaded();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['ad']) {
+      this.syncManageCardFaded();
+    }
+  }
+
+  private syncManageCardFaded() {
+    if (!this.ad) {
+      this.manageCardFaded = false;
+      return;
+    }
+    this.manageCardFaded = computeMyAdManageCardFaded(
+      this.ad.status,
+      this.ad.is_available,
+      true
+    );
+  }
 
   getStageName(stageId: string): string {
     if (!stageId) return 'خدمة تعليمية';
@@ -56,14 +95,23 @@ export class EducationCardComponent implements OnInit {
 
   // تحديث: الحقل في الفايربيز هو root field وليس داخل details
   async toggleStatus() {
-    const newValue = !this.ad.is_available;
+    const adId = this.ad?.id || this.ad?.ad_id;
+    if (!adId) return;
+    const prev = !!this.ad.is_available;
+    const newValue = !prev;
+    this.ad.is_available = newValue;
+    this.syncManageCardFaded();
+    this.cdr.detectChanges();
     try {
       await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, `ads/${this.ad.ad_id}`), { is_available: newValue })
+        updateDoc(doc(this.firestore, `ads/${adId}`), { is_available: newValue })
       );
-      this.ad.is_available = newValue;
     } catch (e) {
       console.error("فشل تحديث الحالة من لوحة التحكم", e);
+      this.ad.is_available = prev;
+      this.syncManageCardFaded();
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 

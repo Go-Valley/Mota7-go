@@ -1,5 +1,11 @@
-<div class="mota7-card-wrapper" *ngIf="ad">
-  
+<div
+  class="mota7-card-wrapper home-premium-card home-premium--education my-ad-manage-card"
+  *ngIf="ad"
+  [class.my-ad-no-fade-inactive]="ad.status === 'rejected' || ad.status === 'expired'"
+  [class.is-unavailable]="manageCardFaded"
+>
+  <div class="home-premium-accent" aria-hidden="true"></div>
+
   <div class="status-header">
     <div class="status-badge" [ngClass]="ad.status">
       <span [ngSwitch]="ad.status">
@@ -18,9 +24,11 @@
       {{ ad.details?.subject || 'مادة تعليمية' }}
     </div>
     <div class="modern-stage-badge">
-       {{ getStageName(ad.category_id) }}
+      {{ getStageName(ad.category_id) }}
     </div>
   </div>
+
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="true"></app-ad-card-engagement-row>
 
   <div class="main-info-row">
     <div class="avatar-wrapper">
@@ -29,9 +37,29 @@
           <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
         </div>
 
-        <div class="verification-badge" *ngIf="ad.is_verified && ad.is_verified !== 'none'">
-          <img src="assets/gold.avif" *ngIf="ad.is_verified === 'gold'" class="verify-img" alt="ذهبي">
-          <img src="assets/blue.webp" *ngIf="ad.is_verified === 'blue'" class="verify-img" alt="أزرق">
+        <div
+          class="verification-badge"
+          *ngIf="ad.is_verified && ad.is_verified !== 'none'"
+          [ngClass]="ad.verification_level"
+        >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/gold.avif"
+            *ngIf="ad.is_verified === 'gold'"
+            class="verify-img"
+            alt="شارة التحقق الذهبية"
+            title="موثَّق - ذهبية"
+          >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/blue.webp"
+            *ngIf="ad.is_verified === 'blue'"
+            class="verify-img"
+            alt="شارة التحقق الزرقاء"
+            title="موثَّق - زرقاء"
+          >
         </div>
       </div>
     </div>
@@ -39,7 +67,7 @@
     <div class="owner-details">
       <div class="owner-name-row">
         <span class="name-value">{{ ad.details?.teacher_name || 'مستخدم متاح' }}</span>
-        
+
         <div class="icon-contact-actions">
           <button type="button" class="icon-btn call" (click)="contactAction('call', $event)" title="اتصال">
             <ion-icon name="call"></ion-icon>
@@ -58,10 +86,12 @@
       <span>{{ ad.city || 'الخارجة' }}</span>
     </div>
 
-    <div class="grid-item status-toggle" 
-         [class.active]="ad.is_available"
-         [class.inactive]="!ad.is_available"
-         (click)="toggleStatus()">
+    <div
+      class="grid-item status-toggle"
+      [class.active]="ad.is_available"
+      [class.inactive]="!ad.is_available"
+      (click)="toggleStatus()"
+    >
       <ion-icon [name]="ad.is_available ? 'checkmark-done-circle' : 'close-circle'"></ion-icon>
       <span>{{ ad.is_available ? 'متاح الآن' : 'غير متاح' }}</span>
     </div>
@@ -77,7 +107,7 @@
       <span>حذف</span>
     </button>
   </div>
-  
+
   <div class="verification-request-section" *ngIf="ad.status">
     <button type="button" class="verification-btn" (click)="showVerificationModal()">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
@@ -93,14 +123,20 @@
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
-    <p>سبب الرفض : {{ ad.admin_reason || ad.reject_reason }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الرفض :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason }}</span>
+    </p>
     <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
       تواصل واتساب مع الإدارة
     </button>
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
-    <p>سبب الانتهاء : {{ ad.admin_reason || ad.reject_reason || 'يرجي التواصل مع الإدارة' }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الانتهاء :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason || 'يرجي التواصل مع الإدارة' }}</span>
+    </p>
     <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
       تواصل واتساب مع الإدارة
     </button>

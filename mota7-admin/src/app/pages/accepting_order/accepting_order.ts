@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { AlertController, IonicModule, ToastController } from '@ionic/angular';
 import { CommonModule, registerLocaleData } from '@angular/common'; // أضف registerLocaleData
 import localeAr from '@angular/common/locales/ar'; // استيراد بيانات اللغة العربية
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import {
   openMapsUrlWithFallback,
   orderFieldToMs,
 } from '../../core/utils/delivery-maps-admin.util';
+import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkCircle, logoWhatsapp, createOutline, 
@@ -38,6 +39,7 @@ export class AcceptingOrderPage implements OnInit, OnDestroy {
   private injector = inject(EnvironmentInjector);
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
 
   allOrders: any[] = [];
   filteredOrders: any[] = [];
@@ -162,8 +164,8 @@ filterOrders() {
     }
   }
 
-  editOrder(order: any) {
-    console.log('تعديل الطلب:', order);
+  async editOrder(order: any) {
+    await presentAdminOrderCardEdit(this.firestore, this.alertCtrl, this.toastCtrl, order);
   }
 
   goBack() {

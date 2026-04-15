@@ -88,6 +88,10 @@
               </button>
             </div>
 
+            <div class="order-notes" *ngIf="order.shortNote" (click)="$event.stopPropagation()">
+              <strong>ملاحظات إضافية:</strong> {{ order.shortNote }}
+            </div>
+
             <div class="dual-parties">
               <div class="party-box customer">
                 <div class="party-info">
@@ -114,6 +118,13 @@
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div class="completed-card-edit-row" *ngIf="!selectionMode" (click)="$event.stopPropagation()">
+              <button type="button" class="footer-item edit-order-btn" (click)="editOrder(order, $event)">
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                <span>تعديل بيانات الطلب</span>
+              </button>
             </div>
 
             <div class="ratings-dual-row">

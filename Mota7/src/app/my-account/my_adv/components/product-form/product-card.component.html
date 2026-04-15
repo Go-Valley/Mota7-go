@@ -1,5 +1,11 @@
-<div class="mota7-card-wrapper" *ngIf="ad">
-  
+<div
+  class="mota7-card-wrapper home-premium-card home-premium--product my-ad-manage-card"
+  *ngIf="ad"
+  [class.my-ad-no-fade-inactive]="ad.status === 'rejected' || ad.status === 'expired'"
+  [class.is-unavailable]="manageCardFaded"
+>
+  <div class="home-premium-accent" aria-hidden="true"></div>
+
   <div class="status-header">
     <div class="status-badge" [ngClass]="ad.status">
       <span [ngSwitch]="ad.status">
@@ -13,6 +19,8 @@
     <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
   </div>
 
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
+
   <div class="clickable-content" (click)="openProductDetails()">
     <div class="product-description-header">
       {{ ad.details?.short_desc || ad.details?.title }}
@@ -20,13 +28,38 @@
 
     <div class="main-info-row">
       <div class="image-wrapper">
-        <img [src]="(ad.details?.images && ad.details.images.length > 0) ? ad.details.images[0] : 'assets/mota7.png'" 
-             alt="صورة المنتج"
-             class="product-thumb">
+        <img
+          [src]="productThumbSrc()"
+          loading="lazy"
+          decoding="async"
+          (error)="$any($event.target).src = 'assets/mota7.png'"
+          alt="صورة المنتج"
+          class="product-thumb"
+        >
 
-        <div class="verification-badge" *ngIf="ad.is_verified && ad.is_verified !== 'none'">
-          <img src="assets/gold.avif" *ngIf="ad.is_verified === 'gold'" class="verify-img" alt="ذهبي">
-          <img src="assets/blue.webp" *ngIf="ad.is_verified === 'blue'" class="verify-img" alt="أزرق">
+        <div
+          class="verification-badge"
+          *ngIf="ad.is_verified && ad.is_verified !== 'none'"
+          [ngClass]="ad.verification_level"
+        >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/gold.avif"
+            *ngIf="ad.is_verified === 'gold'"
+            class="verify-img"
+            alt="شارة التحقق الذهبية"
+            title="موثَّق - ذهبية"
+          >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/blue.webp"
+            *ngIf="ad.is_verified === 'blue'"
+            class="verify-img"
+            alt="شارة التحقق الزرقاء"
+            title="موثَّق - زرقاء"
+          >
         </div>
       </div>
 
@@ -36,10 +69,10 @@
         </div>
 
         <div class="contact-buttons-row">
-          <button type="button" class="action-btn call" (click)="contactAction('call', $event)" title="اتصال">
+          <button type="button" class="action-btn call" (click)="contactAction('call', $event)" title="اتصال" aria-label="اتصال">
             <ion-icon name="call"></ion-icon>
           </button>
-          <button type="button" class="action-btn whatsapp" (click)="contactAction('whatsapp', $event)" title="واتساب">
+          <button type="button" class="action-btn whatsapp" (click)="contactAction('whatsapp', $event)" title="واتساب" aria-label="واتساب">
             <ion-icon name="logo-whatsapp"></ion-icon>
           </button>
         </div>
@@ -77,7 +110,7 @@
       <span>حذف</span>
     </button>
   </div>
-  
+
   <div class="verification-request-section" *ngIf="ad.status">
     <button type="button" class="verification-btn" (click)="showVerificationModal()">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
@@ -93,14 +126,20 @@
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
-    <p>سبب الرفض : {{ ad.admin_reason || ad.reject_reason }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الرفض :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason }}</span>
+    </p>
     <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
       تواصل واتساب مع الإدارة
     </button>
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
-    <p>سبب الانتهاء : {{ ad.admin_reason || ad.reject_reason || 'يرجى التواصل مع الإدارة' }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الانتهاء :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason || 'يرجى التواصل مع الإدارة' }}</span>
+    </p>
     <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
       تواصل واتساب مع الإدارة
     </button>

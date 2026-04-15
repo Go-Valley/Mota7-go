@@ -7,12 +7,13 @@ import { Router } from '@angular/router';
 import { Firestore, collection, collectionData, query, where, deleteDoc, doc, updateDoc, Timestamp } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkDoneCircle, logoWhatsapp, 
   trashOutline, bookOutline, carOutline, call, locationOutline, 
   timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline,
-  calendarOutline
+  calendarOutline, createOutline
 } from 'ionicons/icons';
 
 registerLocaleData(localeAr);
@@ -67,7 +68,7 @@ export class CompletingOrderPage implements OnInit {
       searchOutline, checkmarkDoneCircle, logoWhatsapp, 
       trashOutline, bookOutline, carOutline, call, locationOutline, 
       timeOutline, hammerOutline, cubeOutline, cashOutline, star, starOutline,
-      calendarOutline
+      calendarOutline, createOutline
     });
   }
 
@@ -401,4 +402,9 @@ export class CompletingOrderPage implements OnInit {
   }
 
   goBack() { this.router.navigate(['/dashboard']); }
+
+  async editOrder(order: any, ev?: Event) {
+    ev?.stopPropagation();
+    await presentAdminOrderCardEdit(this.firestore, this.alertCtrl, this.toastCtrl, order);
+  }
 }

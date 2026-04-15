@@ -20,6 +20,7 @@ import {
 } from 'ionicons/icons';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
 
 @Component({
   selector: 'app-pinding-order',
@@ -109,5 +110,9 @@ export class PindingOrderPage implements OnInit {
       color: 'dark'
     });
     toast.present();
+  }
+
+  async editOrder(order: any) {
+    await presentAdminOrderCardEdit(this.firestore, this.alertCtrl, this.toastCtrl, order);
   }
 }

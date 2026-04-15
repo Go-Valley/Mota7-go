@@ -152,6 +152,45 @@
     .price-tag { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
   }
 
+  .order-notes {
+    margin: 10px 18px 0;
+    padding: 10px 15px;
+    background: #fffbeb;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #92400e;
+    border-right: 4px solid #f59e0b;
+    font-weight: 600;
+  }
+
+  .completed-card-edit-row {
+    padding: 10px 18px 12px;
+    border-top: 1px dashed #eee;
+
+    .edit-order-btn {
+      width: 100%;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 10px 12px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+
+      ion-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+    }
+  }
+
   /* مطابقة كارت «خدمات أخرى» في إدارة الإعلانات: .footer-grid .footer-item.expiry-toggle */
   .completed-order-expiry-row {
     display: flex;

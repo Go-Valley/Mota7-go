@@ -1,4 +1,16 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  Input,
+  Output,
+  EventEmitter,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -6,23 +18,27 @@ import {
   trashOutline, createOutline, locationOutline, checkmarkCircle, 
   call, logoWhatsapp, alertCircleOutline, carOutline, 
   airplaneOutline, timeOutline, shieldCheckmarkOutline, shieldCheckmark,
-  bicycleOutline, busOutline
+  bicycleOutline, busOutline, keyOutline
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
 import { DeliveryFormComponent } from './delivery-form.component';
 import { VerificationModalComponent } from '../verification-modal.component';
+import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
+import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 
 @Component({
   selector: 'app-delivery-card',
   templateUrl: './delivery-card.component.html',
   styleUrls: ['./delivery-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
 })
-export class DeliveryCardComponent implements OnInit {
+export class DeliveryCardComponent implements OnInit, OnChanges {
 
   @Input() ad: any;
+
+  manageCardFaded = false;
   @Output() edit = new EventEmitter<any>();
   @Output() delete = new EventEmitter<string>();
   @Output() refresh = new EventEmitter<void>();
@@ -32,17 +48,52 @@ export class DeliveryCardComponent implements OnInit {
   private firestore = inject(Firestore);
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
 
   constructor() {
     addIcons({ 
       trashOutline, createOutline, locationOutline, checkmarkCircle, 
       call, logoWhatsapp, alertCircleOutline, carOutline, 
       airplaneOutline, timeOutline, shieldCheckmarkOutline, shieldCheckmark,
-      bicycleOutline, busOutline
+      bicycleOutline, busOutline, keyOutline
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.syncManageCardFaded();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['ad']) {
+      this.syncManageCardFaded();
+    }
+  }
+
+  private syncManageCardFaded() {
+    if (!this.ad?.details) {
+      this.manageCardFaded = false;
+      return;
+    }
+    this.manageCardFaded = computeMyAdManageCardFaded(
+      this.ad.status,
+      this.ad.details.is_available,
+      true
+    );
+  }
+
+  /** مطابقة منطق بطاقة الرئيسية لعرض شرائح السفر / الإيجار */
+  get showTravelChip(): boolean {
+    const id = this.ad?.category_id;
+    return id === 'private-car' || id === 'taxi';
+  }
+
+  get showRentChip(): boolean {
+    return this.ad?.category_id === 'private-car';
+  }
+
+  get useTwoRowChipLayout(): boolean {
+    return this.showTravelChip && this.showRentChip;
+  }
 
   getCategoryName(categoryId: string): string {
     const category = DELIVERY_CATEGORY.items.find(item => item.id === categoryId);
@@ -58,17 +109,23 @@ export class DeliveryCardComponent implements OnInit {
   }
 
   async toggleStatus(field: string) {
-    if (!this.ad.id || !this.ad.details) return;
+    const adId = this.ad?.id || this.ad?.ad_id;
+    if (!adId || !this.ad.details) return;
     const newValue = !this.ad.details[field];
     this.ad.details[field] = newValue;
+    this.syncManageCardFaded();
+    this.cdr.detectChanges();
     try {
       await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, `ads/${this.ad.id}`), { [`details.${field}`]: newValue })
+        updateDoc(doc(this.firestore, `ads/${adId}`), { [`details.${field}`]: newValue })
       );
-      this.statusToggle.emit({ id: this.ad.id, field: field, value: newValue });
+      this.statusToggle.emit({ id: adId, field: field, value: newValue });
     } catch (error) {
       console.error("error:", error);
       this.ad.details[field] = !newValue;
+      this.syncManageCardFaded();
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 

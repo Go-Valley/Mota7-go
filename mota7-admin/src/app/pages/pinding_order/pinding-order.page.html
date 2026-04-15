@@ -59,6 +59,10 @@
               <span class="label">المرحلة:</span>
               <span class="value">{{ order.stageName }}</span>
             </div>
+            <div class="note-box" *ngIf="order.shortNote">
+              <span class="label">ملاحظات إضافية:</span>
+              <p>{{ order.shortNote }}</p>
+            </div>
           </ng-container>
 
           <ng-container *ngIf="order.serviceType === 'delivery'">
@@ -95,7 +99,7 @@
       </div>
 
       <div class="card-footer">
-        <ion-button fill="clear" color="medium" class="btn-action">
+        <ion-button fill="clear" color="medium" class="btn-action" (click)="editOrder(order)">
           <ion-icon name="create-outline" slot="start"></ion-icon>
           تعديل
         </ion-button>

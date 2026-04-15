@@ -1,7 +1,10 @@
-<div class="mota7-card-wrapper" [ngClass]="{
-  'gold-border-verified': ad.verification_level === 'gold',
-  'blue-border-verified': ad.verification_level === 'blue'
-}">
+<div
+  class="mota7-card-wrapper home-premium-card home-premium--store my-ad-manage-card"
+  *ngIf="ad"
+  [class.my-ad-no-fade-inactive]="ad.status === 'rejected' || ad.status === 'expired'"
+  [class.is-unavailable]="manageCardFaded"
+>
+  <div class="home-premium-accent" aria-hidden="true"></div>
 
   <div class="status-header">
     <div class="status-badge" [ngClass]="ad.status">
@@ -16,36 +19,67 @@
     <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
   </div>
 
-  <div class="store-main-title-header">
-    {{ ad.store_name }}
-  </div>
+  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
 
-  <div class="card-main-content">
-    <div class="store-logo-container">
-      <div class="store-logo-frame">
-        <img [src]="ad.logo || 'assets/mota7.png'"
-             (error)="$any($event.target).src = 'assets/mota7.png'"
-             alt="لوجو المتجر">
+  <div class="store-manage-body">
+    <div class="store-logo-row" dir="rtl">
+      <button
+        type="button"
+        class="store-contact-btn store-contact-btn--call"
+        *ngIf="hasStoreContact"
+        (click)="contactAction('call', $event)"
+        aria-label="اتصال هاتفي"
+      >
+        <ion-icon name="call" aria-hidden="true"></ion-icon>
+      </button>
+
+      <div class="store-circle">
+        <div class="store-circle-frame">
+          <img
+            [src]="storeLogoThumb()"
+            loading="lazy"
+            decoding="async"
+            (error)="$any($event.target).src = 'assets/mota7.png'"
+            alt="لوجو المتجر"
+          >
+        </div>
+
+        <div
+          class="verification-badge"
+          *ngIf="ad.verification_level && ad.verification_level !== 'none'"
+          [ngClass]="ad.verification_level"
+        >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/gold.avif"
+            *ngIf="ad.verification_level === 'gold'"
+            class="verify-img"
+            alt="شارة التحقق الذهبية"
+          >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/blue.webp"
+            *ngIf="ad.verification_level === 'blue'"
+            class="verify-img"
+            alt="شارة التحقق الزرقاء"
+          >
+        </div>
       </div>
 
-      <div class="verification-badge"
-           *ngIf="ad.verification_level && ad.verification_level !== 'none'" 
-           [ngClass]="ad.verification_level">
-        <img src="assets/gold.avif" *ngIf="ad.verification_level === 'gold'" class="verify-img" alt="ذهبي">
-        <img src="assets/blue.webp" *ngIf="ad.verification_level === 'blue'" class="verify-img" alt="أزرق">
-      </div>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="icon-contact-actions">
-      <button type="button" class="icon-btn call" (click)="contactAction('call')" title="اتصال">
-        <ion-icon name="call"></ion-icon>
-      </button>
-      <button type="button" *ngIf="ad.whatsapp_phone" class="icon-btn whatsapp" (click)="contactAction('whatsapp')" title="واتساب">
-        <ion-icon name="logo-whatsapp"></ion-icon>
+      <button
+        type="button"
+        class="store-contact-btn store-contact-btn--whatsapp"
+        *ngIf="hasStoreContact"
+        (click)="contactAction('whatsapp', $event)"
+        aria-label="واتساب"
+      >
+        <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
       </button>
     </div>
+
+    <div class="store-name-premium">{{ ad.store_name }}</div>
   </div>
 
   <div class="owner-line-full">
@@ -63,7 +97,7 @@
       <span>حذف</span>
     </button>
   </div>
-  
+
   <div class="verification-request-section" *ngIf="ad.status">
     <button type="button" class="verification-btn" (click)="showVerificationModal()">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
@@ -79,14 +113,22 @@
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'rejected'">
-    <p>سبب الرفض : {{ ad.admin_reason || ad.reject_reason }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الرفض :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason }}</span>
+    </p>
+    <p>⚠️</p>
     <button type="button" class="admin-btn" (click)="contactAdmin('rejected', $event)">
       تواصل واتساب مع الإدارة
     </button>
   </div>
 
   <div class="admin-box rejected" *ngIf="ad.status === 'expired'">
-    <p>سبب الانتهاء : {{ ad.admin_reason || ad.reject_reason || 'يرجي التواصل مع الإدارة' }}</p>
+    <p>
+      <span class="admin-reason-label">سبب الانتهاء :</span>
+      <span class="admin-reason-text"> {{ ad.admin_reason || ad.reject_reason || 'يرجي التواصل مع الإدارة' }}</span>
+    </p>
+    <p>⚠️</p>
     <button type="button" class="admin-btn" (click)="contactAdmin('expired', $event)">
       تواصل واتساب مع الإدارة
     </button>
