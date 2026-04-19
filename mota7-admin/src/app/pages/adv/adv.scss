@@ -148,7 +148,6 @@
 
   .card-wrapper {
     width: 100%;
-    animation: slideUpFade 0.4s ease-out forwards;
   }
 }
 
@@ -224,9 +223,4 @@
   color: #999;
   ion-icon { font-size: 48px; margin-bottom: 8px; color: #ccc; }
   p { font-size: 1rem; font-weight: 700; }
-}
-
-@keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
 }

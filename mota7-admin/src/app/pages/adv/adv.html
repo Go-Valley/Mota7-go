@@ -96,7 +96,7 @@
 
         <div class="cards-grid" *ngIf="tabAds.length > 0">
           <div
-            *ngFor="let ad of tabAds"
+            *ngFor="let ad of tabAds; trackBy: trackByAdId"
             class="card-wrapper"
             [class.adv-selection-mode]="selectionMode"
             (pointerdown)="onAdPointerDown(ad.id, $event)"

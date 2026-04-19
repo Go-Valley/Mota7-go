@@ -37,6 +37,11 @@
           <ion-icon slot="start" name="document-text-outline"></ion-icon>
           <ion-label>الشروط والأحكام</ion-label>
         </ion-item>
+
+        <ion-item lines="none" detail="false" class="menu-item-terms" (click)="openAppTutorial()">
+          <ion-icon slot="start" name="book-outline"></ion-icon>
+          <ion-label>طريقة الشرح والاستخدام</ion-label>
+        </ion-item>
       </div>
     </div>
 
@@ -131,6 +136,11 @@
           <ion-label>الشروط والأحكام</ion-label>
         </ion-item>
 
+        <ion-item lines="none" detail="true" detail-icon="chevron-back" class="option-item" (click)="openAppTutorial()">
+          <ion-icon slot="start" name="book-outline"></ion-icon>
+          <ion-label>طريقة الشرح والاستخدام</ion-label>
+        </ion-item>
+
         <ion-item lines="none" class="option-item logout-btn" (click)="logout()">
           <ion-icon slot="start" name="log-out-outline"></ion-icon>
           <ion-label>تسجيل الخروج</ion-label>
@@ -198,6 +208,11 @@
         </ion-footer>
       </ng-template>
     </ion-modal>
+
+    <app-tutorial-modal
+      [isOpen]="isAppTutorialOpen"
+      (closed)="isAppTutorialOpen = false"
+    ></app-tutorial-modal>
 
   </div>
 </ion-content>

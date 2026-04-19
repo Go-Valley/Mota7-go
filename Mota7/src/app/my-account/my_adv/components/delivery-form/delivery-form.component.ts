@@ -339,6 +339,12 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
 
       if (this.isEditMode) {
         adPayload.status = 'pending';
+        ntfySnapshot = {
+          ad_type: 'delivery',
+          category_id: adPayload.category_id,
+          owner_name: adPayload.owner_name,
+          details: { ...adPayload.details },
+        };
         await runInInjectionContext(this.injector, async () => {
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
         });
@@ -369,11 +375,15 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       this.presentToast(this.isEditMode ? 'تم تحديث الإعلان بنجاح' : 'تم إرسال طلب الانضمام بنجاح');
       
       await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
-      if (!this.isEditMode) {
-        if (ntfySnapshot) {
+      if (ntfySnapshot) {
+        if (this.isEditMode) {
+          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+        } else {
           void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
         }
-          this.navCtrl.navigateRoot('/my-ads');
+      }
+      if (!this.isEditMode) {
+        this.navCtrl.navigateRoot('/my-ads');
       }
   
     } catch (e) {

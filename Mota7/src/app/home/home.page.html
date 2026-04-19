@@ -129,7 +129,11 @@
             <app-education-home-card *ngSwitchCase="'education'" [ad]="ad"></app-education-home-card>
             <app-other-services-home-card *ngSwitchCase="'other'" [ad]="ad"></app-other-services-home-card>
             <app-product-home-card *ngSwitchCase="'product'" [ad]="ad"></app-product-home-card>
-            <app-store-home-card *ngSwitchCase="'store'" [ad]="ad"></app-store-home-card>
+            <app-store-home-card
+              *ngSwitchCase="'store'"
+              [ad]="ad"
+              (cityFilter)="selectCity($event)">
+            </app-store-home-card>
           </ng-container>
         </ng-container>
       </div>
@@ -224,7 +228,8 @@
       <ng-container *ngIf="selectedCategory === 'stores_types'">
         <app-store-home-card
           *ngFor="let ad of adsList"
-          [ad]="ad">
+          [ad]="ad"
+          (cityFilter)="selectCity($event)">
         </app-store-home-card>
       </ng-container>
 

@@ -30,6 +30,24 @@ export class NewAdNtfyService {
     await this.ensureChannelsAndPermissions();
     await this.scheduleOwnerSubmittedNotification();
 
+    await this.publishAdToNtfy(publisherUid, adPayload, 'Mota7: new ad');
+  }
+
+  /**
+   * بعد نجاح حفظ تعديل على إعلان موجود — نشر على ntfy لإشعار الأدمن ومقدمي الخدمة المشتركين.
+   */
+  async notifyAfterAdUpdated(publisherUid: string, adPayload: Record<string, unknown>): Promise<void> {
+    await this.ensureChannelsAndPermissions();
+    await this.scheduleOwnerUpdatedNotification();
+
+    await this.publishAdToNtfy(publisherUid, adPayload, 'Mota7: ad updated');
+  }
+
+  private async publishAdToNtfy(
+    publisherUid: string,
+    adPayload: Record<string, unknown>,
+    asciiTitle: 'Mota7: new ad' | 'Mota7: ad updated'
+  ): Promise<void> {
     const cfg = environment.ntfy;
     if (!cfg?.enabled || !cfg.topic?.trim()) {
       return;
@@ -45,7 +63,7 @@ export class NewAdNtfyService {
       const res = await fetch(`${base}/${topic}`, {
         method: 'POST',
         headers: {
-          Title: 'Mota7: new ad',
+          Title: asciiTitle,
           'Content-Type': 'text/plain; charset=utf-8',
         },
         body,
@@ -76,6 +94,28 @@ export class NewAdNtfyService {
       });
     } catch (e) {
       console.warn('[local notifications] owner', e);
+    }
+  }
+
+  private async scheduleOwnerUpdatedNotification(): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      return;
+    }
+    try {
+      const id = Math.floor(Date.now() % 2147483640) + 1;
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id,
+            title: 'مُتاح',
+            body: 'تم حفظ تعديلات إعلانك… وهي قيد المراجعة',
+            channelId: 'mota7-ads',
+            schedule: { at: new Date(Date.now() + 500) },
+          },
+        ],
+      });
+    } catch (e) {
+      console.warn('[local notifications] owner update', e);
     }
   }
 

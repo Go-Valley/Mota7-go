@@ -22,6 +22,7 @@ import {
   schoolOutline,
   constructOutline,
   listOutline,
+  bookOutline,
 } from 'ionicons/icons';
 import { ModalController, NavController } from '@ionic/angular';
 import { Auth, authState } from '@angular/fire/auth';
@@ -45,6 +46,7 @@ export class TabsPage implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   isServiceModalOpen: boolean = false;
+  isAppTutorialOpen = false;
   isLoggedIn: boolean = false;
   /** تنقل بعد اكتمال إغلاق المودال (يمنع بقاء الطبقة فوق الصفحة الجديدة) */
   private pendingNavigation: string | null = null;
@@ -66,6 +68,7 @@ export class TabsPage implements OnInit {
       'school-outline': schoolOutline,
       'construct-outline': constructOutline,
       'list-outline': listOutline,
+      'book-outline': bookOutline,
     });
   }
 
@@ -75,6 +78,11 @@ export class TabsPage implements OnInit {
         this.isLoggedIn = !!user;
       })
     );
+  }
+
+  openAppTutorial(): void {
+    this.isAppTutorialOpen = true;
+    this.cdr.markForCheck();
   }
 
   openServiceModal() {

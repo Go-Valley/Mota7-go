@@ -1,4 +1,13 @@
-import { Component, Input, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  inject,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import {
@@ -25,6 +34,7 @@ import {
   checkmarkCircle,
   ribbon,
   shieldCheckmark,
+  locationOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -42,6 +52,8 @@ import {
 })
 export class StoreHomeCardComponent implements OnInit {
   @Input() ad: any;
+  /** عند الضغط على شارة المدينة: تصفية قائمة المتاجر في الصفحة الرئيسية حسب هذه المدينة */
+  @Output() cityFilter = new EventEmitter<string>();
   private firestore = inject(Firestore);
   private analytics = inject(Analytics, { optional: true });
   private injector = inject(EnvironmentInjector);
@@ -59,6 +71,7 @@ export class StoreHomeCardComponent implements OnInit {
       checkmarkCircle,
       ribbon,
       shieldCheckmark,
+      locationOutline,
     });
   }
 
@@ -72,6 +85,23 @@ export class StoreHomeCardComponent implements OnInit {
     } else {
       this.displayName = 'مستخدم متاح';
     }
+  }
+
+  /** نص المدينة للعرض (نفس منطق بطاقات الخدمات) */
+  get cityDisplay(): string {
+    const c = this.ad?.city;
+    return typeof c === 'string' && c.trim() ? c.trim() : 'غير محدد';
+  }
+
+  get hasCityForFilter(): boolean {
+    const c = this.ad?.city;
+    return typeof c === 'string' && c.trim().length > 0;
+  }
+
+  onCityChipClick(event: Event): void {
+    event.stopPropagation();
+    if (!this.hasCityForFilter) return;
+    this.cityFilter.emit(this.ad.city.trim());
   }
 
   storeLogoThumb(): string {

@@ -298,6 +298,12 @@ export class StoreFormComponent implements OnInit {
         };
       } else {
         adPayload.expiry_date = this.editAdData.expiry_date;
+        ntfySnapshot = {
+          ad_type: 'store',
+          store_name: adPayload.store_name,
+          category_id: adPayload.category_id,
+          owner_name: adPayload.owner_name,
+        };
       }
 
       await runInInjectionContext(this.injector, async () => {
@@ -309,10 +315,14 @@ export class StoreFormComponent implements OnInit {
       this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال متجرك للمراجعة بنجاح');
       await this.modalCtrl.dismiss({ saved: true }, 'confirm');
 
-      if (!this.isEditMode) {
-        if (ntfySnapshot && user) {
+      if (ntfySnapshot && user) {
+        if (this.isEditMode) {
+          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+        } else {
           void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
         }
+      }
+      if (!this.isEditMode) {
         this.navCtrl.navigateRoot('/my-ads');
       }
     } catch (e: any) {

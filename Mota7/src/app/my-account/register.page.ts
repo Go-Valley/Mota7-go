@@ -58,7 +58,7 @@ export class RegisterPage implements OnInit, OnDestroy {
   private hardwareBackSub?: Subscription;
 
   phoneLiveWarning: string | null = null;
-  private readonly fullNameMaxLen = 20;
+  private readonly fullNameMaxLen = 25;
 
   // تم إضافة حقل city هنا
   userData = {

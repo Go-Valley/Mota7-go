@@ -5,8 +5,8 @@
   justify-content: center;
   width: 100%;
   gap: 0.55rem;
-  margin: 0.2rem 0 0.4rem;
-  padding: 0 4px;
+  margin: 0.1rem 0 0.9rem;
+  padding: 5px 5px;
 }
 
 .ad-engagement-pill {
@@ -80,11 +80,12 @@
   display: block;
 }
 
-/* كروت أخرى (متاجر…) تبقى بأسلوب ذهبي للمشاهدات */
+/* كروت المتاجر: شارة المشاهدات فوق أيقونة المتجر داخل .store-logo-stack */
 :host-context(.store-icon-card) .ad-engagement-row {
   justify-content: center;
-  margin-top: 0.4rem;
-  margin-bottom: 0;
+  margin: 0;
+  padding: 0;
+  width: auto;
 }
 
 :host-context(.store-icon-card) .ad-engagement-pill--views {

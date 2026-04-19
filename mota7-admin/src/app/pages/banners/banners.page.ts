@@ -1,8 +1,11 @@
-import { Component, OnInit, ViewChild, inject, Injector, runInInjectionContext } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, inject, Injector, runInInjectionContext } from '@angular/core';
 import { IonicModule, IonInput, AlertController, ToastController, LoadingController, NavController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, collection, collectionData, doc, setDoc, updateDoc, deleteDoc, query, orderBy, Timestamp } from '@angular/fire/firestore';
+import { deleteField } from 'firebase/firestore';
+import { Subscription, interval } from 'rxjs';
+import { startWith } from 'rxjs/operators';
 import { addIcons } from 'ionicons';
 import {
   imagesOutline,
@@ -15,7 +18,6 @@ import {
   calendarOutline,
   chevronDownCircleOutline
 } from 'ionicons/icons';
-import { Observable } from 'rxjs';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { CloudinaryUploadService } from '../../services/cloudinary-upload.service';
 import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
@@ -29,7 +31,19 @@ import { normalizeUserFreeText, readIonTextInputValueFromEvent } from '../../cor
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule, Mota7HeaderComponent],
 })
-export class BannersPage implements OnInit {
+export class BannersPage implements OnInit, OnDestroy {
+  /** خيارات ترتيب الظهور 1…100 لقوائم الاختيار */
+  readonly displayOrderSlots: number[] = Array.from({ length: 100 }, (_, i) => i + 1);
+
+  readonly displayOrderAlertOptions = {
+    header: 'ترتيب الظهور',
+    subHeader: 'الأرقام المحجوزة لبانر آخر غير قابلة للاختيار',
+  };
+
+  readonly displayOrderAlertOptionsNew = {
+    header: 'اختر ترتيب الظهور',
+    subHeader: 'المحجوز لبانر موجود مسبقاً غير متاح',
+  };
   @ViewChild('inputBannerTitle', { read: IonInput }) private inputBannerTitle?: IonInput;
   private firestore = inject(Firestore);
   private injector = inject(Injector);
@@ -39,8 +53,18 @@ export class BannersPage implements OnInit {
   private toastCtrl = inject(ToastController);
   private loadingCtrl = inject(LoadingController);
   private navCtrl = inject(NavController);
+  private cdr = inject(ChangeDetectorRef);
 
-  banners$: Observable<any[]> | undefined;
+  bannersList: any[] = [];
+  /** يعاد رسم القائمة ليعكس ترتيب الساعة كما في التطبيق */
+  private displayOrderTickSub: Subscription | null = null;
+  /** حقول تعديل لكل بانر (مفتاح: id المستند) */
+  bannerEdits: Record<
+    string,
+    { startDate: string; endDate: string; displayOrderStr: string; createdAtDate: string }
+  > = {};
+  private bannersSub: Subscription | null = null;
+
   previewImage: string | null = null;
   selectedFile: File | null = null;
   isAdding: boolean = false;
@@ -49,6 +73,10 @@ export class BannersPage implements OnInit {
     title: '',
     startDate: '',
     endDate: '',
+    /** 1–100: الأصغر يظهر أولاً في التطبيق؛ فارغ = ترتيب غير مرقّم يتجدد كل ساعة */
+    displayOrder: '',
+    /** تاريخ الإضافة (مخزَّن في Firestore؛ لا يحدد ظهور البانر غير المرقّم في التطبيق)؛ فارغ = وقت الرفع الحالي */
+    createdAtDate: '',
     status: 'active',
   };
 
@@ -68,6 +96,92 @@ export class BannersPage implements OnInit {
 
   ngOnInit() {
     this.loadBanners();
+    this.displayOrderTickSub?.unsubscribe();
+    this.displayOrderTickSub = interval(60_000)
+      .pipe(startWith(0))
+      .subscribe(() => this.cdr.markForCheck());
+  }
+
+  ngOnDestroy() {
+    this.bannersSub?.unsubscribe();
+    this.bannersSub = null;
+    this.displayOrderTickSub?.unsubscribe();
+    this.displayOrderTickSub = null;
+  }
+
+  /** نفس ترتيب الظهور في تطبيق المستخدم (مرقّمون أولاً، ثم عشوائية ساعية لغير المرقّمين) */
+  get bannersListForDisplay(): any[] {
+    return this.sortBannersLikeApp([...this.bannersList]);
+  }
+
+  private sortBannersLikeApp(banners: any[]): any[] {
+    const hourSlot = Math.floor(Date.now() / (60 * 60 * 1000));
+    const displayRank = (x: any): number | null =>
+      typeof x.displayOrder === 'number' &&
+      Number.isFinite(x.displayOrder) &&
+      x.displayOrder >= 1 &&
+      x.displayOrder <= 100
+        ? Math.floor(x.displayOrder)
+        : null;
+
+    const ranked: any[] = [];
+    const unranked: any[] = [];
+    for (const b of banners) {
+      if (displayRank(b) != null) {
+        ranked.push(b);
+      } else {
+        unranked.push(b);
+      }
+    }
+
+    ranked.sort((a, b) => {
+      const ra = displayRank(a)!;
+      const rb = displayRank(b)!;
+      if (ra !== rb) {
+        return ra - rb;
+      }
+      return this.bannerCreatedMillisForSort(b) - this.bannerCreatedMillisForSort(a);
+    });
+
+    unranked.sort(
+      (a, b) =>
+        this.hourlyShuffleScore(hourSlot, String(a?.id ?? '')) -
+        this.hourlyShuffleScore(hourSlot, String(b?.id ?? ''))
+    );
+
+    return [...ranked, ...unranked];
+  }
+
+  private hourlyShuffleScore(hourSlot: number, bannerId: string): number {
+    const s = `${hourSlot}:${bannerId}`;
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  private bannerCreatedMillisForSort(b: any): number {
+    const ts = b?.createdAt;
+    if (ts && typeof ts.toMillis === 'function') {
+      return ts.toMillis();
+    }
+    if (ts && typeof ts.toDate === 'function') {
+      try {
+        return ts.toDate().getTime();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (ts && typeof ts.seconds === 'number') {
+      return ts.seconds * 1000;
+    }
+    return 0;
+  }
+
+  trackByBannerId(_index: number, banner: any) {
+    return banner?.id ?? _index;
   }
 
   doRefresh(event: any) {
@@ -78,11 +192,151 @@ export class BannersPage implements OnInit {
   }
 
   loadBanners() {
+    this.bannersSub?.unsubscribe();
     runInInjectionContext(this.injector, () => {
       const bannersRef = collection(this.firestore, 'banners');
       const q = query(bannersRef, orderBy('createdAt', 'desc'));
-      this.banners$ = collectionData(q, { idField: 'id' });
+      this.bannersSub = collectionData(q, { idField: 'id' }).subscribe((list) => {
+        this.bannersList = list;
+        this.syncBannerEditsFromServer(list);
+      });
     });
+  }
+
+  private syncBannerEditsFromServer(list: any[]) {
+    const ids = new Set(list.map((b) => b.id));
+    for (const id of Object.keys(this.bannerEdits)) {
+      if (!ids.has(id)) {
+        delete this.bannerEdits[id];
+      }
+    }
+    for (const b of list) {
+      if (!this.bannerEdits[b.id]) {
+        this.bannerEdits[b.id] = {
+          startDate: b.startDate || '',
+          endDate: b.endDate || '',
+          displayOrderStr:
+            typeof b.displayOrder === 'number' && b.displayOrder >= 1 && b.displayOrder <= 100
+              ? String(Math.floor(b.displayOrder))
+              : '',
+          createdAtDate: this.timestampToDateInput(b.createdAt),
+        };
+      }
+    }
+  }
+
+  private timestampToDateInput(ts: any): string {
+    if (!ts) return '';
+    let d: Date | null = null;
+    if (typeof ts?.toDate === 'function') {
+      try {
+        d = ts.toDate();
+      } catch {
+        d = null;
+      }
+    } else if (typeof ts?.seconds === 'number') {
+      d = new Date(ts.seconds * 1000);
+    }
+    if (!d || isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  private dateInputToTimestampAtNoon(dateStr: string): Timestamp | null {
+    if (!dateStr || !String(dateStr).trim()) return null;
+    const d = new Date(`${dateStr.trim()}T12:00:00`);
+    if (isNaN(d.getTime())) return null;
+    return Timestamp.fromDate(d);
+  }
+
+  private parseDisplayOrder(raw: string): number | null {
+    const n = parseInt(String(raw ?? '').trim(), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 100) return null;
+    return n;
+  }
+
+  /**
+   * الترتيب الفعلي المعروض في النموذج (مسودة التعديل أولاً؛ إن أُفرغ الرقم لا نعود لقيمة السيرفر لحساب الحجز).
+   */
+  getEffectiveDisplayOrder(bannerId: string): number | null {
+    const e = this.bannerEdits[bannerId];
+    if (e) {
+      return this.parseDisplayOrder(e.displayOrderStr);
+    }
+    const b = this.bannersList.find((x) => x.id === bannerId);
+    if (b && typeof b.displayOrder === 'number' && b.displayOrder >= 1 && b.displayOrder <= 100) {
+      return Math.floor(b.displayOrder);
+    }
+    return null;
+  }
+
+  /** هل الرقم محجوز لبانر آخر (أو لمسودة بانر آخر) */
+  isDisplayOrderReserved(excludeBannerId: string | null, slot: number): boolean {
+    for (const b of this.bannersList) {
+      if (excludeBannerId !== null && b.id === excludeBannerId) continue;
+      const ord = this.getEffectiveDisplayOrder(b.id);
+      if (ord === slot) return true;
+    }
+    return false;
+  }
+
+  /** للبانر الجديد قبل الحفظ: أي رقم مأخوذ في القائمة الحالية */
+  isDisplayOrderReservedForNew(slot: number): boolean {
+    return this.isDisplayOrderReserved(null, slot);
+  }
+
+  async saveBannerSchedule(banner: any) {
+    const id = banner?.id;
+    if (!id) return;
+    const e = this.bannerEdits[id];
+    if (!e) {
+      this.showToast('لا توجد بيانات للحفظ');
+      return;
+    }
+
+    const patch: {
+      startDate: string;
+      endDate: string;
+      displayOrder: number | ReturnType<typeof deleteField>;
+      createdAt?: Timestamp;
+    } = {
+      startDate: e.startDate || '',
+      endDate: e.endDate || '',
+      displayOrder: deleteField(),
+    };
+
+    const ord = this.parseDisplayOrder(e.displayOrderStr);
+    if (ord != null) {
+      patch.displayOrder = ord;
+    }
+
+    const created = this.dateInputToTimestampAtNoon(e.createdAtDate);
+    if (created) {
+      patch.createdAt = created;
+    }
+
+    const loader = await this.loadingCtrl.create({
+      message: 'جاري حفظ التعديلات...',
+      mode: 'ios',
+    });
+    await loader.present();
+    try {
+      await runInInjectionContext(this.injector, () => updateDoc(doc(this.firestore, 'banners', id), patch));
+      this.bannerEdits[id] = {
+        startDate: e.startDate || '',
+        endDate: e.endDate || '',
+        displayOrderStr: ord != null ? String(ord) : '',
+        createdAtDate: e.createdAtDate,
+      };
+      this.showToast('تم حفظ التعديلات');
+    } catch (err) {
+      console.error(err);
+      this.showToast('تعذّر الحفظ، حاول مرة أخرى');
+    } finally {
+      loader.dismiss();
+    }
   }
 
   goBack() {
@@ -142,16 +396,34 @@ export class BannersPage implements OnInit {
       const { url: imageUrl, publicId } = await this.uploadSvc.uploadImage(this.selectedFile, 'banners');
 
       const bannerId = Date.now().toString();
+      const ord = this.parseDisplayOrder(this.bannerData.displayOrder);
+      const createdAt =
+        this.dateInputToTimestampAtNoon(this.bannerData.createdAtDate) ?? Timestamp.now();
+
+      const docPayload: {
+        title: string;
+        imageUrl: string;
+        cloudinary_public_id: string;
+        startDate: string;
+        endDate: string;
+        status: string;
+        createdAt: Timestamp;
+        displayOrder?: number;
+      } = {
+        title: this.bannerData.title || '',
+        imageUrl,
+        cloudinary_public_id: publicId,
+        startDate: this.bannerData.startDate,
+        endDate: this.bannerData.endDate,
+        status: 'active',
+        createdAt,
+      };
+      if (ord != null) {
+        docPayload.displayOrder = ord;
+      }
+
       await runInInjectionContext(this.injector, () =>
-        setDoc(doc(this.firestore, 'banners', bannerId), {
-          title: this.bannerData.title || '',
-          imageUrl,
-          cloudinary_public_id: publicId,
-          startDate: this.bannerData.startDate,
-          endDate: this.bannerData.endDate,
-          status: 'active',
-          createdAt: Timestamp.now(),
-        })
+        setDoc(doc(this.firestore, 'banners', bannerId), docPayload)
       );
 
       this.resetForm();
@@ -208,7 +480,14 @@ export class BannersPage implements OnInit {
   resetForm() {
     this.previewImage = null;
     this.selectedFile = null;
-    this.bannerData = { title: '', startDate: '', endDate: '', status: 'active' };
+    this.bannerData = {
+      title: '',
+      startDate: '',
+      endDate: '',
+      displayOrder: '',
+      createdAtDate: '',
+      status: 'active',
+    };
     this.isAdding = false;
   }
 

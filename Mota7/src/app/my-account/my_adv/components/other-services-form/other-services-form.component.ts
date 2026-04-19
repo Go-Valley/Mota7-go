@@ -169,6 +169,12 @@ async saveServiceAd() {
       if (this.isEditMode) {
         adPayload.status = 'pending';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
+        ntfySnapshot = {
+          ad_type: 'other',
+          category_id: adPayload.category_id,
+          owner_name: adPayload.owner_name,
+          details: { ...adPayload.details },
+        };
       } else {
         adPayload.status = 'pending';
         adPayload.created_at = serverTimestamp();
@@ -194,10 +200,14 @@ async saveServiceAd() {
     await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
     this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال طلبك للمراجعة بنجاح');
 
-    if (!this.isEditMode) {
-      if (ntfySnapshot) {
+    if (ntfySnapshot) {
+      if (this.isEditMode) {
+        void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+      } else {
         void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
       }
+    }
+    if (!this.isEditMode) {
       this.navCtrl.navigateRoot('/my-ads');
     }
 

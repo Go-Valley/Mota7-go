@@ -63,6 +63,18 @@ export function buildNtfyPublicBody(publisherUid: string, preview: string): stri
   return `UID:${publisherUid}\n\n${safePreview}\n\n${PUBLIC_SUFFIX}`;
 }
 
+/** عنوان إشعار محلي من ترويسة ntfy (ASCII فقط في الطلب) */
+export function mapMota7AdNtfyTitle(titleFromServer: string): string {
+  const t = (titleFromServer || '').toLowerCase();
+  if (t.includes('ad updated')) {
+    return 'تعديل إعلان';
+  }
+  if (t.includes('new ad')) {
+    return 'إعلان جديد';
+  }
+  return (titleFromServer || '').trim() || 'إعلان جديد';
+}
+
 export function parseNtfyIncomingMessage(
   rawMessage: string,
   currentUid: string | null | undefined

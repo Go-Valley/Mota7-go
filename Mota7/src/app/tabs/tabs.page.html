@@ -111,8 +111,28 @@
               </div>
             </div>
           </ion-button>
+          <ion-button
+            expand="block"
+            class="service-cta service-cta--tutorial-guide"
+            (click)="openAppTutorial()"
+          >
+            <div class="service-cta__row">
+              <div class="service-cta__icon" aria-hidden="true">
+                <ion-icon name="book-outline"></ion-icon>
+              </div>
+              <div class="service-cta__copy">
+                <span class="service-cta__title">طريقة الشرح والاستخدام</span>
+                <span class="service-cta__sub">دليل مصوّر للتطبيق</span>
+              </div>
+            </div>
+          </ion-button>
         </section>
       </div>
     </div>
   </ng-template>
 </ion-modal>
+
+<app-tutorial-modal
+  [isOpen]="isAppTutorialOpen"
+  (closed)="isAppTutorialOpen = false"
+></app-tutorial-modal>

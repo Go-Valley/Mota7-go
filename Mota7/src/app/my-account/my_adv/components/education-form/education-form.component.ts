@@ -201,6 +201,12 @@ export class EducationFormComponent implements OnInit {
         if (this.isEditMode) {
           adPayload.status = 'pending';
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
+          ntfySnapshot = {
+            ad_type: 'education',
+            category_id: adPayload.category_id,
+            owner_name: adPayload.owner_name,
+            details: { ...adPayload.details },
+          };
         } else {
           adPayload.status = 'pending';
           adPayload.created_at = serverTimestamp();
@@ -231,8 +237,12 @@ export class EducationFormComponent implements OnInit {
       await loader.dismiss();
       this.presentToast(this.isEditMode ? 'تم تحديث الإعلان بنجاح' : 'تم إرسال إعلانك التعليمي بنجاح');
       await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
-      if (!this.isEditMode && ntfySnapshot) {
-        void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+      if (ntfySnapshot) {
+        if (this.isEditMode) {
+          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+        } else {
+          void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+        }
       }
       this.navCtrl.navigateRoot('/my-ads');
 

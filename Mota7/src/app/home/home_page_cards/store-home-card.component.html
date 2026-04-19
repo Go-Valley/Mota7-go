@@ -10,36 +10,40 @@
       <ion-icon name="call" aria-hidden="true"></ion-icon>
     </button>
 
-    <div class="store-circle" (click)="toggleProducts($event)">
-      <div class="store-circle-frame">
-        <img [src]="storeLogoThumb()"
-             loading="lazy"
-             decoding="async"
-             (error)="$any($event.target).src = 'assets/mota7.png'"
-             alt="لوجو المتجر">
-      </div>
+    <div class="store-logo-stack">
+      <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
 
-      <div
-        class="verification-badge"
-        *ngIf="ad.verification_level && ad.verification_level !== 'none'"
-        [ngClass]="ad.verification_level"
-      >
-        <img
-          loading="lazy"
-          decoding="async"
-          src="assets/gold.avif"
-          *ngIf="ad.verification_level === 'gold'"
-          class="verify-img"
-          alt="شارة التحقق الذهبية"
-          title="متجر موثَّق - ذهبية">
-        <img
-          loading="lazy"
-          decoding="async"
-          src="assets/blue.webp"
-          *ngIf="ad.verification_level === 'blue'"
-          class="verify-img"
-          alt="شارة التحقق الزرقاء"
-          title="متجر موثَّق - زرقاء">
+      <div class="store-circle" (click)="toggleProducts($event)">
+        <div class="store-circle-frame">
+          <img [src]="storeLogoThumb()"
+               loading="lazy"
+               decoding="async"
+               (error)="$any($event.target).src = 'assets/mota7.png'"
+               alt="لوجو المتجر">
+        </div>
+
+        <div
+          class="verification-badge"
+          *ngIf="ad.verification_level && ad.verification_level !== 'none'"
+          [ngClass]="ad.verification_level"
+        >
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/gold.avif"
+            *ngIf="ad.verification_level === 'gold'"
+            class="verify-img"
+            alt="شارة التحقق الذهبية"
+            title="متجر موثَّق - ذهبية">
+          <img
+            loading="lazy"
+            decoding="async"
+            src="assets/blue.webp"
+            *ngIf="ad.verification_level === 'blue'"
+            class="verify-img"
+            alt="شارة التحقق الزرقاء"
+            title="متجر موثَّق - زرقاء">
+        </div>
       </div>
     </div>
 
@@ -54,9 +58,19 @@
     </button>
   </div>
 
-  <div class="store-name">{{ ad.store_name }}</div>
-
-  <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
+  <div class="store-heading" dir="rtl">
+    <h2 class="store-name">{{ ad.store_name }}</h2>
+    <button
+      type="button"
+      class="store-city-chip"
+      *ngIf="hasCityForFilter"
+      (click)="onCityChipClick($event)"
+      [attr.aria-label]="'عرض المتاجر في ' + cityDisplay"
+    >
+      <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+      <span>{{ cityDisplay }}</span>
+    </button>
+  </div>
 
   <div class="products-panel" *ngIf="showProducts">
     <div class="store-products-loading" *ngIf="productsLoading">

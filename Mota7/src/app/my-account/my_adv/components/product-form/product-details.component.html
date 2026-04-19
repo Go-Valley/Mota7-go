@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
   <ion-toolbar mode="ios" class="mota7-header">
-    <ion-title class="mota7-title">تفاصيل المنتج</ion-title>
+    <ion-title class="mota7-title product-details-title-red">تفاصيل المنتج</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="close()" class="mota7-back-button" aria-label="رجوع">
         <ion-icon slot="icon-only" name="chevron-forward-outline" title="إغلاق"></ion-icon>
@@ -38,7 +38,7 @@
       <div class="product-description-section">
         <p class="custom-short-desc">{{ ad.details?.short_desc }}</p>
 
-        <h2 class="section-title mt-10">تفاصيل المنتج</h2>
+        <h2 class="section-title product-details-title-red mt-10">تفاصيل المنتج :</h2>
         <p class="custom-full-details">{{ ad.details?.full_details || 'لا يوجد وصف إضافي متوفر.' }}</p>
       </div>
 

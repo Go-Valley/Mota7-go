@@ -381,3 +381,12 @@ ion-modal.mota7-provider-rates-customer-modal::part(backdrop) {
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
+
+/* دليل استخدام التطبيق — 90% ارتفاع الشاشة */
+ion-modal.app-tutorial-modal {
+  --height: 90%;
+  --max-height: 90%;
+  --width: min(100%, 640px);
+  --border-radius: 22px 22px 0 0;
+  align-items: flex-end;
+}

@@ -3,7 +3,10 @@ import { Auth } from '@angular/fire/auth';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { environment } from '../../../environments/environment';
-import { parseNtfyIncomingMessage } from '../utils/ad-notification-preview';
+import {
+  mapMota7AdNtfyTitle,
+  parseNtfyIncomingMessage,
+} from '../utils/ad-notification-preview';
 import {
   parseOrderNtfyMessage,
   type ParsedOrderNtfy,
@@ -113,7 +116,7 @@ export class NtfyListenerService {
       return;
     }
 
-    const title = titleFromServer || 'إعلان جديد';
+    const title = mapMota7AdNtfyTitle(titleFromServer);
     const uid = this.auth.currentUser?.uid ?? null;
     const { skip, body } = parseNtfyIncomingMessage(rawMsg, uid);
     if (skip || !body.trim()) {

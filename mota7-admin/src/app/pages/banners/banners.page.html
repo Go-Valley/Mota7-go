@@ -43,14 +43,41 @@
 
       <div class="date-row">
         <ion-item lines="none" class="mota7-input half">
-          <ion-label position="stacked">تاريخ البدء</ion-label>
+          <ion-label position="stacked">عرض البانر من</ion-label>
           <ion-input type="date" [(ngModel)]="bannerData.startDate"></ion-input>
         </ion-item>
         <ion-item lines="none" class="mota7-input half">
-          <ion-label position="stacked">تاريخ الانتهاء</ion-label>
+          <ion-label position="stacked">عرض البانر إلى</ion-label>
           <ion-input type="date" [(ngModel)]="bannerData.endDate"></ion-input>
         </ion-item>
       </div>
+
+      <div class="date-row">
+        <ion-item lines="none" class="mota7-input half">
+          <ion-label position="stacked">تاريخ الإضافة <span class="optional-hint">(من — للترتيب التلقائي)</span></ion-label>
+          <ion-input type="date" [(ngModel)]="bannerData.createdAtDate"></ion-input>
+        </ion-item>
+        <ion-item lines="none" class="mota7-input half order-select-item">
+          <ion-label position="stacked">ترتيب الظهور <span class="optional-hint">(1–100)</span></ion-label>
+          <ion-select
+            [(ngModel)]="bannerData.displayOrder"
+            interface="alert"
+            [interfaceOptions]="displayOrderAlertOptionsNew"
+            placeholder="اضغط للاختيار"
+            class="order-ion-select"
+          >
+            <ion-select-option value="">تلقائي (ترتيب يتجدد كل ساعة بين غير المرقّمين)</ion-select-option>
+            <ion-select-option
+              *ngFor="let n of displayOrderSlots"
+              [value]="'' + n"
+              [disabled]="isDisplayOrderReservedForNew(n)"
+            >
+              {{ n }}{{ isDisplayOrderReservedForNew(n) ? ' — محجوز' : '' }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+      <p class="field-hint">أولوية الظهور في التطبيق: الترتيب الرقمي 1–100 أولاً (الأصغر أولاً)، ثم البانرات غير المرقّمة بترتيب يتغيّر كل ساعة (لا يعتمد على تاريخ الإضافة).</p>
 
       <ion-button expand="block" (click)="uploadBanner()" class="upload-btn">
         تنشيط ورفع البانر الآن
@@ -59,23 +86,61 @@
   </div>
 
   <div class="banners-list">
-    <h3 class="section-title">البانرات النشطة ({{ (banners$ | async)?.length || 0 }})</h3>
-    
-    <ion-card class="banner-card" *ngFor="let banner of banners$ | async">
+    <h3 class="section-title">البانرات — ترتيب الظهور كالتطبيق ({{ bannersListForDisplay.length }})</h3>
+
+    <ion-card class="banner-card" *ngFor="let banner of bannersListForDisplay; trackBy: trackByBannerId">
       <div class="banner-img-wrapper">
         <img [src]="banner.imageUrl" alt="صورة الإعلان" />
         <div class="status-badge" [class.active]="banner.status === 'active'">
           {{ banner.status === 'active' ? 'نشط' : 'متوقف' }}
         </div>
       </div>
-      
+
       <ion-card-content>
         <div class="banner-info">
           <h3>{{ banner.title || '—' }}</h3>
-          <div class="date-info">
-            <ion-icon name="calendar-outline"></ion-icon>
-            <span>من: {{ banner.startDate || 'بدون' }} - إلى: {{ banner.endDate || 'بدون' }}</span>
+        </div>
+
+        <div class="banner-meta-edit" *ngIf="bannerEdits[banner.id] as ed">
+          <p class="meta-edit-title">تعديل الجدولة والترتيب</p>
+          <div class="date-row">
+            <ion-item lines="none" class="mota7-input half tight">
+              <ion-label position="stacked">عرض البانر من</ion-label>
+              <ion-input type="date" [(ngModel)]="ed.startDate"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="mota7-input half tight">
+              <ion-label position="stacked">عرض البانر إلى</ion-label>
+              <ion-input type="date" [(ngModel)]="ed.endDate"></ion-input>
+            </ion-item>
           </div>
+          <div class="date-row">
+            <ion-item lines="none" class="mota7-input half tight">
+              <ion-label position="stacked">تاريخ الإضافة <span class="optional-hint">(من)</span></ion-label>
+              <ion-input type="date" [(ngModel)]="ed.createdAtDate"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="mota7-input half tight order-select-item">
+              <ion-label position="stacked">ترتيب الظهور</ion-label>
+              <ion-select
+                [(ngModel)]="ed.displayOrderStr"
+                interface="alert"
+                [interfaceOptions]="displayOrderAlertOptions"
+                placeholder="اضغط للاختيار"
+                class="order-ion-select"
+              >
+                <ion-select-option value="">تلقائي (ترتيب ساعي لغير المرقّمين)</ion-select-option>
+                <ion-select-option
+                  *ngFor="let n of displayOrderSlots"
+                  [value]="'' + n"
+                  [disabled]="isDisplayOrderReserved(banner.id, n)"
+                >
+                  {{ n }}{{ isDisplayOrderReserved(banner.id, n) ? ' — محجوز' : '' }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
+          <ion-button expand="block" size="small" class="save-meta-btn" (click)="saveBannerSchedule(banner)">
+            حفظ التعديلات
+          </ion-button>
         </div>
 
         <div class="card-actions">
@@ -83,7 +148,7 @@
             <ion-icon slot="start" [name]="banner.status === 'active' ? 'power-outline' : 'checkmark-circle-outline'"></ion-icon>
             {{ banner.status === 'active' ? 'إيقاف' : 'تنشيط' }}
           </ion-button>
-          
+
           <ion-button fill="clear" color="danger" (click)="deleteBanner(banner)">
             <ion-icon slot="start" name="trash-outline"></ion-icon>
             حذف

@@ -48,6 +48,7 @@ export class ProductFormComponent implements OnInit {
   priceLiveWarning: string | null = null;
   private static readonly PRICE_LETTERS_MSG = 'لايمكن قبول حروف - ارقام فقط';
   private static readonly PRICE_INVALID_START_MSG = 'مبلغ غير صحيح';
+  private static readonly SHORT_DESC_MAX_LEN = 30;
 
   /** يوازي productData.images بنفس الترتيب (لحذف Cloudinary عند إزالة صورة) */
   imagePublicIds: (string | null)[] = [];
@@ -131,7 +132,7 @@ export class ProductFormComponent implements OnInit {
     this.productData = {
       main_cat_id: d.category_id || '',
       sub_cat_name: d.sub_category_name || '',
-      short_desc: d.details?.short_desc || '',
+      short_desc: this.clampShortDesc(d.details?.short_desc || ''),
       full_details: d.details?.full_details || '',
       price: priceNum,
       condition: d.details?.condition || 'غير محدد',
@@ -232,7 +233,50 @@ export class ProductFormComponent implements OnInit {
   }
 
   onShortDescInput(ev: Event): void {
-    this.productData.short_desc = readIonTextInputValueFromEvent(ev);
+    const v = readIonTextInputValueFromEvent(ev);
+    if (v.length > ProductFormComponent.SHORT_DESC_MAX_LEN) {
+      void this.syncShortDescNativeValue(this.productData.short_desc);
+      this.cdr.markForCheck();
+      return;
+    }
+    this.productData.short_desc = v;
+  }
+
+  get shortDescRemaining(): number {
+    const n = this.productData.short_desc?.length ?? 0;
+    return Math.max(0, ProductFormComponent.SHORT_DESC_MAX_LEN - n);
+  }
+
+  get shortDescHintText(): string {
+    const r = this.shortDescRemaining;
+    if (r === 0) {
+      return 'تنبيه: وصلت للحد الأقصى — لا يمكن إضافة المزيد من الأحرف.';
+    }
+    if (r === 1) {
+      return 'متبقي للكتابة: حرف واحد.';
+    }
+    if (r === 2) {
+      return 'متبقي للكتابة: حرفان.';
+    }
+    return `متبقي للكتابة: ${r} أحرف.`;
+  }
+
+  private clampShortDesc(s: string): string {
+    return String(s ?? '').slice(0, ProductFormComponent.SHORT_DESC_MAX_LEN);
+  }
+
+  private async syncShortDescNativeValue(v: string): Promise<void> {
+    if (!this.inputShortDesc) {
+      return;
+    }
+    try {
+      const el = await this.inputShortDesc.getInputElement();
+      if (el && el.value !== v) {
+        el.value = v;
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   onFullDetailsInput(ev: Event): void {
@@ -255,7 +299,11 @@ export class ProductFormComponent implements OnInit {
         const el = await this.inputShortDesc.getInputElement();
         const v = el?.value;
         if (typeof v === 'string') {
-          this.productData.short_desc = v;
+          if (v.length > ProductFormComponent.SHORT_DESC_MAX_LEN) {
+            await this.syncShortDescNativeValue(this.productData.short_desc);
+          } else {
+            this.productData.short_desc = v;
+          }
         }
       } catch {
         /* ignore */
@@ -359,7 +407,10 @@ export class ProductFormComponent implements OnInit {
 // 2. تحديث دالة الحفظ لتشمل حقل reject_reason وتوحيد الهيكلية
 async saveProduct(isStoreProduct: boolean = false) {
   await this.syncFreeTextFieldsFromNativeInputs();
-  this.productData.short_desc = normalizeUserFreeText(this.productData.short_desc);
+  this.productData.short_desc = this.clampShortDesc(
+    normalizeUserFreeText(this.productData.short_desc)
+  );
+  await this.syncShortDescNativeValue(this.productData.short_desc);
   this.productData.full_details = normalizeUserFreeText(this.productData.full_details);
   if (!this.productData.main_cat_id || !this.productData.short_desc) {
     this.presentToast('يرجى إكمال الحقول الإجبارية');
@@ -432,6 +483,14 @@ async saveProduct(isStoreProduct: boolean = false) {
       }
 
       if (this.isEditMode) {
+        ntfySnapshot = {
+          ad_type: adPayload.ad_type,
+          category_id: adPayload.category_id,
+          sub_category_name: adPayload.sub_category_name,
+          details: { ...adPayload.details },
+          store_name: adPayload.storeName,
+          owner_name: adPayload.owner_name,
+        };
         adPayload.status = 'pending';
         adPayload.admin_reason = '';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
@@ -462,10 +521,14 @@ async saveProduct(isStoreProduct: boolean = false) {
     this.presentToast(this.isEditMode ? 'تم التحديث بنجاح' : 'تم الإرسال للمراجعة');
     await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
     
-    if (!this.isEditMode) {
-      if (ntfySnapshot) {
+    if (ntfySnapshot) {
+      if (this.isEditMode) {
+        void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+      } else {
         void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
       }
+    }
+    if (!this.isEditMode) {
       this.navCtrl.navigateRoot('/my-ads');
     }
 

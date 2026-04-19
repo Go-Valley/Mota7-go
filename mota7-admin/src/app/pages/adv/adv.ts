@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
@@ -45,7 +45,7 @@ import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-pu
     DeliveryCard, EducationCard, OtherCard, ProductCard, StoreCard
   ]
 })
-export class AdvPage implements OnInit {
+export class AdvPage implements OnInit, OnDestroy {
   constructor() {
     addIcons({
       checkmarkCircleOutline,
@@ -85,9 +85,20 @@ export class AdvPage implements OnInit {
   selectedAdIds = new Set<string>();
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressTriggered = false;
+  /** إلغاء الاشتراك السابق يمنع تعدّد مستمعي onSnapshot ووميض القائمة عند كل تحديث */
+  private adsSnapshotUnsub: (() => void) | null = null;
 
   ngOnInit() {
     this.fetchAds();
+  }
+
+  ngOnDestroy(): void {
+    this.adsSnapshotUnsub?.();
+    this.adsSnapshotUnsub = null;
+  }
+
+  trackByAdId(_index: number, ad: any): string {
+    return ad?.id ?? String(_index);
   }
 
   onSearchInput() {
@@ -108,10 +119,12 @@ export class AdvPage implements OnInit {
 
   fetchAds() {
     this.isLoading = true;
+    this.adsSnapshotUnsub?.();
+    this.adsSnapshotUnsub = null;
     runInInjectionContext(this.injector, () => {
       const adsRef = collection(this.firestore, 'ads');
       const q = query(adsRef, orderBy('created_at', 'desc'));
-      onSnapshot(
+      this.adsSnapshotUnsub = onSnapshot(
         q,
         (snapshot) => {
           this.adsList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));

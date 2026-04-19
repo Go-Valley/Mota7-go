@@ -16,6 +16,7 @@ import {
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { STORES_CATEGORIES_DATA } from '@mota7-app/core/constants/stores-data';
 
 @Component({
   selector: 'app-store-card',
@@ -50,6 +51,14 @@ export class StoreCard implements OnInit {
   }
 
   ngOnInit() {}
+
+  /** نفس تسميات «نوع النشاط التجاري» في تطبيق المستخدم */
+  storeActivityLabel(ad: { category_id?: string } | null | undefined): string {
+    const id = ad?.category_id;
+    if (!id) return '—';
+    const item = STORES_CATEGORIES_DATA.items.find((i) => i.id === id);
+    return item?.nameAr ?? id;
+  }
 
   // دالة التواصل عبر الاتصال أو الواتساب
   contact(type: 'call' | 'whatsapp', event: Event) {

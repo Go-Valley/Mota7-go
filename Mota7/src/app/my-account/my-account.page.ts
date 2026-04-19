@@ -19,9 +19,12 @@ import {
   personAddOutline, chatbubbleEllipsesOutline, documentTextOutline,
   callOutline, logoWhatsapp, chevronBackOutline, personOutline,
   megaphoneOutline, peopleOutline, logOutOutline, createOutline, locationOutline,
-  closeOutline, pricetagOutline
+  closeOutline,
+  pricetagOutline,
+  bookOutline,
 } from 'ionicons/icons';
 import { Mota7HeaderComponent } from '../top_header/header';
+import { AppTutorialModalComponent } from '../shared/app-tutorial-modal/app-tutorial-modal.component';
 import { UserAccountStatusService } from './user-account-status.service';
 import { openWhatsappNative } from '../core/utils/whatsapp-open.util';
 import {
@@ -37,11 +40,12 @@ import {
   templateUrl: './my-account.page.html',
   styleUrls: ['./my-account.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
+  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule, AppTutorialModalComponent]
 })
 export class MyAccountPage implements OnInit {
   isLoggedIn: boolean = false; 
   isTermsModalOpen: boolean = false;
+  isAppTutorialOpen = false;
   isSubscriptionsModalOpen: boolean = false;
   /** none: لا وضع مفعّل | empty: رسالة الفراغ | current: جدول الباقات */
   subscriptionsModalView: 'none' | 'empty' | 'current' = 'none';
@@ -95,6 +99,7 @@ export class MyAccountPage implements OnInit {
       'location-outline': locationOutline,
       'close-outline': closeOutline,
       'pricetag-outline': pricetagOutline,
+      'book-outline': bookOutline,
     });
   }
 
@@ -133,6 +138,10 @@ export class MyAccountPage implements OnInit {
         if (this.unsubscribeSnapshot) this.unsubscribeSnapshot();
       }
     });
+  }
+
+  openAppTutorial(): void {
+    this.isAppTutorialOpen = true;
   }
 
   async setOpenTerms(isOpen: boolean) { 

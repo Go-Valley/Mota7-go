@@ -125,10 +125,11 @@ export class AdminNtfyListenerService {
 
     await this.setup.prepareLocalNotifications();
 
-    const title = 'إعلان جديد';
-    const bodyText = 'اعلان جديد تم اضافته';
-    void titleFromServer; // نتعمد توحيد نص إشعار لوحة التحكم.
-    void body; // تم التحقق من وجود رسالة، لكن نص الإشعار موحّد حسب الطلب.
+    const t = (titleFromServer || '').toLowerCase();
+    const isAdEdit = t.includes('ad updated');
+    const title = isAdEdit ? 'تعديل إعلان' : 'إعلان جديد';
+    const bodyText = isAdEdit ? 'تم تعديل إعلان — راجع لوحة التحكم' : 'اعلان جديد تم اضافته';
+    void body; // تم التحقق من وجود رسالة؛ العنوان يُستمد من ترويسة ntfy (new vs updated).
 
     await this.scheduleWithFallback({
       title,

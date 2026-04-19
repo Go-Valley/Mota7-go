@@ -21,19 +21,18 @@
       </div>
 
       <div class="mota7-input-group">
-        <label>نوع خدمة التوصيل</label>
+        <label>نوع المركبة / الخدمة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع الخدمة" interface="popover" class="mota7-select">
-            <ion-select-option value="private-car">ملاكي</ion-select-option>
-            <ion-select-option value="taxi">تاكسي</ion-select-option>
-            <ion-select-option value="delivery">دليڤري</ion-select-option>
-            <ion-select-option value="tricycle">تروسيكل</ion-select-option>
-            <ion-select-option value="motorcycle">موتوسيكل</ion-select-option>
-            <ion-select-option value="quarter-transport">ربع نقل</ion-select-option>
-            <ion-select-option value="half-transport">نص نقل</ion-select-option>
-            <ion-select-option value="microbus">ميكروباص</ion-select-option>
-            <ion-select-option value="loader">لودر</ion-select-option>
-            <ion-select-option value="agricultural-tractor">جرار زراعي</ion-select-option>
+          <ion-select
+            [(ngModel)]="editData.category_id"
+            placeholder="اختر النوع (تاكسي، ملاكي، إلخ)"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let cat of deliveryCategoryItemsForSelect; trackBy: trackByCategoryId" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
           </ion-select>
         </ion-item>
       </div>
@@ -55,7 +54,15 @@
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
+          <ion-select
+            [(ngModel)]="editData.city"
+            placeholder="اختر المدينة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let c of citySelectOptions; trackBy: trackByString" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
         </ion-item>
       </div>
 
@@ -83,28 +90,42 @@
       <div class="section-title">بيانات المعلم والمادة</div>
 
       <div class="mota7-input-group">
+        <label>المرحلة التعليمية</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select
+            [(ngModel)]="editData.category_id"
+            (ionChange)="onEducationStageIonChange()"
+            placeholder="اختر المرحلة التعليمية"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let cat of educationStageItemsForSelect; trackBy: trackByCategoryId" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group" *ngIf="editData.category_id">
+        <label>المادة العلمية</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select
+            [(ngModel)]="editData.details.subject"
+            placeholder="اختر المادة العلمية"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let sub of educationSubjectOptionsForSelect; trackBy: trackByString" [value]="sub">{{ sub }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group">
         <label>اسم المعلم / المركز</label>
         <ion-item lines="none" class="mota7-item">
           <ion-input [ngModel]="editData.details.teacher_name" (ionInput)="onEditIonInput($event, 'details.teacher_name')" placeholder="أدخل اسم المعلم"></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="mota7-input-group">
-        <label>المادة العلمية</label>
-        <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.details.subject" (ionInput)="onEditIonInput($event, 'details.subject')" placeholder="مثال: لغة عربية، رياضيات"></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="mota7-input-group">
-        <label>المرحلة التعليمية</label>
-        <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر المرحلة" interface="popover" class="mota7-select">
-            <ion-select-option value="kindergarten">مرحلة رياض الأطفال</ion-select-option>
-            <ion-select-option value="primary">المرحلة الإبتدائية</ion-select-option>
-            <ion-select-option value="preparatory">المرحلة الإعدادية</ion-select-option>
-            <ion-select-option value="secondary">المرحلة الثانوية</ion-select-option>
-          </ion-select>
         </ion-item>
       </div>
       
@@ -118,7 +139,15 @@
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
+          <ion-select
+            [(ngModel)]="editData.city"
+            placeholder="اختر المدينة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let c of citySelectOptions; trackBy: trackByString" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
         </ion-item>
       </div>
 
@@ -135,6 +164,31 @@
     <ng-container *ngIf="editData.ad_type === 'store'">
       <div class="section-title">بيانات المتجر والتواصل</div>
 
+      <div class="section-title section-title--compact">لوجو المتجر</div>
+      <div class="images-edit-grid store-logo-edit">
+        <input
+          #storeLogoFileInput
+          type="file"
+          hidden
+          accept="image/*"
+          (change)="onStoreLogoFileSelected($event)"
+        />
+        <div class="image-box" *ngIf="editData.logo">
+          <img
+            [src]="editData.logo"
+            (error)="$any($event.target).src = 'assets/mota7.png'"
+            alt="لوجو المتجر"
+          />
+          <button type="button" class="delete-icon" (click)="removeStoreLogo()" aria-label="حذف اللوجو">
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
+        </div>
+        <div class="add-image-box" (click)="storeLogoFileInput.click()">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span>{{ editData.logo ? 'تغيير اللوجو' : 'رفع لوجو' }}</span>
+        </div>
+      </div>
+
       <div class="mota7-input-group">
         <label>اسم المتجر</label>
         <ion-item lines="none" class="mota7-item">
@@ -150,16 +204,18 @@
       </div>
 
       <div class="mota7-input-group">
-        <label>تصنيف المتجر</label>
+        <label>نوع النشاط التجاري</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع المتجر" interface="popover" class="mota7-select">
-            <ion-select-option value="supermarket">سوبر ماركت</ion-select-option>
-            <ion-select-option value="pharmacy">صيدليات</ion-select-option>
-            <ion-select-option value="restaurants">مطاعم وكافيهات</ion-select-option>
-            <ion-select-option value="clothing">ملابس وأحذية</ion-select-option>
-            <ion-select-option value="electronics-stores">معارض إلكترونيات</ion-select-option>
-            <ion-select-option value="building-materials">موانئ ومواد بناء</ion-select-option>
-            <ion-select-option value="furniture">موبيليات وأثاث</ion-select-option>
+          <ion-select
+            [(ngModel)]="editData.category_id"
+            placeholder="اختر تصنيف متجرك"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let cat of storeCategoryItemsForSelect; trackBy: trackByCategoryId" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
           </ion-select>
         </ion-item>
       </div>
@@ -181,29 +237,77 @@
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
+          <ion-select
+            [(ngModel)]="editData.city"
+            placeholder="اختر المدينة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let c of citySelectOptions; trackBy: trackByString" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
         </ion-item>
       </div>
     </ng-container>
 
 <ng-container *ngIf="editData.ad_type === 'product'">
       <div class="section-title">صور المنتج</div>
-      
+
+      <input
+        #productFileInput
+        type="file"
+        hidden
+        accept="image/*"
+        (change)="onProductImageFileSelected($event)"
+      />
       <div class="images-edit-grid">
         <div class="image-box" *ngFor="let adImage of editData.details.images; let i = index">
-          <img [src]="adImage" (error)="$any($event.target).src = 'assets/mota7.png'" alt="Product image">
-          <div class="delete-icon" (click)="removeImage(i)">
+          <img [src]="adImage" (error)="$any($event.target).src = 'assets/mota7.png'" alt="صورة المنتج" />
+          <button type="button" class="delete-icon" (click)="removeProductImage(i)" aria-label="حذف الصورة">
             <ion-icon name="trash-outline"></ion-icon>
-          </div>
+          </button>
         </div>
-        
-        <div class="add-image-box" (click)="uploadImage()">
+
+        <div class="add-image-box" (click)="productFileInput.click()">
           <ion-icon name="camera-outline"></ion-icon>
           <span>إضافة صورة</span>
         </div>
       </div>
 
       <div class="section-title">بيانات المنتج والتصنيف</div>
+
+      <div class="mota7-input-group">
+        <label>نوع المنتج</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select
+            [(ngModel)]="editData.category_id"
+            (ionChange)="onProductMainCategoryIonChange()"
+            placeholder="حدد النوع"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let cat of productMainCategoryItemsForSelect; trackBy: trackByCategoryId" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="mota7-input-group" *ngIf="productSubCategoryOptionsForSelect.length > 0">
+        <label>فئة المنتج</label>
+        <ion-item lines="none" class="mota7-item">
+          <ion-select
+            [(ngModel)]="editData.sub_category_name"
+            placeholder="حدد الفئة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let sub of productSubCategoryOptionsForSelect; trackBy: trackByString" [value]="sub">{{ sub }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
 
       <div class="mota7-input-group">
         <label>اسم المنتج</label>
@@ -236,34 +340,11 @@
       <div class="mota7-input-group">
         <label>حالة المنتج</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.details.condition" interface="popover" class="mota7-select">
+          <ion-select [(ngModel)]="editData.details.condition" interface="action-sheet" mode="ios" class="mota7-select">
+            <ion-select-option value="غير محدد">غير محدد</ion-select-option>
             <ion-select-option value="جديد">جديد</ion-select-option>
             <ion-select-option value="مستعمل">مستعمل</ion-select-option>
           </ion-select>
-        </ion-item>
-      </div>
-
-      <div class="mota7-input-group">
-        <label>القسم الرئيسي</label>
-        <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر القسم" interface="popover" class="mota7-select">
-            <ion-select-option value="cars-and-accessories">سيارات واكسسوار</ion-select-option>
-            <ion-select-option value="motorcycles-and-accessories">موتوسيكلات واكسسوار</ion-select-option>
-            <ion-select-option value="real-estate-shops-land">عقارات ومحلات واراضي</ion-select-option>
-            <ion-select-option value="mobiles-tablets-laptops">موبايلات وتابلت ولابتوب</ion-select-option>
-            <ion-select-option value="electrical-electronic-devices">اجهزة كهربائية واليكترونية</ion-select-option>
-            <ion-select-option value="home-tools-decoration-furniture">ادوات منزلية وديكور واثاث</ion-select-option>
-            <ion-select-option value="fashion-furnishings">الازياء والمفروشات</ion-select-option>
-            <ion-select-option value="accessories-children-supplies">اكسسوارات ومستلزمات اطفال</ion-select-option>
-            <ion-select-option value="other-products">منتجات أخرى</ion-select-option>
-          </ion-select>
-        </ion-item>
-      </div>
-
-      <div class="mota7-input-group">
-        <label>القسم الفرعي</label>
-        <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.sub_category_name" (ionInput)="onEditIonInput($event, 'sub_category_name')" placeholder="مثال: موبايلات، أثاث"></ion-input>
         </ion-item>
       </div>
 
@@ -277,7 +358,15 @@
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
+          <ion-select
+            [(ngModel)]="editData.city"
+            placeholder="اختر المدينة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let c of citySelectOptions; trackBy: trackByString" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
         </ion-item>
       </div>
     </ng-container>
@@ -293,33 +382,18 @@
       </div>
 
       <div class="mota7-input-group">
-        <label>نوع الخدمة</label>
+        <label>نوع الخدمة / الحرفة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-select [(ngModel)]="editData.category_id" placeholder="اختر نوع الخدمة" interface="popover" class="mota7-select">
-            <ion-select-option value="ac-maintenance">صيانة تكييفات</ion-select-option>
-            <ion-select-option value="appliance-maintenance">صيانة غسالات وثلاجات</ion-select-option>
-            <ion-select-option value="cameras-electronics">كاميرات واليكترونيات</ion-select-option>
-            <ion-select-option value="satellite-installation">صيانة دش ورسيفر</ion-select-option>
-            <ion-select-option value="electrician">كهربائي</ion-select-option>
-            <ion-select-option value="plumbing">سباكة</ion-select-option>
-            <ion-select-option value="carpentry">نجارة</ion-select-option>
-            <ion-select-option value="painting">نقاشة</ion-select-option>
-            <ion-select-option value="plastering">محارة</ion-select-option>
-            <ion-select-option value="metalworks">حدادة</ion-select-option>
-            <ion-select-option value="construction">اعمال بناء</ion-select-option>
-            <ion-select-option value="ceramic-flooring">تركيب سيراميك وارضيات</ion-select-option>
-            <ion-select-option value="marble-installation">تركيب رخام</ion-select-option>
-            <ion-select-option value="advertising-design">تصميم الاعلانات والبنرات</ion-select-option>
-            <ion-select-option value="screen-maintenance">صيانة شاشات</ion-select-option>
-            <ion-select-option value="financing">تمويل و قروض</ion-select-option>
-            <ion-select-option value="aluminum-works">أعمال المونتال</ion-select-option>
-            <ion-select-option value="gas-stove-maintenance">صيانة بوتاجازات</ion-select-option>
-            <ion-select-option value="contracting-supplies">مقاولات وتوريدات</ion-select-option>
-            <ion-select-option value="car-towing">ونش رفع سيارات</ion-select-option>
-            <ion-select-option value="car-mechanic">ميكانيكي سيارات</ion-select-option>
-            <ion-select-option value="motorcycle-mechanic">ميكانيكي موتوسيكلات</ion-select-option>
-            <ion-select-option value="vespa-mechanic">ميكانيكي فيسبا</ion-select-option>
-            <ion-select-option value="shipping-companies">شركات الشحن</ion-select-option>
+          <ion-select
+            [(ngModel)]="editData.category_id"
+            placeholder="اختر نوع الخدمة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let cat of otherServiceCategoryItemsForSelect; trackBy: trackByCategoryId" [value]="cat.id">
+              {{ cat.nameAr }}
+            </ion-select-option>
           </ion-select>
         </ion-item>
       </div>
@@ -341,7 +415,15 @@
       <div class="mota7-input-group">
         <label>المدينة</label>
         <ion-item lines="none" class="mota7-item">
-          <ion-input [ngModel]="editData.city" (ionInput)="onEditIonInput($event, 'city')" placeholder="المدينة"></ion-input>
+          <ion-select
+            [(ngModel)]="editData.city"
+            placeholder="اختر المدينة"
+            interface="action-sheet"
+            mode="ios"
+            class="mota7-select"
+          >
+            <ion-select-option *ngFor="let c of citySelectOptions; trackBy: trackByString" [value]="c">{{ c }}</ion-select-option>
+          </ion-select>
         </ion-item>
       </div>
 

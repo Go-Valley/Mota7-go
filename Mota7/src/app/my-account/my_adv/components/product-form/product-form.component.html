@@ -53,9 +53,14 @@
         <ion-input #inputShortDesc
                    [ngModel]="productData.short_desc"
                    (ionInput)="onShortDescInput($event)"
-                   maxlength="50"
+                   maxlength="30"
                    placeholder="اكتب الوصف الذي سيظهر للمشتري"></ion-input>
       </ion-item>
+      <p class="short-desc-hint"
+         [class.short-desc-hint--limit]="shortDescRemaining === 0"
+         role="status">
+        {{ shortDescHintText }}
+      </p>
     </div>
 
     <div class="input-group">

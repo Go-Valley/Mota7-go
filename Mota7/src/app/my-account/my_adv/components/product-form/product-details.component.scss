@@ -6,6 +6,9 @@
     color: #1a1a1a !important;
     font-size: 1.1rem;
   }
+  .mota7-title.product-details-title-red {
+    color: var(--ion-color-danger, #eb445a) !important;
+  }
   .mota7-back-button {
     --background: #f8f9fa;
     --border-radius: 12px;
@@ -62,6 +65,14 @@
       color: #1a1a1a;
       margin-bottom: 8px;
       &.mt-10 { margin-top: 15px; }
+      &.product-details-title-red {
+        color: var(--ion-color-danger, #eb445a) !important;
+      }
+    }
+
+    /* عنوان «تفاصيل المنتج» داخل المتن — تحديد أعلى لضمان اللون الأحمر فوق أي أنماط عامة */
+    .product-description-section h2.section-title.product-details-title-red {
+      color: var(--ion-color-danger, #eb445a) !important;
     }
 
     /* تنسيق الوصف المطلوب */

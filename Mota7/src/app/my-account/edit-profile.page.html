@@ -44,7 +44,9 @@
           #inputFullName
           [ngModel]="userData.fullName"
           (ionInput)="onFullNameInput($event)"
-          maxlength="20"
+          (beforeinput)="onFullNameBeforeInput($event)"
+          (compositionend)="onFullNameCompositionEnd()"
+          maxlength="25"
           type="text"
           placeholder="اكتب اسمك"
         ></ion-input>

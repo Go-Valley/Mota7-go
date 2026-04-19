@@ -17,6 +17,16 @@
   max-width: 320px;
 }
 
+/* عمود: مشاهدات فوق دائرة اللوجو، مع إبقاء أزرار الاتصال على الجانبين */
+.store-logo-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .store-contact-btn {
   flex-shrink: 0;
   width: 46px;
@@ -127,11 +137,87 @@
   background: linear-gradient(135deg, #fceabb, #b68601);
 }
 
+.store-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  padding-inline: 8px;
+  box-sizing: border-box;
+}
+
 .store-name {
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: .95rem;
   font-weight: 900;
-  color: #930000;
+  color: #5c0000;
   text-align: center;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.store-city-sub {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.store-city-sub__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+.store-city-sub__value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+.store-city-chip {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 8px 14px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.75) inset,
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #334155;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease;
+
+  ion-icon {
+    flex-shrink: 0;
+    font-size: 17px;
+    color: #ef4444;
+  }
+
+  &:active {
+    transform: scale(0.97);
+    filter: brightness(0.97);
+  }
 }
 
 .products-panel {

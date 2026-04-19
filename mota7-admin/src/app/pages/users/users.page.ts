@@ -394,6 +394,7 @@ export class UsersPage implements OnInit {
           updateDoc(doc(this.firestore, 'users', user.id), {
             fullName: data.fullName,
             phone: data.phone,
+            city: data.city,
           })
         );
         this.showToast('تم تحديث البيانات بنجاح');
@@ -426,6 +427,10 @@ export class UsersPage implements OnInit {
       <ion-item lines="full">
         <ion-label position="stacked">رقم الهاتف</ion-label>
         <ion-input [(ngModel)]="userData.phone" type="tel" placeholder="اكتب الرقم"></ion-input>
+      </ion-item>
+      <ion-item lines="full">
+        <ion-label position="stacked">المدينة</ion-label>
+        <ion-input [(ngModel)]="userData.city" type="text" placeholder="اكتب المدينة"></ion-input>
       </ion-item>
       <div style="display: flex; gap: 10px; margin-top: 20px;">
         <ion-button expand="block" (click)="save()" style="flex: 1;">حفظ</ion-button>

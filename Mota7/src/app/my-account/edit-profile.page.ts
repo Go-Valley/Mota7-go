@@ -52,7 +52,7 @@ import { UserAccountStatusService } from './user-account-status.service';
 export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
 
-  private readonly fullNameMaxLen = 20;
+  private readonly fullNameMaxLen = 25;
   private cdr = inject(ChangeDetectorRef);
   private platform = inject(Platform);
   private hardwareBackSub?: Subscription;

@@ -25,11 +25,13 @@
           <ion-input
             #inputFullName
             type="text"
-            maxlength="20"
+            maxlength="25"
             placeholder="اكتب اسمك هنا"
             class="ion-text-right dark-text"
             [ngModel]="userData.fullName"
             (ionInput)="onFullNameInput($event)"
+            (beforeinput)="onFullNameBeforeInput($event)"
+            (compositionend)="onFullNameCompositionEnd()"
           ></ion-input>
         </ion-item>
 

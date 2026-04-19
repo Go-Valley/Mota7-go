@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { TabsPageRoutingModule } from './tabs-routing.module';
 import { TabsPage } from './tabs.page';
 import { ServiceRequestModalsModule } from '../my-order/service-request-modals.module';
+import { AppTutorialModalComponent } from '../shared/app-tutorial-modal/app-tutorial-modal.component';
 
 @NgModule({
   imports: [
@@ -14,6 +15,7 @@ import { ServiceRequestModalsModule } from '../my-order/service-request-modals.m
     FormsModule,
     TabsPageRoutingModule,
     ServiceRequestModalsModule,
+    AppTutorialModalComponent,
   ],
   declarations: [TabsPage]
 })
