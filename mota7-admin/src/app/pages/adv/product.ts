@@ -1,13 +1,18 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject, DestroyRef, Injector } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   locationOutline, checkmarkCircle, call, logoWhatsapp, cashOutline,
-  shieldCheckmarkOutline, shieldCheckmark, ellipsisVerticalOutline, calendarOutline
+  shieldCheckmarkOutline, shieldCheckmark, ellipsisVerticalOutline, calendarOutline,
+  pricetagOutline
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import { PRODUCTS_CATEGORY } from '@mota7-app/core/constants/products-data';
+import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 
 @Component({
   selector: 'app-product-card',
@@ -26,17 +31,89 @@ export class ProductCard implements OnInit {
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);
   private toastCtrl = inject(ToastController);
+  private injector = inject(Injector);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+
+  /** من Firestore (Categories/products) — يشمل subcategories للعرض المتوافق مع التصنيف الحالي */
+  private dynamicProductItems: Array<{
+    id: string;
+    nameAr: string;
+    subcategories: string[];
+  }> = [];
 
   constructor() {
     addIcons({ 
       locationOutline, checkmarkCircle, call, logoWhatsapp, 
       cashOutline, shieldCheckmarkOutline, shieldCheckmark, ellipsisVerticalOutline,
-      calendarOutline
+      calendarOutline, pricetagOutline
     });
   }
 
   ngOnInit() {
     this.setDisplayName();
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in ProductCard:', err);
+    }
+    if (!this.taxonomy) {
+      return;
+    }
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.dynamicProductItems = (b?.productItems ?? [])
+          .map((i: any) => ({
+            id: String(i?.id ?? ''),
+            nameAr: String(i?.nameAr ?? ''),
+            subcategories: Array.isArray(i?.subcategories)
+              ? i.subcategories.map((s: unknown) => String(s ?? ''))
+              : [],
+          }))
+          .filter((i) => !!i.id);
+      });
+  }
+
+  /**
+   * إعلانات قديمة تحتفظ بـ sub_category_name = «منتجات أخرى غير مذكورة» بينما التصنيفات على Firestore
+   * تُحدَّث إلى «منتجات متنوعة». نعرض الاسم الحالي من التصنيف عند التطابق.
+   */
+  private resolveProductSubcategoryLabel(
+    categoryId: string | undefined,
+    storedSub: string,
+    dyn: { id: string; nameAr: string; subcategories: string[] } | undefined
+  ): string {
+    if (!storedSub) return '';
+    const staticCat = categoryId
+      ? PRODUCTS_CATEGORY.items.find((c) => c.id === categoryId)
+      : undefined;
+    const subs =
+      dyn?.subcategories?.length ? dyn.subcategories : staticCat?.subcategories || [];
+    if (subs.includes(storedSub)) return storedSub;
+    const legacyOtherSub = 'منتجات أخرى غير مذكورة';
+    if (storedSub === legacyOtherSub && subs.length > 0) {
+      return subs.find((s) => s === 'منتجات متنوعة') ?? subs[0];
+    }
+    return storedSub;
+  }
+
+  /** عرض القسم الرئيسي والفرعي كما في التطبيق (بعد تحميل التصنيف من Firestore) */
+  productTaxonomyLabel(): string {
+    const id = this.ad?.category_id;
+    const dyn = id ? this.dynamicProductItems.find((i) => i.id === id) : undefined;
+    const main =
+      dyn?.nameAr ||
+      PRODUCTS_CATEGORY.items.find((c) => c.id === id)?.nameAr ||
+      (id ? extractEducationStageArFromPlusMatchKey(this.ad?.product_match_key) : '') ||
+      '';
+    const subRaw = (this.ad?.sub_category_name || '').trim();
+    const sub = this.resolveProductSubcategoryLabel(id, subRaw, dyn);
+    if (main && sub) return `${main} · ${sub}`;
+    if (main) return main;
+    if (sub) return sub;
+    return 'منتجات';
   }
 
   setDisplayName() {

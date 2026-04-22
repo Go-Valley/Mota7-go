@@ -3,27 +3,19 @@ import {
   EventEmitter,
   Input,
   OnInit,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectionStrategy,
   Output,
   inject,
   EnvironmentInjector,
-  runInInjectionContext,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
-import {
-  Firestore,
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit,
-} from '@angular/fire/firestore';
+import { IonicModule, NavController } from '@ionic/angular';
+import { Firestore } from '@angular/fire/firestore';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
-import { slimAdForHomeFeed } from 'src/app/core/utils/ad-home-feed-slim.util';
 import { cloudinaryListThumbnailUrl } from 'src/app/core/utils/cloudinary-list-image.util';
 import { addIcons } from 'ionicons';
-import { ProductHomeCardComponent } from './product-home-card.component';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 import { Analytics } from '@angular/fire/analytics';
@@ -42,27 +34,29 @@ import {
   templateUrl: './store-home-card.component.html',
   styleUrls: ['./store-home-card.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     IonicModule,
-    ProductHomeCardComponent,
     AdImpressionTrackDirective,
     AdCardEngagementRowComponent,
   ],
 })
-export class StoreHomeCardComponent implements OnInit {
+export class StoreHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   /** عند الضغط على شارة المدينة: تصفية قائمة المتاجر في الصفحة الرئيسية حسب هذه المدينة */
   @Output() cityFilter = new EventEmitter<string>();
   private firestore = inject(Firestore);
   private analytics = inject(Analytics, { optional: true });
   private injector = inject(EnvironmentInjector);
+  private navCtrl = inject(NavController);
 
   displayName: string = 'مستخدم متاح';
-  showProducts: boolean = false;
-  products: any[] = [];
-  productsLoading = false;
-  private productsLoaded = false;
+  /** قيم محسوبة مرّة واحدة لتحاشي إعادة الحساب في كل دورة كشف تغيّرات */
+  cityDisplay: string = 'غير محدد';
+  hasCityForFilter = false;
+  hasStoreContact = false;
+  logoThumb: string = 'assets/mota7.png';
 
   constructor() {
     addIcons({
@@ -76,6 +70,16 @@ export class StoreHomeCardComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.computeDerived();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['ad']) {
+      this.computeDerived();
+    }
+  }
+
+  private computeDerived(): void {
     if (
       this.ad?.owner_name &&
       this.ad.owner_name !== 'غير مسجل' &&
@@ -85,17 +89,17 @@ export class StoreHomeCardComponent implements OnInit {
     } else {
       this.displayName = 'مستخدم متاح';
     }
-  }
 
-  /** نص المدينة للعرض (نفس منطق بطاقات الخدمات) */
-  get cityDisplay(): string {
     const c = this.ad?.city;
-    return typeof c === 'string' && c.trim() ? c.trim() : 'غير محدد';
-  }
+    const cityTrimmed = typeof c === 'string' ? c.trim() : '';
+    this.cityDisplay = cityTrimmed || 'غير محدد';
+    this.hasCityForFilter = cityTrimmed.length > 0;
 
-  get hasCityForFilter(): boolean {
-    const c = this.ad?.city;
-    return typeof c === 'string' && c.trim().length > 0;
+    const p = this.ad?.whatsapp_phone ?? this.ad?.owner_phone;
+    this.hasStoreContact = typeof p === 'string' ? p.trim().length > 0 : !!p;
+
+    const u = cloudinaryListThumbnailUrl(this.ad?.logo || '');
+    this.logoThumb = u || 'assets/mota7.png';
   }
 
   onCityChipClick(event: Event): void {
@@ -104,91 +108,23 @@ export class StoreHomeCardComponent implements OnInit {
     this.cityFilter.emit(this.ad.city.trim());
   }
 
-  storeLogoThumb(): string {
-    const u = cloudinaryListThumbnailUrl(this.ad?.logo || '');
-    return u || 'assets/mota7.png';
-  }
-
-  /** رقم للتواصل (واتساب أو هاتف المالك) */
-  get hasStoreContact(): boolean {
-    const p = this.ad?.whatsapp_phone ?? this.ad?.owner_phone;
-    return typeof p === 'string' ? p.trim().length > 0 : !!p;
-  }
-
-  async toggleProducts(event?: Event) {
-    if (event) event.stopPropagation();
-    this.showProducts = !this.showProducts;
-    if (this.showProducts && !this.productsLoaded) {
-      await this.loadStoreProducts();
+  openStorePage(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.store-city-chip, .store-contact-btn')) {
+      return;
     }
-  }
-
-  /**
-   * جلب منتجات المتجر عند الفتح فقط — استعلام محدود بدل اشتراك بكل إعلانات product.
-   */
-  private async loadStoreProducts(): Promise<void> {
-    this.productsLoading = true;
-    try {
-      const storeId = this.ad?.id || this.ad?.ad_id;
-      const storeName = this.ad?.store_name;
-
-      let snap: Awaited<ReturnType<typeof getDocs>> | null = null;
-
-      if (storeId) {
-        try {
-          snap = await runInInjectionContext(this.injector, () => {
-            const adsRef = collection(this.firestore, 'ads');
-            const q = query(
-              adsRef,
-              where('ad_type', '==', 'product'),
-              where('storeId', '==', storeId),
-              where('status', '==', 'active'),
-              where('isStoreProduct', '==', true),
-              orderBy('created_at', 'desc'),
-              limit(24)
-            );
-            return getDocs(q);
-          });
-        } catch (e) {
-          console.warn('store products query by storeId (قد تحتاج فهرساً مركباً في Firebase):', e);
-        }
-      }
-
-      if ((!snap || snap.empty) && storeName) {
-        try {
-          snap = await runInInjectionContext(this.injector, () => {
-            const adsRef = collection(this.firestore, 'ads');
-            const q = query(
-              adsRef,
-              where('ad_type', '==', 'product'),
-              where('storeName', '==', storeName),
-              where('status', '==', 'active'),
-              where('isStoreProduct', '==', true),
-              orderBy('created_at', 'desc'),
-              limit(24)
-            );
-            return getDocs(q);
-          });
-        } catch (e) {
-          console.warn('store products query by storeName:', e);
-        }
-      }
-
-      if (snap && !snap.empty) {
-        this.products = snap.docs.map((d) =>
-          slimAdForHomeFeed(Object.assign({ id: d.id }, d.data() || {}), 'product')
-        );
-      } else {
-        this.products = [];
-      }
-      this.productsLoaded = true;
-    } catch (e) {
-      console.error('loadStoreProducts', e);
-      this.products = [];
-      this.productsLoaded = true;
-    } finally {
-      this.productsLoading = false;
+    event.stopPropagation();
+    const id = this.ad?.id || this.ad?.ad_id;
+    if (!id) {
+      console.warn('[store-card] محاولة فتح متجر بدون معرّف', this.ad);
+      return;
     }
+    const url = `/tabs/home/store/${encodeURIComponent(String(id))}`;
+    void this.navCtrl.navigateForward(url, {
+      state: { ad: this.ad },
+      animated: true,
+      animationDirection: 'forward',
+    });
   }
 
   async contactAction(type: 'whatsapp' | 'call', event?: Event) {

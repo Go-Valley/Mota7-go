@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject, EnvironmentInjector } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, Input, inject, EnvironmentInjector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -27,13 +27,18 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
   templateUrl: './education-home-card.component.html',
   styleUrls: ['./education-home-card.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IonicModule, CommonModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
 })
-export class EducationHomeCardComponent implements OnInit {
+export class EducationHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   private analytics = inject(Analytics, { optional: true });
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
+
+  /** قيم مشتقّة محسوبة مرّة واحدة لتفادي إعادة الحساب في كل دورة كشف تغيّرات */
+  stageName: string = 'خدمة تعليمية';
+  categoryIcon: string = 'school-outline';
 
   constructor() {
     addIcons({
@@ -50,7 +55,21 @@ export class EducationHomeCardComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.computeDerived();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['ad']) {
+      this.computeDerived();
+    }
+  }
+
+  private computeDerived(): void {
+    const id = this.ad?.category_id;
+    this.stageName = this.getStageName(id);
+    this.categoryIcon = this.getCategoryIcon(id);
+  }
 
   getStageName(stageId: string): string {
     if (!stageId) return 'خدمة تعليمية';

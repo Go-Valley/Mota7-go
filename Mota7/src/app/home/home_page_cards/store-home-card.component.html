@@ -1,4 +1,14 @@
-<div class="store-icon-card" *ngIf="ad" [appAdImpressionTrack]="ad.id || ad.ad_id">
+<div
+  class="store-icon-card store-icon-card--nav"
+  *ngIf="ad"
+  [appAdImpressionTrack]="ad.id || ad.ad_id"
+  (click)="openStorePage($event)"
+  role="button"
+  tabindex="0"
+  [attr.aria-label]="'فتح صفحة متجر ' + (ad.store_name || '')"
+  (keydown.enter)="openStorePage($event)"
+  (keydown.space)="$event.preventDefault(); openStorePage($event)"
+>
   <div class="store-logo-row" dir="rtl">
     <button
       type="button"
@@ -13,9 +23,9 @@
     <div class="store-logo-stack">
       <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
 
-      <div class="store-circle" (click)="toggleProducts($event)">
+      <div class="store-circle">
         <div class="store-circle-frame">
-          <img [src]="storeLogoThumb()"
+          <img [src]="logoThumb"
                loading="lazy"
                decoding="async"
                (error)="$any($event.target).src = 'assets/mota7.png'"
@@ -70,15 +80,5 @@
       <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
       <span>{{ cityDisplay }}</span>
     </button>
-  </div>
-
-  <div class="products-panel" *ngIf="showProducts">
-    <div class="store-products-loading" *ngIf="productsLoading">
-      <ion-spinner name="crescent" aria-label="جاري التحميل"></ion-spinner>
-    </div>
-    <app-product-home-card *ngFor="let p of products" [ad]="p"></app-product-home-card>
-    <p class="empty-store-products" *ngIf="!productsLoading && products.length === 0">
-      لا توجد منتجات معروضة لهذا المتجر
-    </p>
   </div>
 </div>

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
@@ -20,9 +20,10 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
   templateUrl: './product-home-card.component.html',
   styleUrls: ['./product-home-card.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, IonicModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
 })
-export class ProductHomeCardComponent implements OnInit {
+export class ProductHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   /** يمنع تكدّس مودالات تفاصيل المنتج عند النقر المتكرر على الكارت */
   private productDetailsModalBusy = false;
@@ -31,6 +32,8 @@ export class ProductHomeCardComponent implements OnInit {
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
   displayName: string = 'جاري التحميل...';
+  /** قيم محسوبة مرّة واحدة لتفادي إعادة الحساب في كل دورة كشف تغيّرات */
+  thumbSrc: string = 'assets/mota7.png';
 
   constructor() {
     addIcons({ 
@@ -45,14 +48,20 @@ export class ProductHomeCardComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.setDisplayName();
+    this.computeDerived();
   }
 
-  /** صورة الكرت: Cloudinary مضغوطة للقائمة */
-  productThumbSrc(): string {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['ad']) {
+      this.computeDerived();
+    }
+  }
+
+  private computeDerived(): void {
+    this.setDisplayName();
     const raw = this.ad?.details?.images?.[0];
     const u = cloudinaryListThumbnailUrl(typeof raw === 'string' ? raw : '');
-    return u || 'assets/mota7.png';
+    this.thumbSrc = u || 'assets/mota7.png';
   }
 
   setDisplayName() {

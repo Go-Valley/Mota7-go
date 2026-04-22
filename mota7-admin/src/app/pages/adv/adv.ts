@@ -1,8 +1,8 @@
-import { Component, OnDestroy, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
-import { Firestore, collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { addIcons } from 'ionicons';
 import {
@@ -34,6 +34,7 @@ import { EditAdModal } from './edit-ad';
 import { AdReasonModalComponent } from './ad-reason-modal.component';
 import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
 import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-public-id.util';
+import { normalizeAdTypeValue } from '@mota7-app/core/utils/duplicate-ad.util';
 
 @Component({
   selector: 'app-adv',
@@ -67,6 +68,7 @@ export class AdvPage implements OnInit, OnDestroy {
 
   private firestore = inject(Firestore);
   private injector = inject(Injector);
+  private ngZone = inject(NgZone);
   private actionSheetCtrl = inject(ActionSheetController);
   private alertCtrl = inject(AlertController);
   private location = inject(Location);
@@ -117,35 +119,104 @@ export class AdvPage implements OnInit, OnDestroy {
     }, 1000);
   }
 
+  /** نفس `normalizeAdTypeValue` في Mota7 (duplicate-ad.util) لضمان تطابق الفلاتر والكروت. */
+  private normalizeAdType(raw: unknown): string {
+    return normalizeAdTypeValue(raw);
+  }
+
   fetchAds() {
     this.isLoading = true;
     this.adsSnapshotUnsub?.();
     this.adsSnapshotUnsub = null;
     runInInjectionContext(this.injector, () => {
+      /**
+       * لا نستخدم orderBy('created_at') على الخادم: في Firestore تُستبعد أي مستندات
+       * لا يوجد فيها الحقل — فيظهر للأدمن «صفر إعلانات» رغم وجود بيانات.
+       * الترتيب يتم محلياً بعد الجلب (نفس منطق موثوقية العرض على الويب والـ APK).
+       *
+       * NgZone.run() حول تحديث الحالة ضروري على Android WebView:
+       * Capacitor قد يُطلق callback الخاص بـ onSnapshot خارج Zone.js فلا يسري
+       * Change Detection وتبقى القائمة فارغة رغم وصول البيانات (يعمل على الويب
+       * لكن لا يظهر على الـ APK). داخل NgZone نضمن تحديث العرض فوراً.
+       */
       const adsRef = collection(this.firestore, 'ads');
-      const q = query(adsRef, orderBy('created_at', 'desc'));
       this.adsSnapshotUnsub = onSnapshot(
-        q,
+        adsRef,
         (snapshot) => {
-          this.adsList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-          this.isLoading = false;
-          this.pruneAdSelectionToVisible();
+          const rows = snapshot.docs.map((d) => {
+            const data = d.data() as Record<string, unknown>;
+            const ad_type = this.normalizeAdType(data['ad_type']);
+            return { id: d.id, ...data, ad_type };
+          });
+          this.ngZone.run(() => {
+            this.adsList = this.sortAdsNewestFirst(rows);
+            this.isLoading = false;
+            this.pruneAdSelectionToVisible();
+          });
         },
         (error) => {
           console.error('Error fetching ads:', error);
-          this.isLoading = false;
+          this.ngZone.run(() => {
+            this.isLoading = false;
+          });
+          void this.toastFetchAdsFailed(error);
         }
       );
     });
   }
 
-  onTabChange(event: CustomEvent) {
-    this.selectedTab = event.detail.value as string;
+  /** ترتيب حسب created_at تنازلياً؛ المستندات بدون تاريخ في الأسفل */
+  private sortAdsNewestFirst(ads: any[]): any[] {
+    return [...ads].sort((a, b) => this.createdAtMs(b) - this.createdAtMs(a));
+  }
+
+  private createdAtMs(ad: any): number {
+    const v = ad?.created_at;
+    if (v == null) return 0;
+    if (typeof v?.toMillis === 'function') return v.toMillis();
+    if (typeof v?.seconds === 'number') return v.seconds * 1000;
+    if (typeof v?.nanoseconds === 'number' && typeof v?.seconds === 'number') {
+      return v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6);
+    }
+    return 0;
+  }
+
+  private async toastFetchAdsFailed(err: unknown): Promise<void> {
+    const msg =
+      err && typeof err === 'object' && 'code' in err
+        ? `تعذّر جلب الإعلانات (${String((err as { code?: string }).code)}). تحقق من الاتصال وإعدادات Firebase.`
+        : 'تعذّر جلب الإعلانات. تحقق من الاتصال.';
+    const t = await this.toastCtrl.create({
+      message: msg,
+      duration: 4500,
+      position: 'bottom',
+      color: 'danger',
+      mode: 'ios',
+    });
+    await t.present();
+  }
+
+  onTabChange(event: Event) {
+    const ce = event as CustomEvent<{ value?: string }>;
+    let v = ce.detail?.value;
+    if (v == null && event.target && 'value' in event.target) {
+      v = (event.target as HTMLIonSegmentElement).value as string | undefined;
+    }
+    if (typeof v === 'string' && v.length) {
+      this.selectedTab = v;
+    }
     this.pruneAdSelectionToVisible();
   }
 
-  onTypeChange(event: CustomEvent) {
-    this.selectedType = event.detail.value as string;
+  onTypeChange(event: Event) {
+    const ce = event as CustomEvent<{ value?: string }>;
+    let v = ce.detail?.value;
+    if (v == null && event.target && 'value' in event.target) {
+      v = (event.target as HTMLIonSegmentElement).value as string | undefined;
+    }
+    if (typeof v === 'string' && v.length) {
+      this.selectedType = v;
+    }
     this.pruneAdSelectionToVisible();
   }
 
@@ -349,7 +420,18 @@ export class AdvPage implements OnInit, OnDestroy {
     let filtered = this.adsList.filter(ad => ad.status === status);
     
     if (this.selectedType !== 'all') {
-      filtered = filtered.filter(ad => ad.ad_type === this.selectedType);
+      filtered = filtered.filter((ad) => {
+        const t = String(ad?.ad_type ?? '');
+        if (t === this.selectedType) return true;
+        if (this.selectedType === 'other') {
+          return t.toLowerCase() === 'other_services';
+        }
+        if (this.selectedType === 'store') {
+          const low = t.toLowerCase();
+          return low === 'stores' || low === 'shop';
+        }
+        return false;
+      });
     }
 
     if (this.searchQuery && this.searchQuery.trim().length >= 2) {

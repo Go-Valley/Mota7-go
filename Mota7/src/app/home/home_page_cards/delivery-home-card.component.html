@@ -7,7 +7,7 @@
   <div class="home-premium-accent" aria-hidden="true"></div>
 
   <div class="vehicle-title-header">
-    {{ getCategoryName(ad.category_id) }}
+    {{ categoryName }}
   </div>
 
   <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="true"></app-ad-card-engagement-row>
@@ -15,7 +15,7 @@
   <div class="main-info-row">
     <div class="image-wrapper">
       <div class="vehicle-icon-bg">
-        <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+        <ion-icon [name]="categoryIcon"></ion-icon>
 
            <div class="verification-badge" 
            *ngIf="ad.is_verified && ad.is_verified !== 'none'" 

@@ -95,29 +95,31 @@
     <ion-list class="analytics-list" lines="none">
       <ion-item-sliding *ngFor="let ad of filteredAds" #sliding class="ad-sliding-item">
         
-        <ion-item class="ad-item-inner">
-          <div class="ad-row full-width">
-            <div class="ad-main-info">
-              <div class="ad-thumb">
-                <img [src]="ad.image" (error)="handleImgError($event)" alt="ad-image">
+        <ion-item class="ad-item-inner" lines="none" [detail]="false" [button]="false">
+          <ion-label class="ad-item-label ion-text-wrap">
+            <div class="ad-row full-width">
+              <div class="ad-main-info">
+                <div class="ad-thumb">
+                  <img [src]="ad.image" (error)="handleImgError($event)" alt="ad-image">
+                </div>
+                <div class="ad-text">
+                  <h4>{{ ad.title }}</h4>
+                  <p>بواسطة: {{ ad.owner }}</p>
+                </div>
               </div>
-              <div class="ad-text">
-                <h4>{{ ad.title }}</h4>
-                <p>بواسطة: {{ ad.owner }}</p>
-              </div>
-            </div>
 
-            <div class="ad-metrics">
-              <div class="metric call">
-                <ion-icon name="call-outline"></ion-icon>
-                <span>{{ ad.calls }}</span>
-              </div>
-              <div class="metric whatsapp">
-                <ion-icon name="logo-whatsapp"></ion-icon>
-                <span>{{ ad.whatsapp }}</span>
+              <div class="ad-metrics">
+                <div class="metric call">
+                  <ion-icon name="call-outline"></ion-icon>
+                  <span>{{ ad.calls }}</span>
+                </div>
+                <div class="metric whatsapp">
+                  <ion-icon name="logo-whatsapp"></ion-icon>
+                  <span>{{ ad.whatsapp }}</span>
+                </div>
               </div>
             </div>
-          </div>
+          </ion-label>
         </ion-item>
 
         <ion-item-options side="end">

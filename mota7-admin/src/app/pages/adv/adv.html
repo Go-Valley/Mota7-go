@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" class="status-tabs">
+    <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" scrollable="true" class="status-tabs">
       <ion-segment-button value="pending">
         <ion-label>قيد المراجعة</ion-label>
       </ion-segment-button>
@@ -46,7 +46,7 @@
       </ion-segment-button>
     </ion-segment>
 
-    <ion-segment [value]="selectedType" (ionChange)="onTypeChange($event)" mode="ios" class="type-tabs">
+    <ion-segment [value]="selectedType" (ionChange)="onTypeChange($event)" mode="ios" scrollable="true" class="type-tabs">
       <ion-segment-button value="all">
         <ion-label>الكل</ion-label>
       </ion-segment-button>

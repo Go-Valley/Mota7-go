@@ -1,0 +1,119 @@
+<app-mota7-header
+  [title]="ad?.store_name || 'المتجر'"
+  (backClick)="goBack()"
+></app-mota7-header>
+
+<ion-content class="store-detail-content" [fullscreen]="true">
+  <div class="store-detail-hero" *ngIf="!loading && !error && ad">
+    <div class="store-detail-hero__glow"></div>
+    <div class="store-detail-hero__inner">
+      <div class="store-detail-logo-wrap">
+        <div class="store-detail-logo-ring">
+          <img
+            [src]="storeLogoThumb()"
+            loading="eager"
+            decoding="async"
+            (error)="$any($event.target).src = 'assets/mota7.png'"
+            alt="شعار المتجر"
+          />
+        </div>
+        <div
+          class="store-detail-verify"
+          *ngIf="ad.verification_level && ad.verification_level !== 'none'"
+          [ngClass]="ad.verification_level"
+        >
+          <img
+            src="assets/gold.avif"
+            *ngIf="ad.verification_level === 'gold'"
+            alt=""
+          />
+          <img
+            src="assets/blue.webp"
+            *ngIf="ad.verification_level === 'blue'"
+            alt=""
+          />
+        </div>
+      </div>
+
+      <h1 class="store-detail-name">{{ ad.store_name }}</h1>
+      <p class="store-detail-city" *ngIf="cityDisplay !== 'غير محدد'">
+        <ion-icon name="location-outline"></ion-icon>
+        {{ cityDisplay }}
+      </p>
+    </div>
+  </div>
+
+  <div class="store-detail-actions-wrap" *ngIf="!loading && !error && ad">
+    <div class="store-detail-actions-card" dir="rtl">
+      <div
+        class="store-detail-actions-card__inner"
+        [class.store-detail-actions-card__inner--solo]="!hasStoreContact"
+      >
+        <div class="store-action-tile store-action-tile--views" role="status" aria-live="polite">
+          <div class="store-action-tile__icon-wrap">
+            <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+          </div>
+          <span class="store-action-tile__label">مشاهدات</span>
+          <span class="store-action-tile__value">{{ viewCount | number }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="store-action-tile store-action-tile--call"
+          *ngIf="hasStoreContact"
+          (click)="contactAction('call')"
+          aria-label="اتصال هاتفي"
+        >
+          <div class="store-action-tile__icon-wrap">
+            <ion-icon name="call" aria-hidden="true"></ion-icon>
+          </div>
+          <span class="store-action-tile__label">اتصال</span>
+        </button>
+
+        <button
+          type="button"
+          class="store-action-tile store-action-tile--whatsapp"
+          *ngIf="hasStoreContact"
+          (click)="contactAction('whatsapp')"
+          aria-label="مراسلة عبر واتساب"
+        >
+          <div class="store-action-tile__icon-wrap">
+            <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+          </div>
+          <span class="store-action-tile__label">واتساب</span>
+        </button>
+      </div>
+    </div>
+    <p class="store-detail-no-contact" *ngIf="!hasStoreContact">لا يوجد رقم تواصل مسجّل لهذا المتجر حالياً.</p>
+  </div>
+
+  <div class="store-detail-loading" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>جاري تحميل المتجر...</p>
+  </div>
+
+  <div class="store-detail-error" *ngIf="error && !loading">
+    <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+    <p>{{ error }}</p>
+    <ion-button fill="outline" (click)="goBack()">العودة للرئيسية</ion-button>
+  </div>
+
+  <section
+    class="store-products-section"
+    *ngIf="!loading && !error && ad && (productsLoading || products.length > 0)"
+  >
+    <div class="store-products-section__head">
+      <h2>منتجات المتجر</h2>
+      <span class="store-products-count" *ngIf="!productsLoading">{{ products.length }}</span>
+      <span class="store-products-count store-products-count--loading" *ngIf="productsLoading">…</span>
+    </div>
+
+    <div class="store-products-loading" *ngIf="productsLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="store-products-grid" *ngIf="!productsLoading && products.length > 0">
+      <app-product-home-card *ngFor="let p of products" [ad]="p"></app-product-home-card>
+    </div>
+  </section>
+</ion-content>

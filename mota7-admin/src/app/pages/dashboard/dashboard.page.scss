@@ -1,7 +1,13 @@
 .dashboard-luxury-container {
   padding: 30px 20px;
+  /* نترك مساحة سفلية للتمرير فوق شريط التنقل في Android (gesture bar) */
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   background: #f8f9fb;
-  min-height: 100vh;
+  /* 100vh داخل ion-content يخلق ارتفاعاً أكبر من منطقة التمرير في Ionic،
+     فيبدو آخر كارت (إحداثيات النقر) وكأنه مُغطّى أو لا يستجيب.
+     100% يُلزم الحاوية بارتفاع scroll-container نفسه. */
+  min-height: 100%;
+  box-sizing: border-box;
   direction: rtl;
 }
 
@@ -105,11 +111,15 @@
   padding: 18px;
   display: flex;
   align-items: center;
-  box-shadow: 0 2px 8px rgb(0, 0, 0);
-  border: 1px solid rgba(0,0,0,0.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.04);
   position: relative;
   transition: all 0.3s ease;
   cursor: pointer;
+  // منع تأخير الضغط 300ms على Android WebView وتحسين استجابة اللمس
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 
   &:active { 
     transform: scale(0.97); 
@@ -179,7 +189,7 @@
 
 @keyframes border-pulse {
   0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
-  70% { box-shadow: 0 2px 8px rgb(0, 0, 0); }
+  70% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
   100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 

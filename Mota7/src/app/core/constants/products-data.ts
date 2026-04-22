@@ -56,7 +56,7 @@ export const PRODUCTS_CATEGORY = {
       id: "other-products",
       nameAr: "منتجات أخرى",
       icon: "ellipsis-horizontal",
-      subcategories: ["منتجات أخرى غير مذكورة"]
+      subcategories: ["منتجات متنوعة"]
     }
   ]
 };

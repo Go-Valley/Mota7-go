@@ -3,13 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -137,12 +138,44 @@ async saveServiceAd() {
     // محاولة جلب الاسم من البيانات المحملة مسبقاً في ngOnInit أو من الفورم
     let nameToSave = this.serviceData.providerName || 'مستخدم متاح';
 
-    const adId = this.isEditMode ? this.currentAdId! : `${this.serviceData.contactPhone}_${this.serviceData.category_id}-${Date.now()}`;
-    
-    const selectedCategory = this.categories.find(cat => cat.id === this.serviceData.category_id);
-    const serviceNameAr = selectedCategory ? selectedCategory.nameAr : '';
+    // نجلب اسم الفرع بترتيب أولوية يضمن قيمة صحيحة دائماً:
+    // 1) القائمة الديناميكية (Firestore: Categories/other_services) — تلتقط أي فرع جديد فوراً
+    // 2) القائمة الثابتة كاحتياط (لو الاشتراك لم يطلق بعد أو فشل)
+    // 3) معرّف الفرع نفسه كاحتياط أخير (أفضل من سلسلة فارغة "_city")
+    const dynCat = this.categories.find((c: any) => c?.id === this.serviceData.category_id);
+    const staticCat = OTHER_SERVICES_DATA.items.find((c) => c.id === this.serviceData.category_id);
+    const serviceNameAr = String(
+      dynCat?.nameAr || staticCat?.nameAr || this.serviceData.category_id || ''
+    ).trim();
     const other_match_key = `${serviceNameAr}_${this.serviceData.city}`;
     let ntfySnapshot: Record<string, unknown> | null = null;
+
+    /**
+     * فحص التكرار: نمنع إضافة خدمة ثانية من نفس النوع (category_id) لنفس المستخدم —
+     * بصرف النظر عن حالة الإعلان القديم (pending/active/rejected/expired).
+     */
+    if (!this.isEditMode) {
+      const duplicate = await runInInjectionContext(this.injector, () =>
+        findDuplicateAd({
+          firestore: this.firestore,
+          phone: this.serviceData.contactPhone,
+          adType: 'other',
+          categoryId: this.serviceData.category_id,
+        })
+      );
+      if (duplicate) {
+        await loader.dismiss();
+        await presentDuplicateAdAlert({
+          alertCtrl: this.alertCtrl,
+          adType: 'other',
+          activityNameAr: serviceNameAr,
+          existingStatus: duplicate.status,
+        });
+        return;
+      }
+    }
+
+    const adId = this.isEditMode ? this.currentAdId! : `${this.serviceData.contactPhone}_${this.serviceData.category_id}-${Date.now()}`;
 
     await runInInjectionContext(this.injector, async () => {
       const adPayload: any = {
@@ -157,6 +190,9 @@ async saveServiceAd() {
         sort_order: 999,
         details: {
           provider_name: nameToSave,
+          // نحفظ الاسم العربي للفرع داخل تفاصيل الإعلان كمصدر احتياطي عرض
+          // (يستخدمه resolver عرض الكروت في حال غياب القائمة الديناميكية محلياً).
+          service_name: serviceNameAr,
           whatsapp_phone: this.serviceData.whatsappEnabled ? this.serviceData.whatsappPhone : null,
           is_available: this.serviceData.isAvailable
         },

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, Injector, runInInjectionContext } from '@angular/core';
-import { Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { Router, RouterLink } from '@angular/router';
+import { IonicModule, ViewWillLeave } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { addIcons } from 'ionicons';
 import { Firestore, collection, collectionData } from '@angular/fire/firestore'; 
@@ -28,9 +28,9 @@ import {
   templateUrl: './dashboard.page.html',
   styleUrls: ['./dashboard.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, RouterLink]
 })
-export class DashboardPage implements OnInit {
+export class DashboardPage implements OnInit, ViewWillLeave {
   
   private router = inject(Router);
   private firestore = inject(Firestore);
@@ -74,6 +74,14 @@ export class DashboardPage implements OnInit {
 
   ngOnInit() {
     runInInjectionContext(this.injector, () => this.loadRealTimeStats());
+  }
+
+  /**
+   * يمنع تحذير المتصفح: صفحة مخفية (ion-page-hidden + aria-hidden) بينما كارت ما زال مُركّزاً.
+   * لا علاقة له بقائمة الإعلانات الفارغة على الأندرويد.
+   */
+  ionViewWillLeave(): void {
+    (document.activeElement as HTMLElement | null)?.blur?.();
   }
 
   doRefresh(event: any) {
@@ -125,9 +133,19 @@ export class DashboardPage implements OnInit {
     });
   }
 
+  /**
+   * navigate(['/x']) بولاية واحدة قد يفسَّر بشكل غير متسق مع base href على WebView/Capacitor.
+   * navigateByUrl يضمن مساراً مطلقاً صحيحاً؛ RouterLink في القالب يُفضّل للّمس.
+   */
   goTo(path: string) {
     (document.activeElement as HTMLElement | null)?.blur?.();
-    this.router.navigate(['/' + path]);
+    const p = String(path ?? '').replace(/^\/+/, '').trim();
+    if (!p) {
+      return;
+    }
+    void this.router.navigateByUrl('/' + p, { replaceUrl: false }).catch((e) => {
+      console.error('Navigation failed:', p, e);
+    });
   }
 
   async logout() {

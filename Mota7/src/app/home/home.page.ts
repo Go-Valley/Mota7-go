@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject, EnvironmentInjector, runInInjectionContext, HostBinding } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { IonicModule, Platform, AlertController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
@@ -7,7 +7,7 @@ import { Firestore, collection, collectionData, query, orderBy, where, getDocs, 
 import type { QueryConstraint } from 'firebase/firestore';
 import { Observable, of, Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, filter } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms'; // تم إضافة FormsModule لدعم البحث
 
 // استيراد الأيقونات الأصلية + أيقونات زر المدينة + أيقونات البحث الجديدة
@@ -68,7 +68,16 @@ export class HomePage implements OnInit, OnDestroy {
   private taxonomy = inject(AppTaxonomyService);
   private taxonomySub?: Subscription;
 
+  /** لا نعيد تصفير الصفحة إذا رجع المستخدم من صفحة تفاصيل المتجر حتى يعود لقسم المتاجر بنفس حالته. */
+  private preserveNextViewEnter = false;
+  private previousTrackedUrl = '';
+  private routerEventsSub?: Subscription;
+
   ionViewWillEnter() {
+    if (this.preserveNextViewEnter) {
+      this.preserveNextViewEnter = false;
+      return;
+    }
     this.backToHome(); // سيقوم بتصفير الحالة كلما دخلت الصفحة من التابس
   }
 
@@ -174,6 +183,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.taxonomySub?.unsubscribe();
+    this.routerEventsSub?.unsubscribe();
   }
 
   ngOnInit() {
@@ -200,6 +210,21 @@ export class HomePage implements OnInit, OnDestroy {
     });
 
     window.addEventListener('reset-mota7-home', () => this.backToHome());
+
+    // عند العودة من صفحة تفاصيل المتجر نحافظ على حالة قسم المتاجر (التصنيف المختار، القائمة، المدينة...)
+    this.previousTrackedUrl = this.router.url.split('?')[0];
+    this.routerEventsSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((event) => {
+        const curr = (event.urlAfterRedirects || event.url).split('?')[0];
+        if (
+          curr === '/tabs/home' &&
+          /^\/tabs\/home\/store\//.test(this.previousTrackedUrl)
+        ) {
+          this.preserveNextViewEnter = true;
+        }
+        this.previousTrackedUrl = curr;
+      });
     runInInjectionContext(this.injector, () => {
       const categoriesRef = collection(this.firestore, 'Categories');
       const q = query(categoriesRef, orderBy('order', 'asc'));
@@ -415,6 +440,24 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.searchText) {
       this.clearSearch();
     }
+  }
+
+  /**
+   * trackBy للقوائم الكبيرة (الإعلانات والبحث) — يتفادى إعادة بناء الكروت عند
+   * كل scroll/تحميل لاحق ويُحسّن أداء التمرير بشكل واضح.
+   */
+  trackByAdId(_index: number, ad: any): string | number {
+    return ad?.id || ad?.ad_id || _index;
+  }
+
+  /** trackBy لتبويبات التصنيفات الفرعية (id ثابت) */
+  trackByItemId(_index: number, item: any): string | number {
+    return item?.id ?? _index;
+  }
+
+  /** trackBy لقوائم نصية ثابتة (مواد تعليمية، تصنيفات منتج فرعية...) */
+  trackByValue(_index: number, value: string): string {
+    return value;
   }
 
   private async loadSearchResults() {

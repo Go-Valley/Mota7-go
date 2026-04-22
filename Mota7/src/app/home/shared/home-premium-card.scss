@@ -1,27 +1,17 @@
 /**
  * تصميم موحّد فاخر لكروت الإعلانات في الرئيسية (نقل، تعليم، خدمات أخرى، منتجات).
  * يُستورد من كل مكوّن كارت مع تعديلات طفيفة حسب القسم.
+ *
+ * تحسينات الأداء (تقليل اللاج عند السكرول):
+ *   - إزالة الأنيميشنات اللانهائية على ::before/::after لأنها كانت تُجبر المتصفح
+ *     على إعادة طلاء كل بطاقة في كل إطار ولو كانت خارج الشاشة.
+ *   - تفعيل content-visibility: auto مع contain-intrinsic-size لتأجيل تخطيط/طلاء
+ *     البطاقات خارج الشاشة (Skip Rendering) وهو أكبر مكسب أداء عند السكرول.
+ *   - تفعيل CSS Containment (layout style paint) للحدّ من تأثير كل بطاقة على
+ *     باقي الصفحة أثناء التحديث أو الإضافة (infinite scroll).
+ *   - إضافة will-change/transform: translateZ(0) لرفع البطاقات على GPU layer
+ *     فيتم التمرير بسلاسة دون إعادة رسم.
  */
-
-@keyframes home-premium-shine {
-  0%,
-  100% {
-    background-position: 130% 50%;
-  }
-  50% {
-    background-position: -30% 50%;
-  }
-}
-
-@keyframes home-premium-float {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.65;
-  }
-}
 
 .home-premium-card.mota7-card-wrapper {
   --hp-text: #0c1222;
@@ -58,6 +48,15 @@
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
   box-shadow 0.28s ease;
 
+  /* تأجيل رسم البطاقات خارج Viewport (مدعوم في WebView Chromium الحديث) */
+  content-visibility: auto;
+  contain-intrinsic-size: 220px 280px;
+  contain: layout paint style;
+
+  /* رفع البطاقة على طبقة Compositor للتمرير السلس */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
   &::before {
     content: '';
     position: absolute;
@@ -67,15 +66,13 @@
       125deg,
       transparent 0%,
       rgba(255, 255, 255, 0) 42%,
-      rgba(255, 255, 255, 0.45) 49.5%,
+      rgba(255, 255, 255, 0.32) 49.5%,
       rgba(255, 255, 255, 0) 57%,
       transparent 100%
     );
-    background-size: 260% 100%;
-    animation: home-premium-shine 9s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.55;
+    opacity: 0.45;
   }
 
   &::after {
@@ -92,21 +89,11 @@
     );
     pointer-events: none;
     z-index: 0;
-    animation: home-premium-float 6s ease-in-out infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &::before,
-    &::after {
-      animation: none;
-    }
-    &::before {
-      opacity: 0.2;
-    }
+    opacity: 0.5;
   }
 
   &:active {
-    transform: translateY(1px) scale(0.997);
+    transform: translateZ(0) translateY(1px) scale(0.997);
   }
 
   /* ألوان تمييز حسب القسم */
@@ -182,7 +169,6 @@
     &::before,
     &::after {
       opacity: 0.12;
-      animation: none;
     }
   }
 
@@ -196,7 +182,6 @@
     &::before,
     &::after {
       opacity: 0.12;
-      animation: none;
     }
 
     .contact-icons {

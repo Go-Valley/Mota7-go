@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, inject, DestroyRef, Injector, NgZone } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController, ToastController, LoadingController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +16,7 @@ import { EDUCATION_CATEGORY } from '@mota7-app/core/constants/educational-data';
 import { OTHER_SERVICES_DATA } from '@mota7-app/core/constants/other-services-data';
 import { PRODUCTS_CATEGORY } from '@mota7-app/core/constants/products-data';
 import { tryParseCloudinaryPublicIdFromUrl } from '../../core/utils/cloudinary-public-id.util';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 
 @Component({
   selector: 'app-edit-ad-modal',
@@ -32,6 +34,20 @@ export class EditAdModal implements OnInit {
   private loadingCtrl = inject(LoadingController);
   private uploadSvc = inject(CloudinaryUploadService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
+  private injector = inject(Injector);
+  private ngZone = inject(NgZone);
+  private destroyRef = inject(DestroyRef);
+  /** لا نحقن الخدمة في الحقل — فشل الحقن على WebView يمنع إنشاء المودال بالكامل */
+  private taxonomy: AppTaxonomyService | null = null;
+
+  /**
+   * قوائم فرعية من Firestore (Categories/...) لبناء الـ select وحساب *_match_key بأسماء عربية صحيحة.
+   */
+  private dynamicOtherItems: Array<{ id: string; nameAr: string }> = [];
+  private dynamicDeliveryItems: Array<{ id: string; nameAr: string }> = [];
+  private dynamicEducationItems: Array<{ id: string; nameAr: string; subjects?: string[] }> = [];
+  private dynamicProductItems: Array<{ id: string; nameAr: string; subcategories?: string[] }> = [];
+  private dynamicStoreItems: Array<{ id: string; nameAr: string }> = [];
 
   editData: any = {};
   /** موازية لـ details.images — لحذف الملف من Cloudinary عند إزالة صورة */
@@ -66,33 +82,53 @@ export class EditAdModal implements OnInit {
     const adType = this.editData?.ad_type;
 
     if (adType === 'store') {
+      const base =
+        this.dynamicStoreItems.length > 0
+          ? this.dynamicStoreItems
+          : STORES_CATEGORIES_DATA.items.map((i) => ({ id: i.id, nameAr: i.nameAr }));
       this.storeCategoryItemsForSelect = this.itemsWithLegacyGuard(
-        STORES_CATEGORIES_DATA.items.map((i) => ({ id: i.id, nameAr: i.nameAr })),
+        base,
         cid,
         '— تصنيف قديم، يُنصح باختيار نوع من القائمة المحدثة'
       );
     } else if (adType === 'delivery') {
+      const base =
+        this.dynamicDeliveryItems.length > 0
+          ? this.dynamicDeliveryItems
+          : DELIVERY_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr }));
       this.deliveryCategoryItemsForSelect = this.itemsWithLegacyGuard(
-        DELIVERY_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr })),
+        base,
         cid,
         '— تصنيف قديم'
       );
     } else if (adType === 'education') {
+      const base =
+        this.dynamicEducationItems.length > 0
+          ? this.dynamicEducationItems.map((i) => ({ id: i.id, nameAr: i.nameAr }))
+          : EDUCATION_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr }));
       this.educationStageItemsForSelect = this.itemsWithLegacyGuard(
-        EDUCATION_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr })),
+        base,
         cid,
         '— مرحلة قديمة'
       );
       this.rebuildEducationSubjectOptions();
     } else if (adType === 'other') {
+      const base =
+        this.dynamicOtherItems.length > 0
+          ? this.dynamicOtherItems
+          : OTHER_SERVICES_DATA.items.map((i) => ({ id: i.id, nameAr: i.nameAr }));
       this.otherServiceCategoryItemsForSelect = this.itemsWithLegacyGuard(
-        OTHER_SERVICES_DATA.items.map((i) => ({ id: i.id, nameAr: i.nameAr })),
+        base,
         cid,
         '— نوع خدمة قديم'
       );
     } else if (adType === 'product') {
+      const base =
+        this.dynamicProductItems.length > 0
+          ? this.dynamicProductItems.map((i) => ({ id: i.id, nameAr: i.nameAr }))
+          : PRODUCTS_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr }));
       this.productMainCategoryItemsForSelect = this.itemsWithLegacyGuard(
-        PRODUCTS_CATEGORY.items.map((i) => ({ id: i.id, nameAr: i.nameAr })),
+        base,
         cid,
         '— قسم قديم'
       );
@@ -111,7 +147,10 @@ export class EditAdModal implements OnInit {
   }
 
   private rebuildEducationSubjectOptions(): void {
-    const cat = EDUCATION_CATEGORY.items.find((c) => c.id === this.editData?.category_id);
+    const id = this.editData?.category_id;
+    const cat =
+      this.dynamicEducationItems.find((c) => c.id === id) ||
+      EDUCATION_CATEGORY.items.find((c) => c.id === id);
     const base = cat?.subjects?.length ? [...cat.subjects] : [];
     const cur = (this.editData?.details?.subject || '').trim();
     if (cur && !base.includes(cur)) {
@@ -122,7 +161,10 @@ export class EditAdModal implements OnInit {
   }
 
   private rebuildProductSubCategoryOptions(): void {
-    const cat = PRODUCTS_CATEGORY.items.find((c) => c.id === this.editData?.category_id);
+    const id = this.editData?.category_id;
+    const cat =
+      this.dynamicProductItems.find((c) => c.id === id) ||
+      PRODUCTS_CATEGORY.items.find((c) => c.id === id);
     const base = cat?.subcategories?.length ? [...cat.subcategories] : [];
     const cur = (this.editData?.sub_category_name || '').trim();
     if (cur && !base.includes(cur)) {
@@ -162,7 +204,10 @@ export class EditAdModal implements OnInit {
     const cur = (this.editData?.category_id || '').toString();
     if (this.lastEducationCategoryId === cur) return;
     this.lastEducationCategoryId = cur;
-    const subs = EDUCATION_CATEGORY.items.find((c) => c.id === cur)?.subjects || [];
+    const subs =
+      this.dynamicEducationItems.find((c) => c.id === cur)?.subjects ||
+      EDUCATION_CATEGORY.items.find((c) => c.id === cur)?.subjects ||
+      [];
     const subj = (this.editData?.details?.subject || '').trim();
     if (subj && subs.length && !subs.includes(subj)) {
       this.editData.details.subject = '';
@@ -175,7 +220,10 @@ export class EditAdModal implements OnInit {
     const cur = (this.editData?.category_id || '').toString();
     if (this.lastProductCategoryId === cur) return;
     this.lastProductCategoryId = cur;
-    const subs = PRODUCTS_CATEGORY.items.find((c) => c.id === cur)?.subcategories || [];
+    const subs =
+      this.dynamicProductItems.find((c) => c.id === cur)?.subcategories ||
+      PRODUCTS_CATEGORY.items.find((c) => c.id === cur)?.subcategories ||
+      [];
     const sub = (this.editData?.sub_category_name || '').trim();
     if (sub && subs.length && !subs.includes(sub)) {
       this.editData.sub_category_name = '';
@@ -198,7 +246,6 @@ export class EditAdModal implements OnInit {
         }
       }
 
-      // تأمين وجود المصفوفات والكائنات لتجنب أخطاء undefined
       if (!this.editData.details) this.editData.details = {};
       if (!this.editData.details.images) this.editData.details.images = [];
 
@@ -216,9 +263,67 @@ export class EditAdModal implements OnInit {
       }
 
       this.rebuildCitySelectOptions();
-      this.buildAllCategoryListsOnce();
       this.lastEducationCategoryId = (this.editData?.category_id || '').toString();
       this.lastProductCategoryId = (this.editData?.category_id || '').toString();
+    }
+
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('EditAdModal: failed to resolve AppTaxonomyService — using static category lists', err);
+    }
+
+    if (this.taxonomy) {
+      this.taxonomy.bundle$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (b) => {
+            this.ngZone.run(() => {
+              this.dynamicOtherItems = (b?.otherItems ?? [])
+                .map((i: any) => ({
+                  id: String(i?.id ?? ''),
+                  nameAr: String(i?.nameAr ?? ''),
+                }))
+                .filter((i) => !!i.id);
+              this.dynamicDeliveryItems = (b?.deliveryItems ?? [])
+                .map((i: any) => ({
+                  id: String(i?.id ?? ''),
+                  nameAr: String(i?.nameAr ?? ''),
+                }))
+                .filter((i) => !!i.id);
+              this.dynamicEducationItems = (b?.educationItems ?? []).map((i: any) => ({
+                id: String(i?.id ?? ''),
+                nameAr: String(i?.nameAr ?? ''),
+                subjects: Array.isArray(i?.subjects) ? [...i.subjects] : [],
+              })).filter((i) => !!i.id);
+              this.dynamicProductItems = (b?.productItems ?? []).map((i: any) => ({
+                id: String(i?.id ?? ''),
+                nameAr: String(i?.nameAr ?? ''),
+                subcategories: Array.isArray(i?.subcategories) ? [...i.subcategories] : [],
+              })).filter((i) => !!i.id);
+              this.dynamicStoreItems = (b?.storeItems ?? [])
+                .map((i: any) => ({
+                  id: String(i?.id ?? ''),
+                  nameAr: String(i?.nameAr ?? ''),
+                }))
+                .filter((i) => !!i.id);
+
+              if (this.editData?.ad_type) {
+                this.buildAllCategoryListsOnce();
+                this.rebuildEducationSubjectOptions();
+                this.rebuildProductSubCategoryOptions();
+              }
+            });
+          },
+          error: (err) => {
+            console.error('EditAdModal: taxonomy bundle$ error', err);
+          },
+        });
+    }
+
+    if (this.ad) {
+      this.buildAllCategoryListsOnce();
     }
   }
 
@@ -385,8 +490,9 @@ export class EditAdModal implements OnInit {
         updatePayload["details.for_rent"] = !!this.editData.details.for_rent;
         updatePayload["details.is_available"] = !!this.editData.details.is_available;
 
+        const dDyn = this.dynamicDeliveryItems.find((i) => i.id === this.editData.category_id);
         const dItem = DELIVERY_CATEGORY.items.find((i) => i.id === this.editData.category_id);
-        const typeAr = dItem?.nameAr || this.editData.category_id || 'توصيل';
+        const typeAr = dDyn?.nameAr || dItem?.nameAr || this.editData.category_id || 'توصيل';
         updatePayload["delivery_match_key"] = `${typeAr}_${this.editData.city}`;
       } 
       
@@ -398,8 +504,9 @@ export class EditAdModal implements OnInit {
         updatePayload["details.whatsapp_phone"] = this.editData.details.whatsapp_phone || '';
         updatePayload["is_available"] = !!this.editData.is_available;
 
+        const eduDyn = this.dynamicEducationItems.find((i) => i.id === this.editData.category_id);
         const eduItem = EDUCATION_CATEGORY.items.find((i) => i.id === this.editData.category_id);
-        const stageAr = eduItem?.nameAr || this.editData.category_id || 'تعليم';
+        const stageAr = eduDyn?.nameAr || eduItem?.nameAr || this.editData.category_id || 'تعليم';
 
         updatePayload["education_match_key"] = `${stageAr}+${this.editData.details.subject}+${this.editData.city}`;
       }
@@ -411,8 +518,12 @@ export class EditAdModal implements OnInit {
         updatePayload["is_available"] = !!this.editData.is_available;
         updatePayload["category_id"] = this.editData.category_id || '';
 
+        // نُفضّل البحث في القائمة الديناميكية (Firestore) لاستخراج الاسم الصحيح
+        // للفروع المضافة حديثاً، ثم نرتدّ للقائمة الثابتة احتياطاً.
+        const dynItem = this.dynamicOtherItems.find((i) => i.id === this.editData.category_id);
         const oItem = OTHER_SERVICES_DATA.items.find((i) => i.id === this.editData.category_id);
-        const currentNameAr = oItem?.nameAr || this.editData.category_id || 'خدمات أخرى';
+        const currentNameAr =
+          dynItem?.nameAr || oItem?.nameAr || this.editData.category_id || 'خدمات أخرى';
         updatePayload["other_match_key"] = `${currentNameAr}_${this.editData.city}`;
       }
 
@@ -425,8 +536,9 @@ export class EditAdModal implements OnInit {
         updatePayload["logo"] = this.editData.logo || '';
         updatePayload["logo_cloudinary_public_id"] = this.editData.logo_cloudinary_public_id || '';
 
+        const storeDyn = this.dynamicStoreItems.find((i) => i.id === this.editData.category_id);
         const storeItem = STORES_CATEGORIES_DATA.items.find((i) => i.id === this.editData.category_id);
-        const currentStoreAr = storeItem?.nameAr || this.editData.category_id || 'متجر';
+        const currentStoreAr = storeDyn?.nameAr || storeItem?.nameAr || this.editData.category_id || 'متجر';
         updatePayload["store_match_key"] = `${currentStoreAr}_${this.editData.city}`;
       }
 
@@ -453,8 +565,9 @@ export class EditAdModal implements OnInit {
         updatePayload["sub_category_name"] = this.editData.sub_category_name || '';
         updatePayload["category_id"] = this.editData.category_id || '';
 
+        const pDyn = this.dynamicProductItems.find((i) => i.id === this.editData.category_id);
         const pItem = PRODUCTS_CATEGORY.items.find((i) => i.id === this.editData.category_id);
-        const currentProductAr = pItem?.nameAr || this.editData.category_id || 'منتجات';
+        const currentProductAr = pDyn?.nameAr || pItem?.nameAr || this.editData.category_id || 'منتجات';
         const subCat = this.editData.sub_category_name || '';
         
         updatePayload["product_match_key"] = `${currentProductAr}+${subCat}+${this.editData.city}`;

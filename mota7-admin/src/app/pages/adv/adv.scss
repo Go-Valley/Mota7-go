@@ -67,8 +67,11 @@
 
 .admin-main-container {
   padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background: #f8f9fb;
-  min-height: 100vh;
+  /* لا تستخدم 100vh داخل ion-content: على الموبايل يُقص المحتوى أو يتداخل مع الشريط الآمن */
+  min-height: 100%;
+  box-sizing: border-box;
 
   .search-section {
     margin-bottom: 20px;
@@ -134,20 +137,29 @@
   .cards-grid {
     display: flex;
     flex-direction: column;
-    gap: 12px; 
+    gap: 12px;
     width: 100%;
-    max-width: 600px; 
+    max-width: 600px;
     margin: 0 auto;
-    
-    // إصلاح لضمان ظهور الكروت ككتلة واحدة وليس نصوص متناثرة
-    app-delivery-card, app-education-card, app-other-card, app-product-card, app-store-card {
-       display: block;
-       width: 100%;
+
+    // إصلاح لضمان ظهور الكروت ككتلة واحدة وليس نصوص متناثرة على WebView أندرويد
+    app-delivery-card,
+    app-education-card,
+    app-other-card,
+    app-product-card,
+    app-store-card {
+      display: block;
+      width: 100%;
+      /* يمنع WebView من إخفاء المحتوى عند حساب الارتفاع لصفر (بعض الأجهزة) */
+      min-height: 1px;
     }
   }
 
   .card-wrapper {
+    display: block;
     width: 100%;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -180,6 +192,11 @@
     direction: rtl;
     border: 1px solid #eee;
 
+    /* شارة الترتيب فوق المحتوى قد تلتقط اللمس على الشاشات الصغيرة */
+    .sort-badge {
+      pointer-events: none;
+    }
+
     .admin-action-btn {
       position: absolute;
       top: 5px;
@@ -211,6 +228,60 @@
   justify-content: center;
   height: 200px;
   p { color: #666; font-weight: 600; margin-top: 10px; }
+}
+
+// ====== تحسينات استجابة الموبايل للإعلانات ======
+@media (max-width: 480px) {
+  .admin-main-container {
+    padding: 10px;
+
+    .search-section .search-bar-wrapper {
+      padding: 10px 14px;
+      ion-icon { font-size: 20px; margin-left: 8px; }
+      input { font-size: 0.95rem; }
+    }
+  }
+
+  .type-tabs ion-segment-button {
+    font-size: 0.85rem;
+    --padding-start: 4px;
+    --padding-end: 4px;
+  }
+
+  :host ::ng-deep {
+    .mota4-card-wrapper,
+    .mota7-card-wrapper {
+      padding: 12px;
+      border-radius: 16px;
+      margin-bottom: 10px;
+
+      // السماح للصفوف الداخلية أن تلتف على الموبايل لتجنّب خروج المحتوى عن الكارت
+      .admin-top-info,
+      .title-and-badge-row,
+      .main-info-row,
+      .meta-grid-modern,
+      .footer-grid {
+        flex-wrap: wrap;
+      }
+
+      // قصّ أي صورة أو محتوى يتعدى حدود الكارت
+      img,
+      video {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .main-info-row .image-wrapper {
+        width: 70px !important;
+        height: 70px !important;
+      }
+
+      .owner-details .contact-buttons-row .action-btn {
+        width: 34px !important;
+        height: 34px !important;
+      }
+    }
+  }
 }
 
 .empty-state {

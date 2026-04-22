@@ -15,6 +15,7 @@ export const environment = {
     projectId: "mota7-go",
     storageBucket: "mota7-go.firebasestorage.app",
     messagingSenderId: "1078959492808",
-    appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
+    appId: "1:1078959492808:web:1c0013dfeec7ca53551ffd",
+    measurementId: "G-G8V3F6XHNT"
   }
 };

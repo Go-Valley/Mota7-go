@@ -1,4 +1,5 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject, DestroyRef, Injector } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -10,6 +11,8 @@ import {
 } from 'ionicons/icons';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import { extractNameBeforeLastUnderscoreFromMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
@@ -28,6 +31,11 @@ export class DeliveryCard implements OnInit {
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);
   private toastCtrl = inject(ToastController);
+  private injector = inject(Injector);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+
+  private dynamicDeliveryItems: Array<{ id: string; nameAr: string; icon?: string }> = [];
 
   constructor() {
     addIcons({ 
@@ -38,7 +46,26 @@ export class DeliveryCard implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in DeliveryCard:', err);
+    }
+    if (!this.taxonomy) {
+      return;
+    }
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.dynamicDeliveryItems = (b?.deliveryItems ?? []).map((i: any) => ({
+          id: String(i?.id ?? ''),
+          nameAr: String(i?.nameAr ?? ''),
+          icon: i?.icon != null ? String(i.icon) : undefined,
+        })).filter((i) => !!i.id);
+      });
+  }
 
   // تعديل دالة الإدارة لتوحيد مسميات الهاتف والاسم للوحة التحكم
   onManage(event: Event) {
@@ -74,15 +101,31 @@ export class DeliveryCard implements OnInit {
   }
 
   getCategoryName(categoryId: string): string {
-    const item = DELIVERY_CATEGORY.items.find((i: any) => i.id === categoryId);
-    return item ? item.nameAr : 'خدمة نقل';
+    const id = categoryId || this.ad?.category_id;
+    const dyn = this.dynamicDeliveryItems.find((i) => i.id === id);
+    if (dyn?.nameAr) return dyn.nameAr;
+    const item = DELIVERY_CATEGORY.items.find((i: any) => i.id === id);
+    if (item?.nameAr) return item.nameAr;
+    const fromKey = extractNameBeforeLastUnderscoreFromMatchKey(this.ad?.delivery_match_key);
+    return fromKey || 'خدمة نقل';
   }
 
   getCategoryIcon(categoryId: string): string {
-    const category = DELIVERY_CATEGORY.items.find((i: any) => i.id === categoryId);
+    const id = categoryId || this.ad?.category_id;
+    const dyn = this.dynamicDeliveryItems.find((i) => i.id === id);
+    const rawIcon = dyn?.icon;
+    if (rawIcon) {
+      if (rawIcon === 'bicycle' || rawIcon.includes('bicycle')) return 'bicycle-outline';
+      if (rawIcon === 'bus' || rawIcon.includes('bus')) return 'bus-outline';
+      return rawIcon.endsWith('-outline') ? rawIcon : `${rawIcon}-outline`;
+    }
+    const category = DELIVERY_CATEGORY.items.find((i: any) => i.id === id);
     if (!category) return 'car-outline';
-    return category.icon === 'bicycle' ? 'bicycle-outline' : 
-           category.icon === 'bus' ? 'bus-outline' : 'car-outline';
+    return category.icon === 'bicycle'
+      ? 'bicycle-outline'
+      : category.icon === 'bus'
+        ? 'bus-outline'
+        : 'car-outline';
   }
 
   async onSetExpiry(event: Event) {

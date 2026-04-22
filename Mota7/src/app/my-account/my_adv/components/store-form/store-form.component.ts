@@ -3,13 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, IonInput, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Firestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc, setDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { STORES_CATEGORIES_DATA } from '../../../../core/constants/stores-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
+import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
 import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
@@ -230,20 +231,27 @@ export class StoreFormComponent implements OnInit {
       let ntfySnapshot: Record<string, unknown> | null = null;
 
       if (!this.isEditMode) {
-        const duplicate = await runInInjectionContext(this.injector, async () => {
-          const adsRef = collection(this.firestore, 'ads');
-          const q = query(
-            adsRef,
-            where('owner_phone', '==', this.storeData.contactPhone),
-            where('category_id', '==', this.storeData.category_id),
-            where('ad_type', '==', 'store')
-          );
-          const querySnapshot = await getDocs(q);
-          return !querySnapshot.empty;
-        });
+        const duplicate = await runInInjectionContext(this.injector, () =>
+          findDuplicateAd({
+            firestore: this.firestore,
+            phone: this.storeData.contactPhone,
+            adType: 'store',
+            categoryId: this.storeData.category_id,
+          })
+        );
         if (duplicate) {
           await loader.dismiss();
-          this.presentToast('لقد قمت بإضافة متجر بنفس النشاط مسبقاً');
+          const selectedCat = this.storeCategories.find((c: any) => c?.id === this.storeData.category_id);
+          const staticCat = STORES_CATEGORIES_DATA.items.find((c) => c.id === this.storeData.category_id);
+          const activityNameAr = String(
+            (selectedCat as any)?.nameAr || staticCat?.nameAr || this.storeData.category_id || ''
+          ).trim();
+          await presentDuplicateAdAlert({
+            alertCtrl: this.alertCtrl,
+            adType: 'store',
+            activityNameAr,
+            existingStatus: duplicate.status,
+          });
           return;
         }
       }

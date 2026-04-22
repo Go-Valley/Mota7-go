@@ -3,13 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
 import { addIcons } from 'ionicons';
 import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -156,21 +157,34 @@ export class EducationFormComponent implements OnInit {
       const educationMatchKey = `${stageNameAr}+${this.eduData.subjectName}+${this.eduData.city}`;
       let ntfySnapshot: Record<string, unknown> | null = null;
 
-      const outcome = await runInInjectionContext(this.injector, async (): Promise<'duplicate' | 'ok'> => {
-        if (!this.isEditMode) {
-          const adsRef = collection(this.firestore, 'ads');
-          const q = query(
-            adsRef,
-            where('owner_phone', '==', this.eduData.contactPhone),
-            where('education_match_key', '==', educationMatchKey),
-            where('ad_type', '==', 'education')
-          );
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            return 'duplicate';
-          }
+      /**
+       * فحص التكرار: نشترط تطابق «المرحلة التعليمية (category_id)» + «المادة (details.subject)» معاً —
+       * بصرف النظر عن المدينة أو حالة الإعلان (pending/active/rejected/expired).
+       */
+      if (!this.isEditMode) {
+        const duplicate = await runInInjectionContext(this.injector, () =>
+          findDuplicateAd({
+            firestore: this.firestore,
+            phone: this.eduData.contactPhone,
+            adType: 'education',
+            categoryId: this.eduData.category_id,
+            subject: this.eduData.subjectName,
+          })
+        );
+        if (duplicate) {
+          await loader.dismiss();
+          await presentDuplicateAdAlert({
+            alertCtrl: this.alertCtrl,
+            adType: 'education',
+            activityNameAr: stageNameAr,
+            subjectName: this.eduData.subjectName,
+            existingStatus: duplicate.status,
+          });
+          return;
         }
+      }
 
+      await runInInjectionContext(this.injector, async (): Promise<void> => {
         const adId = this.isEditMode ? this.currentAdId! : `${this.eduData.contactPhone}_${Date.now()}`;
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
@@ -224,14 +238,7 @@ export class EducationFormComponent implements OnInit {
             details: { ...adPayload.details },
           };
         }
-        return 'ok';
       });
-
-      if (outcome === 'duplicate') {
-        await loader.dismiss();
-        this.presentToast('لديك إعلان سابق مضاف بالفعل لنفس المرحلة والمادة');
-        return;
-      }
 
       this.isSubmitting = true;
       await loader.dismiss();

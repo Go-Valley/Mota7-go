@@ -10,15 +10,22 @@ import {
   inject,
   EnvironmentInjector,
   runInInjectionContext,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { IonicModule, AlertController, ModalController } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
-import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { addIcons } from 'ionicons';
 import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
+import {
+  OtherCategoryItem,
+  resolveOtherCategoryIcon,
+  resolveOtherCategoryNameAr,
+} from '../../../../core/utils/other-category-display.util';
 import { 
   trashOutline, createOutline, locationOutline, call, 
   logoWhatsapp, alertCircleOutline, timeOutline, checkmarkCircle, checkmarkDoneCircle, closeCircle, shieldCheckmark, shieldCheckmarkOutline,
@@ -46,6 +53,11 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
   private cdr = inject(ChangeDetectorRef);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
+
+  /** قائمة الفروع الديناميكية (Categories/other_services) — تتحدّث مباشرة عند تغيّر Firestore */
+  private dynamicOtherItems: OtherCategoryItem[] = [];
 
   constructor() {
     addIcons({ 
@@ -58,6 +70,12 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
 
   ngOnInit() {
     this.syncManageCardFaded();
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.dynamicOtherItems = (b?.otherItems ?? []) as OtherCategoryItem[];
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -78,17 +96,12 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
     );
   }
 
-  getCategoryName(id: string): string {
-    const item = OTHER_SERVICES_DATA.items.find(i => i.id === id);
-    return item ? item.nameAr : 'خدمة أخرى';
+  getCategoryName(_id?: string): string {
+    return resolveOtherCategoryNameAr(this.ad, this.dynamicOtherItems);
   }
 
-  getCategoryIcon(id: string): string {
-    // ... (نفس السويتش كيس دون تغيير)
-    switch (id) {
-       case 'ac-maintenance': return 'construct'; // مثال من بياناتك
-       default: return 'construct';
-    }
+  getCategoryIcon(_id?: string): string {
+    return resolveOtherCategoryIcon(this.ad, this.dynamicOtherItems);
   }
 
   async toggleAvailability() {
@@ -120,7 +133,7 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else if (type === 'whatsapp') {
-      const serviceName = this.getCategoryName(this.ad.category_id);
+      const serviceName = this.getCategoryName();
       const msg = encodeURIComponent(`السلام عليكم .. محتاج اطلب خدمة (${serviceName})`);
       // استخدام whatsapp_phone من داخل details كما في الفايربيز
       const waPhone = this.ad.details?.whatsapp_phone || phone;

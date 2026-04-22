@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, ViewChildren, QueryList, inject, Injector, runInInjectionContext } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChildren, QueryList, inject, Injector, NgZone, runInInjectionContext, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, AlertController, ToastController, IonItemSliding } from '@ionic/angular';
 import { CommonModule, registerLocaleData, Location } from '@angular/common';
 import localeAr from '@angular/common/locales/ar';
@@ -12,7 +13,7 @@ import {
   deleteDoc,
   runTransaction,
 } from '@angular/fire/firestore';
-import type { Unsubscribe } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { addIcons } from 'ionicons';
 import { 
@@ -23,7 +24,8 @@ import {
 
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
-import { OTHER_SERVICES_DATA } from '../../core/constants/other-services-data';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import { resolveOtherCategoryNameAr } from '@mota7-app/core/utils/other-category-display.util';
 
 registerLocaleData(localeAr);
 
@@ -39,9 +41,20 @@ export class ClickBtnPage implements OnInit, OnDestroy {
 
   private firestore = inject(Firestore);
   private injector = inject(Injector);
+  private ngZone = inject(NgZone);
   private location = inject(Location);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+  /**
+   * نسخ ديناميكية من قوائم التصنيفات (Categories/{docId}) من Firestore.
+   * تُستخدم لعرض الأسماء الصحيحة للفروع المضافة حديثاً، بدلاً من رسائل
+   * افتراضية ("خدمات أخرى" / "خدمة نقل" / "مرحلة") عند تطابق الـ id.
+   */
+  private dynamicOtherItems: Array<{ id: string; nameAr: string }> = [];
+  private dynamicDeliveryItems: Array<{ id: string; nameAr: string }> = [];
+  private dynamicEducationItems: Array<{ id: string; nameAr: string }> = [];
   /** صفوف العرض المشتقة من ads (بدون أعداد اليوم — تُحدَّث من daily_logs) */
   private adBaseById = new Map<string, any>();
   /** نقرات اتصال/واتساب للفترة المعروضة: daily_stats/{date}/ads_logs/{adId} */
@@ -83,7 +96,59 @@ export class ClickBtnPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // نبدأ بجلب الإعلانات أولاً حتى لا يتأخر عرض الصفحة في حالة تأخر
+    // Firestore في إطلاق أول استجابة للتصنيفات على Android WebView.
+    // اشتراك taxonomy مُغلَّف داخل try/catch ليمنع فشل ngOnInit من تعطيل
+    // الصفحة بأكملها (كان النقر على «إحداثيات النقر» يبدو بلا استجابة
+    // لأن الصفحة كانت تُرمى قبل اكتمال التهيئة).
     this.loadAdsAnalytics();
+
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in ClickBtnPage:', err);
+    }
+
+    if (!this.taxonomy) {
+      return;
+    }
+
+    try {
+      this.taxonomy.bundle$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (b) => {
+            this.ngZone.run(() => this.applyTaxonomyBundle(b));
+          },
+          error: (err) => {
+            // مستمع Firestore أخفق؛ نتابع بالقيم الافتراضية بدل تعطيل الصفحة
+            console.error('taxonomy bundle$ error in ClickBtnPage:', err);
+          },
+        });
+    } catch (err) {
+      console.error('failed to subscribe to taxonomy bundle$:', err);
+    }
+  }
+
+  private applyTaxonomyBundle(b: any): void {
+    const toList = (arr: any[] | undefined) =>
+      (arr ?? [])
+        .filter((i: any) => i?.id && i?.nameAr)
+        .map((i: any) => ({ id: String(i.id), nameAr: String(i.nameAr) }));
+    this.dynamicOtherItems = toList(b?.otherItems);
+    this.dynamicDeliveryItems = toList(b?.deliveryItems);
+    this.dynamicEducationItems = toList(b?.educationItems);
+
+    // إعادة بناء العناوين للإعلانات المُحمَّلة بالفعل بناءً على القائمة الجديدة
+    if (this.adBaseById.size > 0) {
+      const refreshed = new Map<string, any>();
+      this.adBaseById.forEach((row, id) => {
+        refreshed.set(id, this.buildAdDisplayRow(id, row));
+      });
+      this.adBaseById = refreshed;
+      this.mergeDailyIntoAdsAndPublish();
+    }
   }
 
   ngOnDestroy() {
@@ -99,17 +164,50 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     return new Date(d.getTime() - offset).toISOString().split('T')[0];
   }
 
+  /**
+   * يدمج مستند ads_logs في الخريطة تحت `doc.id` وتحت `ad_id` إن وُجد ومختلفًا.
+   * التطبيق يكتب بـ docId = معرّف الإعلان (انظر commitAdContactClickFirestore في Mota7)؛
+   * السجلات القديمة قد تستخدم id مستند خاطئًا مع حقل ad_id صحيح.
+   */
+  private addAdsLogDocToClickMap(
+    docSnap: QueryDocumentSnapshot,
+    target: Map<string, { calls: number; whatsapp: number }>
+  ): void {
+    const data = docSnap.data() as Record<string, unknown>;
+    const calls = Number(data['calls'] ?? 0) || 0;
+    const whatsapp = Number(data['whatsapp'] ?? 0) || 0;
+    const merge = (key: string) => {
+      const prev = target.get(key) ?? { calls: 0, whatsapp: 0 };
+      target.set(key, {
+        calls: prev.calls + calls,
+        whatsapp: prev.whatsapp + whatsapp,
+      });
+    };
+    merge(docSnap.id);
+    const aid = data['ad_id'];
+    if (aid != null && String(aid).trim() !== '' && String(aid) !== docSnap.id) {
+      merge(String(aid));
+    }
+  }
+
   loadAdsAnalytics() {
     runInInjectionContext(this.injector, () => {
       this.adsUnsub?.();
       const adsRef = collection(this.firestore, 'ads');
+      /**
+       * NgZone.run() ضروري على Android WebView: Capacitor أحياناً يشغّل callback
+       * الخاص بـ onSnapshot خارج Zone.js فلا يسري Change Detection وتبقى القائمة فارغة
+       * رغم وصول البيانات (يعمل على الويب لكن لا يظهر على الـ APK).
+       */
       this.adsUnsub = onSnapshot(adsRef, (snapshot) => {
-        this.adBaseById.clear();
-        snapshot.docs.forEach((docSnap) => {
-          const row = this.buildAdDisplayRow(docSnap.id, docSnap.data() as any);
-          this.adBaseById.set(docSnap.id, row);
+        this.ngZone.run(() => {
+          this.adBaseById.clear();
+          snapshot.docs.forEach((docSnap) => {
+            const row = this.buildAdDisplayRow(docSnap.id, docSnap.data() as any);
+            this.adBaseById.set(docSnap.id, row);
+          });
+          this.mergeDailyIntoAdsAndPublish();
         });
-        this.mergeDailyIntoAdsAndPublish();
       });
 
       this.applyDateFilterMode();
@@ -125,20 +223,31 @@ export class ClickBtnPage implements OnInit, OnDestroy {
 
     switch (adType) {
       case 'delivery': {
-        const deliveryCat = DELIVERY_CATEGORY.items.find((i) => i.id === ad.category_id);
-        displayTitle = `توصيل: ${deliveryCat ? deliveryCat.nameAr : 'خدمة نقل'}`;
+        // نُفضّل القائمة الديناميكية (Firestore: Categories/transportation) ثم نرتدّ للثوابت
+        const dynD = this.dynamicDeliveryItems.find((i) => i.id === ad.category_id);
+        const staticD = DELIVERY_CATEGORY.items.find((i) => i.id === ad.category_id);
+        const dName = dynD?.nameAr || staticD?.nameAr || ad.category_id || 'خدمة نقل';
+        displayTitle = `توصيل: ${dName}`;
         displayOwnerInfo = `${details.driver_name || ad.owner_name || 'غير مسجل'}`;
         break;
       }
       case 'education': {
-        const eduCat = EDUCATION_CATEGORY.items.find((i) => i.id === ad.category_id);
-        displayTitle = `تعليم: ${details.subject || 'مادة'} (${eduCat ? eduCat.nameAr : 'مرحلة'})`;
+        // نُفضّل القائمة الديناميكية (Firestore: Categories/education) ثم نرتدّ للثوابت
+        const dynE = this.dynamicEducationItems.find((i) => i.id === ad.category_id);
+        const staticE = EDUCATION_CATEGORY.items.find((i) => i.id === ad.category_id);
+        const eName = dynE?.nameAr || staticE?.nameAr || ad.category_id || 'مرحلة';
+        displayTitle = `تعليم: ${details.subject || 'مادة'} (${eName})`;
         displayOwnerInfo = `${details.teacher_name || ad.owner_name || 'غير مسجل'}`;
         break;
       }
       case 'other': {
-        const otherCat = OTHER_SERVICES_DATA.items.find((i) => i.id === ad.category_id);
-        displayTitle = `خدمة: ${otherCat ? otherCat.nameAr : 'خدمات أخرى'}`;
+        // نستخدم نفس الـ resolver المركزي الذي تستخدمه كروت العرض في تطبيق العميل
+        // لضمان نفس تسلسل الأولوية: ديناميكي → ثابت → details.service_name → other_match_key
+        const otherName = resolveOtherCategoryNameAr(
+          { category_id: ad.category_id, details, other_match_key: ad['other_match_key'] },
+          this.dynamicOtherItems
+        );
+        displayTitle = `خدمة: ${otherName}`;
         displayOwnerInfo = `${details.provider_name || ad.owner_name || 'غير مسجل'}`;
         break;
       }
@@ -213,15 +322,11 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     runInInjectionContext(this.injector, () => {
       const logsRef = collection(this.firestore, 'daily_stats', dateKey, 'ads_logs');
       this.dailyUnsub = onSnapshot(logsRef, (snap) => {
-        this.dailyClicksByAdId.clear();
-        snap.forEach((d) => {
-          const data = d.data() as Record<string, unknown>;
-          this.dailyClicksByAdId.set(d.id, {
-            calls: Number(data['calls'] ?? 0) || 0,
-            whatsapp: Number(data['whatsapp'] ?? 0) || 0,
-          });
+        this.ngZone.run(() => {
+          this.dailyClicksByAdId.clear();
+          snap.forEach((d) => this.addAdsLogDocToClickMap(d, this.dailyClicksByAdId));
+          this.mergeDailyIntoAdsAndPublish();
         });
-        this.mergeDailyIntoAdsAndPublish();
       });
     });
   }
@@ -277,22 +382,15 @@ export class ClickBtnPage implements OnInit, OnDestroy {
           dates.map(async (dayKey) => {
             const logsRef = collection(this.firestore, 'daily_stats', dayKey, 'ads_logs');
             const snap = await getDocs(logsRef);
-            snap.forEach((d) => {
-              const data = d.data() as Record<string, unknown>;
-              const c = Number(data['calls'] ?? 0) || 0;
-              const w = Number(data['whatsapp'] ?? 0) || 0;
-              const prev = aggregated.get(d.id) ?? { calls: 0, whatsapp: 0 };
-              aggregated.set(d.id, {
-                calls: prev.calls + c,
-                whatsapp: prev.whatsapp + w,
-              });
-            });
+            snap.forEach((d) => this.addAdsLogDocToClickMap(d, aggregated));
           })
         );
       });
 
-      this.dailyClicksByAdId = aggregated;
-      this.mergeDailyIntoAdsAndPublish();
+      this.ngZone.run(() => {
+        this.dailyClicksByAdId = aggregated;
+        this.mergeDailyIntoAdsAndPublish();
+      });
     } catch (e) {
       console.error('loadRangeAggregation', e);
       const t = await this.toastCtrl.create({
@@ -328,7 +426,7 @@ export class ClickBtnPage implements OnInit, OnDestroy {
 
   /**
    * نقرات اليوم/الفترة من ads_logs؛ المفتاح عادةً = معرّف مستند ads.
-   * إن وُجد سجل قديم تحت `ad_id` فقط (يختلف عن id المستند) نجمع الاثنين دون ازدواجية عند التطابق.
+   * إن وُجد تطابق عبر `base.ad_id` نقرأ المفتاحين؛ إن تطابقت الأرقام (نفس السجل مُكرَّر في الخريطة) لا نجمع مرتين.
    */
   private dailyClicksForAdRow(base: any): { calls: number; whatsapp: number } {
     const docId = String(base.id ?? '');
@@ -341,10 +439,19 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     const b = alt ? this.dailyClicksByAdId.get(alt) : undefined;
     const ca = a?.calls ?? 0;
     const wa = a?.whatsapp ?? 0;
+    const cb = b?.calls ?? 0;
+    const wb = b?.whatsapp ?? 0;
+
     if (!b) {
       return { calls: ca, whatsapp: wa };
     }
-    return { calls: ca + (b.calls ?? 0), whatsapp: wa + (b.whatsapp ?? 0) };
+    if (!a) {
+      return { calls: cb, whatsapp: wb };
+    }
+    if (ca === cb && wa === wb) {
+      return { calls: ca, whatsapp: wa };
+    }
+    return { calls: ca + cb, whatsapp: wa + wb };
   }
 
   private mergeDailyIntoAdsAndPublish() {
@@ -379,9 +486,15 @@ export class ClickBtnPage implements OnInit, OnDestroy {
     void this.loadRangeAggregation();
   }
 
+  /**
+   * إغلاق أي صف منزلق مفتوح عند النقر *خارج* القائمة فقط.
+   * استدعاء close() على كل نقرة داخل الصف كان يلغي النقر على Android WebView
+   * (يبدو وكأن الشاشة لا تستجيب).
+   */
   closeOpenSlidings(ev: Event): void {
     const t = ev.target as HTMLElement | undefined;
     if (t?.closest?.('ion-item-option')) return;
+    if (t?.closest?.('.analytics-list')) return;
     this.itemSlidings?.forEach((s) => void s.close());
   }
 

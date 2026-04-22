@@ -145,11 +145,12 @@ service cloud.firestore {
 
     /**
      * تجميع نقرات اتصال/واتساب يومياً (لوحة الأدمن: daily_stats → ads_logs).
-     * كان المسار العام يسمح بالكتابة للأدمن فقط ففشل setDoc من تطبيق المستخدم.
+     * يجب السماح بالكتابة من تطبيق العميل بدون تسجيل (مثل تحديث إحصائيات الإعلان عبر isStatsOnlyAdUpdate)
+     * وإلا تفشل كل نقرات الاتصال/الواتساب بـ permission-denied.
      */
     match /daily_stats/{date}/ads_logs/{logId} {
       allow read: if true;
-      allow create, update: if request.auth != null && isUserActive();
+      allow create, update: if true;
       allow delete: if isAdmin();
     }
 

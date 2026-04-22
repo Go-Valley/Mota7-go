@@ -6,7 +6,7 @@
 >
   <div class="home-premium-accent" aria-hidden="true"></div>
   <div class="service-title-header">
-    {{ getCategoryName(ad.category_id) }}
+    {{ categoryName }}
   </div>
 
   <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="true"></app-ad-card-engagement-row>
@@ -15,7 +15,7 @@
     <div class="name-section">
       <div class="avatar-container">
         <div class="logo-circle">
-          <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+          <ion-icon [name]="categoryIcon"></ion-icon>
         </div>
         
         <div class="verification-badge" 

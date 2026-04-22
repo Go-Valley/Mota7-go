@@ -72,7 +72,7 @@
     </div>
     
     <div class="admin-grid">
-      <div class="luxury-nav-card" (click)="goTo('users')">
+      <div class="luxury-nav-card" [routerLink]="['/users']" role="link" tabindex="0">
         <div class="card-icon blue">
           <ion-icon name="people-outline"></ion-icon>
         </div>
@@ -84,7 +84,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('blocked-users')">
+      <div class="luxury-nav-card" [routerLink]="['/blocked-users']" role="link" tabindex="0">
         <div class="card-icon red">
           <ion-icon name="person-remove-outline"></ion-icon>
         </div>
@@ -96,7 +96,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('adv')">
+      <div class="luxury-nav-card" [routerLink]="['/adv']" (click)="goTo('adv')" role="link" tabindex="0">
         <div class="card-icon orange">
           <ion-icon name="megaphone-outline"></ion-icon>
         </div>
@@ -107,7 +107,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('taxonomy-lists')">
+      <div class="luxury-nav-card" [routerLink]="['/taxonomy-lists']" role="link" tabindex="0">
         <div class="card-icon teal">
           <ion-icon name="layers-outline"></ion-icon>
         </div>
@@ -118,7 +118,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('banners')">
+      <div class="luxury-nav-card" [routerLink]="['/banners']" role="link" tabindex="0">
         <div class="card-icon green">
           <ion-icon name="images-outline"></ion-icon>
         </div>
@@ -130,7 +130,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card pulse-border" (click)="goTo('pending-requests')">
+      <div class="luxury-nav-card pulse-border" [routerLink]="['/pending-requests']" role="link" tabindex="0">
         <div class="card-icon red">
           <ion-icon name="time-outline"></ion-icon>
         </div>
@@ -144,7 +144,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('accepting_order')">
+      <div class="luxury-nav-card" [routerLink]="['/accepting_order']" role="link" tabindex="0">
         <div class="card-icon purple">
           <ion-icon name="briefcase-outline"></ion-icon>
         </div>
@@ -158,7 +158,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('completing-order')">
+      <div class="luxury-nav-card" [routerLink]="['/completing-order']" role="link" tabindex="0">
         <div class="card-icon green">
           <ion-icon name="checkmark-done-circle"></ion-icon>
         </div>
@@ -172,7 +172,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('user-total-accepted')">
+      <div class="luxury-nav-card" [routerLink]="['/user-total-accepted']" role="link" tabindex="0">
         <div class="card-icon indigo">
           <ion-icon name="list-outline"></ion-icon>
         </div>
@@ -183,7 +183,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('provider-total-accepted')">
+      <div class="luxury-nav-card" [routerLink]="['/provider-total-accepted']" role="link" tabindex="0">
         <div class="card-icon gold">
           <ion-icon name="analytics-outline"></ion-icon>
         </div>
@@ -194,7 +194,7 @@
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>
 
-      <div class="luxury-nav-card" (click)="goTo('click-analytics')">
+      <div class="luxury-nav-card" [routerLink]="['/click-analytics']" (click)="goTo('click-analytics')" role="link" tabindex="0">
         <div class="card-icon dark">
           <ion-icon name="locate-outline"></ion-icon>
         </div>

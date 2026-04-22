@@ -10,7 +10,7 @@
       {{ ad.details?.subject || 'مادة تعليمية' }}
     </div>
     <div class="modern-stage-badge">
-      {{ getStageName(ad.category_id) }}
+      {{ stageName }}
     </div>
   </div>
 
@@ -20,7 +20,7 @@
     <div class="avatar-wrapper">
       <div class="avatar-container">
         <div class="logo-circle">
-          <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
+          <ion-icon [name]="categoryIcon"></ion-icon>
         </div>
       
         <div class="verification-badge" 

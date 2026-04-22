@@ -1,4 +1,5 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject, DestroyRef, Injector } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -8,9 +9,14 @@ import {
   construct, business, grid, card, tv, flame, carSport, megaphone, cube, cog,
   ellipsisVerticalOutline, calendarOutline
 } from 'ionicons/icons';
-import { OTHER_SERVICES_DATA } from '../../core/constants/other-services-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import {
+  OtherCategoryItem,
+  resolveOtherCategoryIcon,
+  resolveOtherCategoryNameAr,
+} from '@mota7-app/core/utils/other-category-display.util';
 
 @Component({
   selector: 'app-other-card',
@@ -28,6 +34,12 @@ export class OtherCard implements OnInit {
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);
   private toastCtrl = inject(ToastController);
+  private injector = inject(Injector);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+
+  /** قائمة الفروع الديناميكية القادمة من Firestore (Categories/other_services) */
+  private dynamicOtherItems: OtherCategoryItem[] = [];
 
   constructor() {
     addIcons({
@@ -38,7 +50,22 @@ export class OtherCard implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in OtherCard:', err);
+    }
+    if (!this.taxonomy) {
+      return;
+    }
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.dynamicOtherItems = (b?.otherItems ?? []) as OtherCategoryItem[];
+      });
+  }
 
   // دالة التواصل عبر الاتصال أو الواتساب
   contact(type: 'call' | 'whatsapp', event: Event) {
@@ -49,22 +76,18 @@ export class OtherCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const adName = this.ad.details?.service_name || this.getCategoryName(this.ad.category_id);
+      const adName = this.ad.details?.service_name || this.getCategoryName();
       const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`;
       openWhatsappNative(phone, msg);
     }
   }
 
-  getCategoryName(id: string): string {
-    if (!id) return 'خدمة أخرى';
-    const cat = OTHER_SERVICES_DATA.items.find((c: any) => c.id === id);
-    return cat ? cat.nameAr : 'خدمة أخرى';
+  getCategoryName(_id?: string): string {
+    return resolveOtherCategoryNameAr(this.ad, this.dynamicOtherItems);
   }
 
-  getCategoryIcon(id: string): string {
-    if (!id) return 'construct';
-    const cat = OTHER_SERVICES_DATA.items.find((c: any) => c.id === id);
-    return (cat as any)?.icon || 'construct';
+  getCategoryIcon(_id?: string): string {
+    return resolveOtherCategoryIcon(this.ad, this.dynamicOtherItems);
   }
 
   // تعديل دالة onManage لضمان عدم التضارب مع التاريخ

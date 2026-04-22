@@ -1,4 +1,5 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject, DestroyRef, Injector } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -9,6 +10,8 @@ import {
 } from 'ionicons/icons';
 import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
 @Component({
@@ -26,6 +29,11 @@ export class EducationCard implements OnInit {
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);
   private toastCtrl = inject(ToastController);
+  private injector = inject(Injector);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+
+  private dynamicEducationItems: Array<{ id: string; nameAr: string; icon?: string }> = [];
 
   constructor() {
     addIcons({
@@ -35,7 +43,26 @@ export class EducationCard implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in EducationCard:', err);
+    }
+    if (!this.taxonomy) {
+      return;
+    }
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        this.dynamicEducationItems = (b?.educationItems ?? []).map((i: any) => ({
+          id: String(i?.id ?? ''),
+          nameAr: String(i?.nameAr ?? ''),
+          icon: i?.icon != null ? String(i.icon) : undefined,
+        })).filter((i) => !!i.id);
+      });
+  }
 
   // دالة التواصل عبر الاتصال أو الواتساب
   contact(type: 'call' | 'whatsapp', event: Event) {
@@ -72,13 +99,24 @@ export class EducationCard implements OnInit {
   }
 
   getStageName(stageId: string): string {
-    if (!stageId) return 'خدمة تعليمية';
-    const stage = EDUCATION_CATEGORY.items.find((item: any) => item.id === stageId);
-    return stage ? stage.nameAr : 'خدمة تعليمية';
+    const id = stageId || this.ad?.category_id;
+    if (!id) return 'خدمة تعليمية';
+    const dyn = this.dynamicEducationItems.find((item) => item.id === id);
+    if (dyn?.nameAr) return dyn.nameAr;
+    const stage = EDUCATION_CATEGORY.items.find((item: any) => item.id === id);
+    if (stage?.nameAr) return stage.nameAr;
+    const fromKey = extractEducationStageArFromPlusMatchKey(this.ad?.education_match_key);
+    return fromKey || 'خدمة تعليمية';
   }
 
   getCategoryIcon(id: string): string {
-    switch (id) {
+    const sid = id || this.ad?.category_id;
+    const dyn = this.dynamicEducationItems.find((item) => item.id === sid);
+    if (dyn?.icon) {
+      const ic = dyn.icon;
+      return ic.endsWith('-outline') ? ic : `${ic}-outline`;
+    }
+    switch (sid) {
       case 'kindergarten': return 'school-outline';
       case 'primary': return 'book-outline';
       case 'preparatory': return 'school-outline';

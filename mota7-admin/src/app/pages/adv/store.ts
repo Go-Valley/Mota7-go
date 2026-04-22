@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, OnInit, Output, EventEmitter, inject, DestroyRef, Injector } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -17,6 +18,7 @@ import {
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { STORES_CATEGORIES_DATA } from '@mota7-app/core/constants/stores-data';
+import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 
 @Component({
   selector: 'app-store-card',
@@ -34,6 +36,16 @@ export class StoreCard implements OnInit {
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);
   private toastCtrl = inject(ToastController);
+  private injector = inject(Injector);
+  private taxonomy: AppTaxonomyService | null = null;
+  private destroyRef = inject(DestroyRef);
+
+  /**
+   * نسخة ديناميكية من أنشطة المتاجر (Categories/stores) تُحدَّث لحظياً من Firestore،
+   * حتى تظهر الأنشطة المُضافة حديثاً باسمها العربي الصحيح في كروت الأدمن
+   * بدون الحاجة لإصدار تحديث جديد للتطبيق.
+   */
+  private dynamicStoreItems: Array<{ id: string; nameAr: string }> = [];
 
   constructor() {
     addIcons({
@@ -50,12 +62,35 @@ export class StoreCard implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    try {
+      this.taxonomy = this.injector.get(AppTaxonomyService);
+    } catch (err) {
+      this.taxonomy = null;
+      console.error('failed to resolve AppTaxonomyService in StoreCard:', err);
+    }
+    if (!this.taxonomy) {
+      return;
+    }
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        const items = (b?.storeItems ?? [])
+          .map((i: any) => ({
+            id: String(i?.id ?? ''),
+            nameAr: String(i?.nameAr ?? ''),
+          }))
+          .filter((i) => !!i.id && !!i.nameAr);
+        this.dynamicStoreItems = items;
+      });
+  }
 
-  /** نفس تسميات «نوع النشاط التجاري» في تطبيق المستخدم */
+  /** نفس تسميات «نوع النشاط التجاري» في تطبيق المستخدم — مع أولوية للقائمة الديناميكية من Firestore */
   storeActivityLabel(ad: { category_id?: string } | null | undefined): string {
     const id = ad?.category_id;
     if (!id) return '—';
+    const dyn = this.dynamicStoreItems.find((i) => i.id === id);
+    if (dyn?.nameAr) return dyn.nameAr;
     const item = STORES_CATEGORIES_DATA.items.find((i) => i.id === id);
     return item?.nameAr ?? id;
   }

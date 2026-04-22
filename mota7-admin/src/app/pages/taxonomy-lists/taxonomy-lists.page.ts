@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, EnvironmentInjector, runInInjectionContext, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, EnvironmentInjector, runInInjectionContext, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -8,7 +8,8 @@ import {
   LoadingController,
   NavController,
 } from '@ionic/angular';
-import { Firestore, doc, getDoc, updateDoc, setDoc } from '@angular/fire/firestore';
+import { Firestore, doc, updateDoc, setDoc } from '@angular/fire/firestore';
+import { onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -38,6 +39,7 @@ type SectionMode = 'delivery' | 'education' | 'simple' | 'product' | 'store';
 export class TaxonomyListsPage implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
+  private ngZone = inject(NgZone);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
   private loadingCtrl = inject(LoadingController);
@@ -76,9 +78,13 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   metaIcon = '';
   loading = false;
   savingNameIndex: number | null = null;
+  /** فهرس البند الذي يجري حذفه حالياً — لإظهار سبينر وتعطيل الأزرار أثناء العملية */
+  deletingIndex: number | null = null;
   private live = true;
   private nameDraftCache: Record<number, string> = {};
   private lastLoadedHash = '';
+  /** إلغاء الاشتراك في المستند الحالي عند تغيير القسم أو إغلاق الصفحة */
+  private categoriesDocUnsub: Unsubscribe | null = null;
 
   constructor() {
     addIcons({
@@ -98,6 +104,7 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.live = false;
+    this.detachCategoriesDocListener();
   }
 
   get currentMode(): SectionMode {
@@ -113,34 +120,70 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
 
   onSectionChange(id: CategoryDocId): void {
     this.selectedDocId = id;
+    // لضمان تطبيق أول لقطة بعد تبديل القسم (حتى لا يُحجب التحميل بسبب hasUnsavedChanges)
+    this.lastLoadedHash = '';
     void this.loadCurrentDoc();
   }
 
+  /**
+   * تحميل/مزامنة المستند الحالي من Firestore — اشتراك مباشر (onSnapshot)
+   * حتى يظهر أي تعديل من جهاز آخر أو من التطبيق دون إعادة فتح الصفحة.
+   */
   async loadCurrentDoc(): Promise<void> {
-    this.loading = true;
-    try {
-      const snap = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'Categories', this.selectedDocId))
-      );
-      if (!this.live) return;
-      if (!snap.exists()) {
-        this.items = [];
-        this.metaNameAr = '';
-        this.metaIcon = '';
-        await this.presentToast('المستند غير موجود — استخدم «تهيئة القيم الافتراضية»', 'warning');
-        return;
-      }
-      const d = snap.data() as any;
-      this.items = Array.isArray(d.items) ? JSON.parse(JSON.stringify(d.items)) : [];
-      this.metaNameAr = d.nameAr ?? '';
-      this.metaIcon = d.icon ?? '';
-      this.lastLoadedHash = this.buildCurrentHash();
-    } catch (e) {
-      console.error(e);
-      await this.presentToast('تعذر القراءة من Firestore', 'danger');
-    } finally {
-      if (this.live) this.loading = false;
+    this.attachCategoriesDocListener();
+  }
+
+  private detachCategoriesDocListener(): void {
+    if (this.categoriesDocUnsub) {
+      this.categoriesDocUnsub();
+      this.categoriesDocUnsub = null;
     }
+  }
+
+  private attachCategoriesDocListener(): void {
+    this.detachCategoriesDocListener();
+    this.loading = true;
+    const ref = doc(this.firestore, 'Categories', this.selectedDocId);
+    this.categoriesDocUnsub = onSnapshot(
+      ref,
+      (snap) => {
+        this.ngZone.run(() => {
+          if (!this.live) return;
+          this.loading = false;
+          if (!snap.exists()) {
+            this.items = [];
+            this.metaNameAr = '';
+            this.metaIcon = '';
+            void this.presentToast(
+              'المستند غير موجود — استخدم «تهيئة القيم الافتراضية»',
+              'warning'
+            );
+            return;
+          }
+          const d = snap.data() as any;
+          const remoteItems = Array.isArray(d.items)
+            ? JSON.parse(JSON.stringify(d.items))
+            : [];
+          const remoteNameAr = d.nameAr ?? '';
+          const remoteIcon = d.icon ?? '';
+          // لا نستبدل مسودّة المستخدم بعد أول مزامنة ناجحة وطالما هناك تغييرات غير محفوظة
+          if (this.remoteApplyBlockedByDirty()) {
+            return;
+          }
+          this.items = remoteItems;
+          this.metaNameAr = remoteNameAr;
+          this.metaIcon = remoteIcon;
+          this.lastLoadedHash = this.buildCurrentHash();
+        });
+      },
+      (err) => {
+        console.error(err);
+        this.ngZone.run(() => {
+          this.loading = false;
+          void this.presentToast('تعذر القراءة من Firestore', 'danger');
+        });
+      }
+    );
   }
 
   async saveAll(): Promise<void> {
@@ -258,7 +301,11 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
       await this.promptStoreDialog('إضافة نشاط متجر', null);
       return;
     }
-    await this.promptSimpleDialog('إضافة خدمة', null);
+    if (this.selectedDocId === 'other_services') {
+      await this.promptOtherServicesDialog('إضافة خدمة', null);
+      return;
+    }
+    await this.promptSimpleDialog('إضافة بند', null);
   }
 
   async editItem(index: number): Promise<void> {
@@ -281,13 +328,26 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
       await this.promptStoreDialog('تعديل نشاط', row, index);
       return;
     }
-    await this.promptSimpleDialog('تعديل خدمة', row, index);
+    if (this.selectedDocId === 'other_services') {
+      await this.promptOtherServicesDialog('تعديل خدمة', row, index);
+      return;
+    }
+    await this.promptSimpleDialog('تعديل بند', row, index);
   }
 
   async deleteItem(index: number): Promise<void> {
+    if (this.deletingIndex !== null) {
+      return;
+    }
+    const row = this.items[index];
+    if (!row) {
+      return;
+    }
+    const itemLabel = String(row?.nameAr || row?.id || '').trim() || 'هذا البند';
+
     const a = await this.alertCtrl.create({
       header: 'حذف العنصر',
-      message: 'هل تريد حذف هذا البند من القائمة؟',
+      message: `سيتم حذف "${itemLabel}" نهائياً من Firestore وسيختفي من تطبيق العملاء فوراً. هل تريد المتابعة؟`,
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
@@ -295,13 +355,44 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
           text: 'حذف',
           role: 'destructive',
           handler: () => {
-            this.items.splice(index, 1);
-            this.assignSequentialOrderToItems();
+            void this.commitDeleteItem(index);
+            return true;
           },
         },
       ],
     });
     await a.present();
+  }
+
+  /**
+   * يحذف البند من القائمة المحلية ويحفظ التغيير على Firestore فوراً.
+   * في حالة فشل الكتابة على Firestore، يُعاد البند إلى مكانه الأصلي (rollback)
+   * حتى لا يضيع البند من القائمة المعروضة دون تأكيد فعلي على السحابة.
+   */
+  private async commitDeleteItem(index: number): Promise<void> {
+    if (index < 0 || index >= this.items.length) {
+      return;
+    }
+    const removed = this.items[index];
+    this.items.splice(index, 1);
+    this.assignSequentialOrderToItems();
+    this.deletingIndex = index;
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'Categories', this.selectedDocId), {
+          items: this.items,
+        } as any)
+      );
+      this.lastLoadedHash = this.buildCurrentHash();
+      await this.presentToast('تم حذف البند نهائياً', 'success');
+    } catch (e) {
+      console.error(e);
+      this.items.splice(index, 0, removed);
+      this.assignSequentialOrderToItems();
+      await this.presentToast('تعذر حذف البند، حاول مرة أخرى', 'danger');
+    } finally {
+      this.deletingIndex = null;
+    }
   }
 
   moveUp(index: number): void {
@@ -395,6 +486,56 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
           handler: (data) => {
             if (!data.id?.trim() || !data.nameAr?.trim()) return false;
             const o = { id: data.id.trim(), nameAr: data.nameAr.trim(), nameEn: (data.nameEn || '').trim() };
+            if (index != null) this.items[index] = o;
+            else this.items.push(o);
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  /** خدمات أخرى: نفس حقول البسيط + تصنيفات فرعية (سطر لكل تصنيف) كما في المنتجات */
+  private async promptOtherServicesDialog(
+    title: string,
+    existing: any | null,
+    index?: number
+  ): Promise<void> {
+    const subText = Array.isArray(existing?.subcategories) ? existing.subcategories.join('\n') : '';
+    const alert = await this.alertCtrl.create({
+      header: title,
+      message: 'التصنيفات الفرعية (اختياري): سطر لكل تصنيف',
+      mode: 'ios',
+      inputs: [
+        { name: 'id', type: 'text', placeholder: 'المعرّف (id)', value: existing?.id ?? '' },
+        { name: 'nameAr', type: 'text', placeholder: 'الاسم بالعربية', value: existing?.nameAr ?? '' },
+        { name: 'nameEn', type: 'text', placeholder: 'الاسم بالإنجليزية', value: existing?.nameEn ?? '' },
+        {
+          name: 'subcategories',
+          type: 'textarea',
+          placeholder: 'تصنيفات فرعية (سطر لكل تصنيف)',
+          value: subText,
+        },
+      ],
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'حفظ',
+          handler: (data) => {
+            if (!data.id?.trim() || !data.nameAr?.trim()) return false;
+            const subcategories = String(data.subcategories || '')
+              .split('\n')
+              .map((s: string) => s.trim())
+              .filter(Boolean);
+            const o: Record<string, unknown> = {
+              id: data.id.trim(),
+              nameAr: data.nameAr.trim(),
+              nameEn: (data.nameEn || '').trim(),
+            };
+            if (subcategories.length) {
+              o['subcategories'] = subcategories;
+            }
             if (index != null) this.items[index] = o;
             else this.items.push(o);
             return true;
@@ -598,6 +739,14 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   private async presentToast(message: string, color: string): Promise<void> {
     const t = await this.toastCtrl.create({ message, duration: 2600, position: 'bottom', color, mode: 'ios' });
     await t.present();
+  }
+
+  /** يمنع استبدال الشاشة من لقطة بعيدة إن وُجدت تعديلات محلية غير محفوظة (بعد أول تحميل). */
+  private remoteApplyBlockedByDirty(): boolean {
+    if (this.lastLoadedHash === '') {
+      return false;
+    }
+    return this.hasUnsavedChanges();
   }
 
   private hasUnsavedChanges(): boolean {

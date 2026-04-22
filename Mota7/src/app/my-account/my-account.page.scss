@@ -157,6 +157,43 @@
     ion-icon { color: #FF6B00 !important; font-size: 22px; margin-left: 8px; }
     &.logout-btn { --background: #ffbcbc00 !important; ion-label { color: #b91c1c !important; } ion-icon { color: #ef4444 !important; } }
   }
+
+  /* صفّان: عنوان + وصف أصغر — نفس نمط القائمة مع ارتفاع مرن */
+  .menu-item--wtsapp-group {
+    min-height: 58px;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    align-items: center;
+
+    ion-icon {
+      color: #25d366 !important;
+      align-self: center;
+    }
+
+    ion-label.menu-label-stacked {
+      display: flex !important;
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 4px;
+      margin: 0 !important;
+      white-space: normal !important;
+    }
+
+    .menu-label-stacked__title {
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: #1a1a2e !important;
+      line-height: 1.35;
+    }
+
+    .menu-label-stacked__sub {
+      font-weight: 600;
+      font-size: 0.72rem;
+      color: #64748b !important;
+      line-height: 1.3;
+    }
+  }
 }
 
 /* Modal Styling - تعديل اختراق الـ innerHTML */

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject, EnvironmentInjector } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, Input, inject, EnvironmentInjector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -20,13 +20,21 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
   templateUrl: './delivery-home-card.component.html',
   styleUrls: ['./delivery-home-card.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IonicModule, CommonModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
 })
-export class DeliveryHomeCardComponent implements OnInit {
+export class DeliveryHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   private analytics = inject(Analytics, { optional: true });
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
+
+  /** قيم مشتقّة محسوبة مرّة واحدة (تجنّب استدعاء الدوال في القالب لكل دورة كشف) */
+  categoryName: string = 'خدمة نقل';
+  categoryIcon: string = 'car-outline';
+  showTravelChip = false;
+  showRentChip = false;
+  useTwoRowChipLayout = false;
 
   constructor() {
     addIcons({ 
@@ -36,7 +44,24 @@ export class DeliveryHomeCardComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.computeDerived();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['ad']) {
+      this.computeDerived();
+    }
+  }
+
+  private computeDerived(): void {
+    const id = this.ad?.category_id;
+    this.categoryName = this.getCategoryName(id);
+    this.categoryIcon = this.getCategoryIcon(id);
+    this.showTravelChip = (id === 'private-car' || id === 'taxi') && !!this.ad?.details?.can_travel;
+    this.showRentChip = id === 'private-car' && !!this.ad?.details?.for_rent;
+    this.useTwoRowChipLayout = this.showTravelChip && this.showRentChip;
+  }
 
   getCategoryName(id: string): string {
     const item = DELIVERY_CATEGORY.items.find((i: { id: string; nameAr: string }) => i.id === id);
@@ -49,22 +74,6 @@ export class DeliveryHomeCardComponent implements OnInit {
     if (category.icon === 'bicycle') return 'bicycle-outline';
     if (category.icon === 'bus') return 'bus-outline';
     return 'car-outline';
-  }
-
-  /** سيارة خاصة أو تاكسي — زر السفر */
-  get showTravelChip(): boolean {
-    const id = this.ad?.category_id;
-    return (id === 'private-car' || id === 'taxi') && !!this.ad?.details?.can_travel;
-  }
-
-  /** سيارة خاصة — زر الإيجار (مطابق لبطاقة الإدارة) */
-  get showRentChip(): boolean {
-    return this.ad?.category_id === 'private-car' && !!this.ad?.details?.for_rent;
-  }
-
-  /** صفّان: المدينة+متاح الآن | السفر+إيجار */
-  get useTwoRowChipLayout(): boolean {
-    return this.showTravelChip && this.showRentChip;
   }
 
   async trackContactClick(ad: any, type: 'call' | 'whatsapp') {

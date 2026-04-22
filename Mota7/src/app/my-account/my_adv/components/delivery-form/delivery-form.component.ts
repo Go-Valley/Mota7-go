@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonicModule, LoadingController, ToastController, NavController, ModalController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { App } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
@@ -14,6 +14,7 @@ import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/servic
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline } from 'ionicons/icons';
 
@@ -294,20 +295,22 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
        * 2) setDoc/updateDoc كلٌ في استدعاء منفصل بلا await سابق لنفس الـ callback
        */
       if (!this.isEditMode) {
-        const isDuplicate = await runInInjectionContext(this.injector, async () => {
-          const adsRef = collection(this.firestore, 'ads');
-          const q = query(
-            adsRef,
-            where('owner_phone', '==', this.deliveryData.contactPhone),
-            where('category_id', '==', this.deliveryData.category_id),
-            where('ad_type', '==', 'delivery')
-          );
-          const querySnapshot = await getDocs(q);
-          return !querySnapshot.empty;
-        });
-        if (isDuplicate) {
+        const duplicate = await runInInjectionContext(this.injector, () =>
+          findDuplicateAd({
+            firestore: this.firestore,
+            phone: this.deliveryData.contactPhone,
+            adType: 'delivery',
+            categoryId: this.deliveryData.category_id,
+          })
+        );
+        if (duplicate) {
           await loader.dismiss();
-          this.presentToast('لديك إعلان مضاف بالفعل لنفس نوع الخدمة');
+          await presentDuplicateAdAlert({
+            alertCtrl: this.alertCtrl,
+            adType: 'delivery',
+            activityNameAr: categoryNameAr,
+            existingStatus: duplicate.status,
+          });
           return;
         }
       }

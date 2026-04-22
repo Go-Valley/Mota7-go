@@ -390,3 +390,80 @@ ion-modal.app-tutorial-modal {
   --border-radius: 22px 22px 0 0;
   align-items: flex-end;
 }
+
+/* ==========================================================================
+   تنبيه «إعلان مكرّر» — ظهوره عند محاولة إضافة إعلان بنفس النشاط
+   (نقل وتوصيل / تعليمية / خدمات أخرى / متجر)
+   ========================================================================== */
+ion-alert.mota7-duplicate-ad-alert {
+  --backdrop-opacity: 0.55;
+  --min-width: 320px;
+  --max-width: 420px;
+  --width: 92vw;
+  --border-radius: 22px;
+  direction: rtl;
+  text-align: right;
+
+  &::part(backdrop) {
+    background: rgba(15, 23, 42, 0.5);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .alert-wrapper.sc-ion-alert-ios,
+  .alert-wrapper {
+    border-radius: 22px !important;
+    overflow: hidden;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.35);
+    background: linear-gradient(180deg, #ffffff 0%, #fff8f0 100%) !important;
+  }
+
+  .alert-head.sc-ion-alert-ios,
+  .alert-head {
+    padding: 18px 18px 6px;
+    text-align: center;
+  }
+
+  .alert-title.sc-ion-alert-ios,
+  .alert-title {
+    font-size: 1.15rem !important;
+    font-weight: 900 !important;
+    color: #b91c1c !important;
+    letter-spacing: 0.2px;
+  }
+
+  .alert-sub-title.sc-ion-alert-ios,
+  .alert-sub-title {
+    color: #475569 !important;
+    font-weight: 600 !important;
+  }
+
+  /* رسالة duplicate-ad.util.ts نص متعدد الأسطر — ion-alert لا يدعم HTML في message */
+  .alert-message.sc-ion-alert-ios,
+  .alert-message {
+    padding: 4px 18px 16px !important;
+    color: #0f172a !important;
+    font-size: 0.96rem !important;
+    line-height: 1.7 !important;
+    max-height: 60vh !important;
+    overflow-y: auto;
+    white-space: pre-line !important;
+    text-align: right !important;
+  }
+
+  .alert-button-group.sc-ion-alert-ios,
+  .alert-button-group {
+    border-top: 1px solid rgba(15, 23, 42, 0.06) !important;
+    padding: 6px 0 !important;
+    background: transparent !important;
+  }
+
+  .alert-button.sc-ion-alert-ios,
+  .alert-button,
+  .dup-btn-ok {
+    color: #dc2626 !important;
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+    letter-spacing: 0.3px;
+  }
+}

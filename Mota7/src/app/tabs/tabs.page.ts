@@ -23,6 +23,7 @@ import {
   constructOutline,
   listOutline,
   bookOutline,
+  logoWhatsapp,
 } from 'ionicons/icons';
 import { ModalController, NavController } from '@ionic/angular';
 import { Auth, authState } from '@angular/fire/auth';
@@ -30,6 +31,7 @@ import { ServiceSelectionComponent } from '../my-order/service-selection.compone
 import { DeliveryServiceComponent } from '../my-order/delivery-service/delivery-service.component';
 import { EducationalServiceComponent } from '../my-order/educational-service/educational-service.component';
 import { OtherServiceComponent } from '../my-order/other-service/other-service.component';
+import { WtsappGroupLinkService } from '../core/services/wtsapp-group-link.service';
 
 @Component({
   selector: 'app-tabs',
@@ -44,6 +46,7 @@ export class TabsPage implements OnInit {
   private injector = inject(Injector);
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
+  private wtsappGroupLink = inject(WtsappGroupLinkService);
 
   isServiceModalOpen: boolean = false;
   isAppTutorialOpen = false;
@@ -69,6 +72,7 @@ export class TabsPage implements OnInit {
       'construct-outline': constructOutline,
       'list-outline': listOutline,
       'book-outline': bookOutline,
+      'logo-whatsapp': logoWhatsapp,
     });
   }
 
@@ -83,6 +87,11 @@ export class TabsPage implements OnInit {
   openAppTutorial(): void {
     this.isAppTutorialOpen = true;
     this.cdr.markForCheck();
+  }
+
+  /** مجموعة «مُتاح» الخدمي — الرابط من Firestore wtsapp_group/mota7.link */
+  openMota7ServiceGroupInvite(): void {
+    this.wtsappGroupLink.openServiceGroupInvite();
   }
 
   openServiceModal() {

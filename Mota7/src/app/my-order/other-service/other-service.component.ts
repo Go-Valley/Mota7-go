@@ -5,12 +5,15 @@ import {
   inject,
   Injector,
   runInInjectionContext,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
 import { OTHER_SERVICES_DATA } from '../../core/constants/other-services-data';
 import { Firestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
+import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import {
   applyOrderPhoneInputState,
   isOrderPhoneValid,
@@ -41,7 +44,14 @@ export class OtherServiceComponent implements OnInit {
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
-  otherItems = OTHER_SERVICES_DATA.items;
+  /**
+   * قائمة الفروع المعروضة للعميل في ion-select.
+   * تبدأ من الثوابت كاحتياط فوري، ثم تُستبدل بالقائمة الديناميكية القادمة من
+   * Firestore (Categories/other_services) عبر AppTaxonomyService، فتظهر أي
+   * فروع جديدة يضيفها الأدمن بدون نشر تطبيق جديد.
+   */
+  otherItems: Array<{ id: string; nameAr: string; nameEn?: string }> =
+    [...OTHER_SERVICES_DATA.items];
   private readonly orderCityOptions = ['الخارجة', 'الداخلة'] as const;
   phoneLiveWarning: string | null = null;
   private loadingCtrl = inject(LoadingController);
@@ -49,6 +59,8 @@ export class OtherServiceComponent implements OnInit {
   private auth = inject(Auth); 
   private injector = inject(Injector);
   private newOrderNtfy = inject(NewOrderNtfyService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   orderData = {
     customerName: '',
@@ -64,6 +76,17 @@ export class OtherServiceComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
+    // اشتراك مبكّر في الـ taxonomy لجلب أحدث فروع "خدمات أخرى" من Firestore.
+    // إذا لم يصدر إصدار بعد لأي سبب نُبقي القائمة الثابتة كاحتياط.
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        const items = (b?.otherItems ?? []).filter((i: any) => i?.id && i?.nameAr);
+        if (items.length > 0) {
+          this.otherItems = items as Array<{ id: string; nameAr: string; nameEn?: string }>;
+        }
+      });
+
     await this.loadUserProfile();
     mergeGuestStoredContactIntoOrderData(
       this.orderData,

@@ -53,10 +53,11 @@ export const routes: Routes = [
   },
   {
     path: 'provider-total-accepted',
-    loadComponent: () => import('./pages/total_order_subscriber/total_order_subscriber').then(m => m.TotalOrderSubscriberPage) 
+    loadComponent: () =>
+      import('./pages/total_order_subscriber/total_order_subscriber').then((m) => m.TotalOrderSubscriberPage),
   },
   {
-  path: 'click-analytics',
-  loadComponent: () => import('./pages/click_btn/click_btn').then(m => m.ClickBtnPage) 
-}
+    path: 'click-analytics',
+    loadComponent: () => import('./pages/click_btn/click_btn').then((m) => m.ClickBtnPage),
+  },
 ];

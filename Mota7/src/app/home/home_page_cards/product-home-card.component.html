@@ -12,7 +12,7 @@
 
     <div class="main-info-row">
       <div class="image-wrapper">
-        <img [src]="productThumbSrc()"
+        <img [src]="thumbSrc"
              loading="lazy" decoding="async"
              (error)="$any($event.target).src = 'assets/mota7.png'" 
              alt="صورة المنتج" 

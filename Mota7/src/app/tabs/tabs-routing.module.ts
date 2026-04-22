@@ -9,7 +9,16 @@ const routes: Routes = [
     children: [
       {
         path: 'home',
-        loadChildren: () => import('../home/home.module').then(m => m.HomePageModule)
+        children: [
+          {
+            path: '',
+            loadChildren: () => import('../home/home.module').then(m => m.HomePageModule)
+          },
+          {
+            path: 'store/:storeId',
+            loadComponent: () => import('../home/store-detail/store-detail.page').then(m => m.StoreDetailPage)
+          }
+        ]
       },
       {
         path: 'my-order',

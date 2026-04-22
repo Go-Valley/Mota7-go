@@ -12,12 +12,14 @@ export const environment = {
     ordersEnabled: true,
     ordersTopic: '',
   },
+  /** نفس تطبيق الويب في Firebase (مشروع mota7-go) — الـ SDK داخل WebView/Capacitor وليس الـ Native Android SDK */
   firebaseConfig: {
     apiKey: "AIzaSyDdr8tdhseQ8HYxMAJbzZpBX9lm8zaZOv4",
     authDomain: "mota7-go.firebaseapp.com",
     projectId: "mota7-go",
     storageBucket: "mota7-go.firebasestorage.app",
     messagingSenderId: "1078959492808",
-    appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
+    appId: "1:1078959492808:web:1c0013dfeec7ca53551ffd",
+    measurementId: "G-G8V3F6XHNT"
   }
 };

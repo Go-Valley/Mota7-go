@@ -33,6 +33,7 @@ import {
   SUBSCRIPTIONS_MISSING_CONTENT_HTML,
   SUBSCRIPTIONS_EMPTY_FALLBACK,
 } from './subscriptions_page/subscriptions-default-html';
+import { WtsappGroupLinkService } from '../core/services/wtsapp-group-link.service';
 
 
 @Component({
@@ -68,6 +69,7 @@ export class MyAccountPage implements OnInit {
   private document = inject(DOCUMENT);
   private authState$!: Observable<any>;
   readonly acct = inject(UserAccountStatusService);
+  private readonly wtsappGroupLink = inject(WtsappGroupLinkService);
 
   /** مسارات أصول مطلقة من baseURI — ضرورية لـ Capacitor/APK مع baseHref: ./ */
   assetUrl(relativePath: string): string {
@@ -142,6 +144,11 @@ export class MyAccountPage implements OnInit {
 
   openAppTutorial(): void {
     this.isAppTutorialOpen = true;
+  }
+
+  /** مجموعة «مُتاح» الخدمي — الرابط من Firestore: wtsapp_group / mota7 → link */
+  openMota7ServiceGroupInvite(): void {
+    this.wtsappGroupLink.openServiceGroupInvite();
   }
 
   async setOpenTerms(isOpen: boolean) { 
