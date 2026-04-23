@@ -74,6 +74,8 @@ export function slimAdForHomeFeed(ad: any, adType: string): any {
       ad_type: ad.ad_type,
       status: ad.status,
       city: ad.city,
+      /** مطلوب لأعداد تبويبات «المتاجر» وتصفية القائمة حسب التصنيف */
+      category_id: ad.category_id,
       store_name: ad.store_name,
       logo: ad.logo,
       owner_phone: ad.owner_phone,

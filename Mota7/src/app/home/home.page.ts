@@ -195,7 +195,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.storeTypes = b.storeItems;
       if (!b.loadedFromFirebase) {
         this.taxonomyLoadWarning =
-          'تعذر تحميل التصنيفات من السحابة — يُعرض نسخة احتياطية محلية';
+          'اهلأ بيك على "مُتاح"';
       } else {
         this.taxonomyLoadWarning = null;
       }
