@@ -41,13 +41,6 @@
       ]
     },
     {
-      "collectionGroup": "spark_fcm_jobs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "requestedAt", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "ads",
       "queryScope": "COLLECTION",
       "fields": [

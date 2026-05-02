@@ -22,12 +22,12 @@ function parseHourEnv(key, fallbackH) {
 }
 
 const ORDER_NEW_LOOKBACK_MS =
-  parseHourEnv('SPARK_ORDER_NEW_LOOKBACK_HOURS', 96) * 60 * 60 * 1000;
+  parseHourEnv('SPARK_ORDER_NEW_LOOKBACK_HOURS', 12) * 60 * 60 * 1000;
 const ORDER_COMPLETED_LOOKBACK_MS =
-  parseHourEnv('SPARK_ORDER_COMPLETED_LOOKBACK_HOURS', 36) * 60 * 60 * 1000;
+  parseHourEnv('SPARK_ORDER_COMPLETED_LOOKBACK_HOURS', 12) * 60 * 60 * 1000;
 
-const ORDER_NEW_BATCH = 120;
-const ORDER_COMPLETED_BATCH = 80;
+const ORDER_NEW_BATCH = 60;
+const ORDER_COMPLETED_BATCH = 40;
 
 const IGNORE_AD_STATS_KEYS = new Set([
   'stats',
@@ -89,6 +89,23 @@ function substantiveJsonFromAd(adData) {
 
 /**
  * @param {FirebaseFirestore.Firestore} db
+ * @param {FirebaseFirestore.CollectionReference} markers
+ * @param {string[]} markerIds
+ * @returns {Promise<Set<string>>} مجموعة الـ marker IDs الموجودة فعلاً
+ */
+async function batchCheckExistingMarkers(db, markers, markerIds) {
+  const existing = new Set();
+  if (!markerIds.length) return existing;
+  const refs = markerIds.map((id) => markers.doc(id));
+  const snaps = await db.getAll(...refs);
+  snaps.forEach((s, i) => {
+    if (s.exists) existing.add(markerIds[i]);
+  });
+  return existing;
+}
+
+/**
+ * @param {FirebaseFirestore.Firestore} db
  */
 async function reconcilePendingOrderNotifications(db) {
   const since = admin.firestore.Timestamp.fromMillis(Date.now() - ORDER_NEW_LOOKBACK_MS);
@@ -100,16 +117,22 @@ async function reconcilePendingOrderNotifications(db) {
     .limit(ORDER_NEW_BATCH)
     .get();
 
-  let notified = 0;
-  const markers = db.collection('spark_processed_events');
+  if (snap.empty) return 0;
 
-  for (const doc of snap.docs) {
-    const mref = markers.doc(markerOrdNew(doc.id));
-    const mex = await mref.get();
-    if (mex.exists) continue;
+  const markers = db.collection('spark_processed_events');
+  const mIds = snap.docs.map((d) => markerOrdNew(d.id));
+  const alreadySent = await batchCheckExistingMarkers(db, markers, mIds);
+
+  let notified = 0;
+  for (let i = 0; i < snap.docs.length; i++) {
+    if (alreadySent.has(mIds[i])) continue;
+    const doc = snap.docs[i];
     try {
       await notifyOrderCreated(doc.id, doc.data() || {});
-      await mref.set({ t: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await markers.doc(mIds[i]).set(
+        { t: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
       notified += 1;
     } catch (e) {
       console.error('[Spark] notifyOrderCreated', doc.id, e);
@@ -131,18 +154,23 @@ async function reconcileCompletedOrderNotifications(db) {
     .limit(ORDER_COMPLETED_BATCH)
     .get();
 
-  let notified = 0;
-  const markers = db.collection('spark_processed_events');
+  if (snap.empty) return 0;
 
-  for (const doc of snap.docs) {
-    const mref = markers.doc(markerOrdCompleted(doc.id));
-    const mex = await mref.get();
-    if (mex.exists) continue;
+  const markers = db.collection('spark_processed_events');
+  const mIds = snap.docs.map((d) => markerOrdCompleted(d.id));
+  const alreadySent = await batchCheckExistingMarkers(db, markers, mIds);
+
+  let notified = 0;
+  for (let i = 0; i < snap.docs.length; i++) {
+    if (alreadySent.has(mIds[i])) continue;
+    const doc = snap.docs[i];
     const after = /** @type {Record<string, unknown>} */ (doc.data() || {});
     try {
-        /** انتقال زائف قبل عدم توفر قبل/بعد في التناغم؛ يكفي لشرط الدالة بعد.status مكتمل. */
-        await notifyOrderCompleted(doc.id, { status: '' }, after);
-      await mref.set({ t: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await notifyOrderCompleted(doc.id, { status: '' }, after);
+      await markers.doc(mIds[i]).set(
+        { t: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
       notified += 1;
     } catch (e) {
       console.error('[Spark] notifyOrderCompleted', doc.id, e);
