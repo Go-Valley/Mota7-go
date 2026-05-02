@@ -17,6 +17,7 @@ import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
+import { OfflineBannerComponent } from './shared/offline-banner/offline-banner.component';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
 const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
@@ -26,7 +27,7 @@ const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, OfflineBannerComponent],
 })
 export class AppComponent implements OnInit {
   selectedCityLabel = 'الكل';

@@ -35,6 +35,7 @@ import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-cli
 import { Analytics } from '@angular/fire/analytics';
 import { logEvent } from 'firebase/analytics';
 import { Mota7HeaderComponent } from 'src/app/top_header/header';
+import { FirestoreCacheService } from 'src/app/core/services/firestore-cache.service';
 
 @Component({
   selector: 'app-store-detail',
@@ -50,6 +51,7 @@ export class StoreDetailPage implements OnInit {
   private location = inject(Location);
   private injector = inject(EnvironmentInjector);
   private analytics = inject(Analytics, { optional: true });
+  private fCache = inject(FirestoreCacheService);
 
   ad: any = null;
   products: any[] = [];
@@ -112,9 +114,29 @@ export class StoreDetailPage implements OnInit {
   }
 
   async loadStoreAndProducts(storeId: string): Promise<void> {
-    if (!this.ad) {
-      this.loading = true;
+    const storeCacheKey = FirestoreCacheService.KEYS.STORE_PREFIX + storeId;
+    const cached = this.fCache.get<{ ad: any; products: any[] }>(storeCacheKey);
+    const isFresh = this.fCache.isFresh(storeCacheKey, FirestoreCacheService.FRESH_TTL.STORE);
+
+    // إذا الكاش طازج (< 5 دقائق) → اعرضه فقط بدون جلب من الشبكة
+    if (isFresh && cached?.ad) {
+      this.ad = cached.ad;
+      this.products = cached.products ?? [];
+      this.loading = false;
+      return;
     }
+
+    // إذا الكاش موجود لكن قديم → اعرضه فوراً ثم حدّث في الخلفية (SWR)
+    if (cached?.ad) {
+      this.ad = cached.ad;
+      this.products = cached.products ?? [];
+      this.loading = false;
+      void this.backgroundRefreshStore(storeId, storeCacheKey);
+      return;
+    }
+
+    // لا يوجد كاش → جلب من الشبكة مع loading
+    this.loading = true;
     this.error = null;
     try {
       const snap = await runInInjectionContext(this.injector, () =>
@@ -144,6 +166,24 @@ export class StoreDetailPage implements OnInit {
 
     if (this.ad) {
       await this.loadStoreProducts();
+      this.fCache.set(storeCacheKey, { ad: this.ad, products: this.products });
+    }
+  }
+
+  /** جلب بيانات المتجر في الخلفية وتحديث العرض (SWR) */
+  private async backgroundRefreshStore(storeId: string, cacheKey: string): Promise<void> {
+    try {
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'ads', storeId))
+      );
+      if (!snap.exists() || snap.data()?.['ad_type'] !== 'store') {
+        return;
+      }
+      this.ad = { id: snap.id, ...snap.data() };
+      await this.loadStoreProducts();
+      this.fCache.set(cacheKey, { ad: this.ad, products: this.products });
+    } catch (e) {
+      console.warn('backgroundRefreshStore failed:', e);
     }
   }
 

@@ -7,7 +7,7 @@ import { Firestore, collection, collectionData, query, orderBy, where, getDocs, 
 import type { QueryConstraint } from 'firebase/firestore';
 import { Observable, of, Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
-import { map, catchError, filter } from 'rxjs/operators';
+import { map, catchError, filter, startWith } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms'; // تم إضافة FormsModule لدعم البحث
 
 // استيراد الأيقونات الأصلية + أيقونات زر المدينة + أيقونات البحث الجديدة
@@ -40,6 +40,7 @@ import { PRODUCTS_CATEGORY } from '../core/constants/products-data';
 import { STORES_CATEGORIES_DATA } from '../core/constants/stores-data';
 import { AppTaxonomyService } from '../core/services/app-taxonomy.service';
 import { resolveTaxonomyIcon } from '../core/utils/taxonomy-icon.util';
+import { FirestoreCacheService } from '../core/services/firestore-cache.service';
 
 @Component({
   selector: 'app-home',
@@ -66,6 +67,7 @@ export class HomePage implements OnInit, OnDestroy {
   private router = inject(Router);
   private alertCtrl = inject(AlertController);
   private taxonomy = inject(AppTaxonomyService);
+  private fCache = inject(FirestoreCacheService);
   private taxonomySub?: Subscription;
 
   /** لا نعيد تصفير الصفحة إذا رجع المستخدم من صفحة تفاصيل المتجر حتى يعود لقسم المتاجر بنفس حالته. */
@@ -226,15 +228,30 @@ export class HomePage implements OnInit, OnDestroy {
         this.previousTrackedUrl = curr;
       });
     runInInjectionContext(this.injector, () => {
+      const cacheKey = FirestoreCacheService.KEYS.CATEGORIES_HOME;
+      const cachedCats = this.fCache.get<any[]>(cacheKey);
+      const isFresh = this.fCache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.CATEGORIES);
+
+      // إذا الكاش طازج → استخدمه فقط بدون الاتصال بـ Firestore
+      if (isFresh && cachedCats) {
+        this.categories$ = of(cachedCats);
+        return;
+      }
+
+      // الكاش قديم أو غير موجود → جلب من Firestore
       const categoriesRef = collection(this.firestore, 'Categories');
       const q = query(categoriesRef, orderBy('order', 'asc'));
       this.categories$ = collectionData(q, { idField: 'id' }).pipe(
-        map((rows: any[] | undefined) =>
-          rows != null ? rows.map((c) => ({ ...c, icon: resolveTaxonomyIcon(c?.icon) })) : null
-        ),
+        map((rows: any[] | undefined) => {
+          if (rows == null) return null;
+          const mapped = rows.map((c) => ({ ...c, icon: resolveTaxonomyIcon(c?.icon) }));
+          this.fCache.set(cacheKey, mapped);
+          return mapped;
+        }),
+        startWith(cachedCats ?? null),
         catchError((err) => {
           console.error('Failed to load Categories from Firestore:', err);
-          return of(null);
+          return of(cachedCats ?? null);
         })
       );
     });
@@ -632,21 +649,51 @@ export class HomePage implements OnInit, OnDestroy {
     }
 
     const cityLabel = this.selectedCityLabel;
-    const cache = this.tabCountsPoolCache;
-    if (cache && cache.adType === adType && cache.cityLabel === cityLabel) {
-      this.applyTabCountsForCategory(cat, cache.pool);
+    const memCache = this.tabCountsPoolCache;
+    if (memCache && memCache.adType === adType && memCache.cityLabel === cityLabel) {
+      this.applyTabCountsForCategory(cat, memCache.pool);
       this.syncAdsListWithPool();
       return;
     }
 
+    const cacheKey = FirestoreCacheService.KEYS.ADS_PREFIX + adType;
+    const cached = this.fCache.get<any[]>(cacheKey);
+    const isFresh = this.fCache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.ADS_LIST);
+
+    // إذا الكاش طازج (< 5 دقائق) → اعرضه فقط بدون جلب من الشبكة
+    if (isFresh && cached && Array.isArray(cached)) {
+      const pool = cached
+        .map(ad => slimAdForHomeFeed(ad, adType))
+        .filter((ad) => this.passesBaseHomeFilters(ad));
+      this.tabCountsPoolCache = { adType, cityLabel, pool };
+      this.applyTabCountsForCategory(cat, pool);
+      this.syncAdsListWithPool();
+      return;
+    }
+
+    // إذا الكاش موجود لكن قديم → اعرضه فوراً ثم حدّث في الخلفية (SWR)
+    if (cached && Array.isArray(cached)) {
+      const pool = cached
+        .map(ad => slimAdForHomeFeed(ad, adType))
+        .filter((ad) => this.passesBaseHomeFilters(ad));
+      this.tabCountsPoolCache = { adType, cityLabel, pool };
+      this.applyTabCountsForCategory(cat, pool);
+      this.syncAdsListWithPool();
+      // جلب في الخلفية بدون إظهار loading
+      void this.backgroundRefreshAds(cat, adType, cityLabel, cacheKey);
+      return;
+    }
+
+    // لا يوجد كاش → جلب من الشبكة مع loading
     const reqId = ++this.tabCountsRequestId;
     try {
       this.isLoadingPage = true;
       const raw = await this.fetchAllRawAdsByType(adType);
+      this.fCache.set(cacheKey, raw);
+
       if (reqId !== this.tabCountsRequestId) {
         return;
       }
-      // تحويل الإعلانات إلى النسخة الخفيفة وتصفيتها حسب المدينة
       const pool = raw
         .map(ad => slimAdForHomeFeed(ad, adType))
         .filter((ad) => this.passesBaseHomeFilters(ad));
@@ -658,6 +705,36 @@ export class HomePage implements OnInit, OnDestroy {
       console.error('refreshSectionTabCounts', e);
     } finally {
       this.isLoadingPage = false;
+    }
+  }
+
+  /** جلب الإعلانات في الخلفية وتحديث العرض عند الوصول (SWR) */
+  private async backgroundRefreshAds(
+    cat: string,
+    adType: string,
+    cityLabel: string,
+    cacheKey: string
+  ): Promise<void> {
+    const reqId = ++this.tabCountsRequestId;
+    try {
+      const raw = await this.fetchAllRawAdsByType(adType);
+      this.fCache.set(cacheKey, raw);
+
+      // تأكد أن المستخدم لم يغيّر القسم أثناء الجلب
+      if (reqId !== this.tabCountsRequestId || this.selectedCategory !== cat) {
+        return;
+      }
+
+      const pool = raw
+        .map(ad => slimAdForHomeFeed(ad, adType))
+        .filter((ad) => this.passesBaseHomeFilters(ad));
+
+      this.tabCountsPoolCache = { adType, cityLabel, pool };
+      this.applyTabCountsForCategory(cat, pool);
+      this.syncAdsListWithPool();
+    } catch (e) {
+      // فشل التحديث في الخلفية — نتجاهل لأن المستخدم يرى الكاش القديم
+      console.warn('backgroundRefreshAds failed:', e);
     }
   }
 

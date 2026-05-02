@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { Observable, combineLatest, of } from 'rxjs';
-import { map, catchError, shareReplay, startWith } from 'rxjs/operators';
+import { map, catchError, shareReplay, startWith, tap } from 'rxjs/operators';
 import { DELIVERY_CATEGORY } from '../constants/delivery-data';
 import { EDUCATION_CATEGORY } from '../constants/educational-data';
 import { OTHER_SERVICES_DATA } from '../constants/other-services-data';
@@ -9,6 +9,7 @@ import { PRODUCTS_CATEGORY } from '../constants/products-data';
 import { STORES_CATEGORIES_DATA } from '../constants/stores-data';
 import { resolveTaxonomyIcon } from '../utils/taxonomy-icon.util';
 import { expandOtherCategoryItemsForBundle } from '../utils/other-category-display.util';
+import { FirestoreCacheService } from './firestore-cache.service';
 
 export interface TaxonomyBundle {
   deliveryItems: any[];
@@ -143,43 +144,63 @@ function buildStaticBundle(): TaxonomyBundle {
 @Injectable({ providedIn: 'root' })
 export class AppTaxonomyService {
   private firestore = inject(Firestore);
+  private cache = inject(FirestoreCacheService);
 
-  /**
-   * تدفق موحّد لقوائم التصنيفات: `docData` على `Categories/{transportation|education|other_services|products|stores_types}`
-   * فيُعاد إصدار الدمجة فور كل تغيير من الشبكة (نفس المشروع في Mota7 و mota7-admin عبر `@mota7-app`)،
-   * مع `startWith(ثوابت)` لعرض فوري قبل أول لقطة ثم استبدالها بلقطة Firestore.
-   */
-  readonly bundle$: Observable<TaxonomyBundle> = combineLatest([
-    this.safeDoc$('transportation'),
-    this.safeDoc$('education'),
-    this.safeDoc$('other_services'),
-    this.safeDoc$('products'),
-    this.safeDoc$('stores_types'),
-  ]).pipe(
-    map(([t, e, o, p, s]) => {
-      const d = pickItems(t, DELIVERY_CATEGORY.items, mapDeliveryItem);
-      const ed = pickItems(e, EDUCATION_CATEGORY.items, mapEducationItem);
-      const otPick = pickItems(o, OTHER_SERVICES_DATA.items, mapOtherItem);
-      const pr = pickItems(p, PRODUCTS_CATEGORY.items, mapProductItem);
-      const st = pickItems(s, STORES_CATEGORIES_DATA.items, mapStoreItem);
-      const loadedFromFirebase = d.fromFs || ed.fromFs || otPick.fromFs || pr.fromFs || st.fromFs;
-      return {
-        deliveryItems: d.items,
-        educationItems: ed.items,
-        otherItems: expandOtherCategoryItemsForBundle(otPick.items),
-        productItems: pr.items,
-        storeItems: st.items,
-        loadedFromFirebase,
-      };
-    }),
-    // إطلاقة أولى مُضمّنة من الثوابت حتى لا ينتظر المشتركون أول استجابة من
-    // Firestore على Android WebView (لوحظ وميض/فراغ قائمة الإعلانات على الأدمن
-    // و«إحداثيات النقر» لأن combineLatest لا يُطلق حتى تصل كل المستندات الخمسة).
-    startWith(buildStaticBundle()),
-    // refCount: false يُبقي مستمعي Firestore نشطين حتى عند عدم وجود مشتركين مؤقتاً،
-    // فيصل أي تعديل على Categories/* إلى mota7 و mota7-admin فوراً دون إعادة فتح الصفحة.
-    shareReplay({ bufferSize: 1, refCount: false })
-  );
+  readonly bundle$: Observable<TaxonomyBundle> = this.createBundleObservable();
+
+  private createBundleObservable(): Observable<TaxonomyBundle> {
+    const cacheKey = FirestoreCacheService.KEYS.TAXONOMY_BUNDLE;
+    const cached = this.cache.get<TaxonomyBundle>(cacheKey);
+    const isFresh = this.cache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.TAXONOMY);
+
+    // إذا الكاش طازج (< 30 دقيقة) → استخدمه فقط بدون فتح مستمعي Firestore
+    if (isFresh && cached && Array.isArray(cached.deliveryItems)) {
+      return of({ ...cached, loadedFromFirebase: false }).pipe(
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+
+    // الكاش قديم أو غير موجود → فتح مستمعي Firestore
+    return combineLatest([
+      this.safeDoc$('transportation'),
+      this.safeDoc$('education'),
+      this.safeDoc$('other_services'),
+      this.safeDoc$('products'),
+      this.safeDoc$('stores_types'),
+    ]).pipe(
+      map(([t, e, o, p, s]) => {
+        const d = pickItems(t, DELIVERY_CATEGORY.items, mapDeliveryItem);
+        const ed = pickItems(e, EDUCATION_CATEGORY.items, mapEducationItem);
+        const otPick = pickItems(o, OTHER_SERVICES_DATA.items, mapOtherItem);
+        const pr = pickItems(p, PRODUCTS_CATEGORY.items, mapProductItem);
+        const st = pickItems(s, STORES_CATEGORIES_DATA.items, mapStoreItem);
+        const loadedFromFirebase = d.fromFs || ed.fromFs || otPick.fromFs || pr.fromFs || st.fromFs;
+        return {
+          deliveryItems: d.items,
+          educationItems: ed.items,
+          otherItems: expandOtherCategoryItemsForBundle(otPick.items),
+          productItems: pr.items,
+          storeItems: st.items,
+          loadedFromFirebase,
+        };
+      }),
+      tap((bundle) => {
+        if (bundle.loadedFromFirebase) {
+          this.cache.set(cacheKey, bundle);
+        }
+      }),
+      startWith(this.restoreCachedOrStaticBundle()),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+  }
+
+  private restoreCachedOrStaticBundle(): TaxonomyBundle {
+    const cached = this.cache.get<TaxonomyBundle>(FirestoreCacheService.KEYS.TAXONOMY_BUNDLE);
+    if (cached && Array.isArray(cached.deliveryItems)) {
+      return { ...cached, loadedFromFirebase: false };
+    }
+    return buildStaticBundle();
+  }
 
   private safeDoc$(docId: string): Observable<any> {
     return docData(doc(this.firestore, 'Categories', docId)).pipe(
