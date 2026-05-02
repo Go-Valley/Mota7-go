@@ -26,8 +26,12 @@ jobs:
         with:
           node-version: '20'
 
-      # الوحدات المشتركة (order-sweep-logic، fcm-handlers-internal) تقع تحت firebase/functions
-      # وتحمِّل firebase-admin من node_modules ذلك المجلد، وليس من spark-runner وحده.
+      # أي require داخل firebase/functions/*.cjs يفعِّل بحثًا يصعد حتى جذر المستودع.
+      # لا يعتمد ذلك على firebase/spark-runner/node_modules وحده عند وجود وحدة بدون تنصيب في functions/.
+      - name: Install repo root deps (firebase-admin for shared functions loaders)
+        run: npm install --omit=dev
+
+      # تثبيت إضافي لضمان node_modules المحلي إن لزم (cloudinary، firebase-functions، إلخ).
       - name: Install firebase/functions deps
         working-directory: firebase/functions
         run: npm install --omit=dev
