@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { Capacitor } from '@capacitor/core';
-import { Network, ConnectionStatus, PluginListenerHandle } from '@capacitor/network';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import { Network, ConnectionStatus } from '@capacitor/network';
 
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
