@@ -106,6 +106,68 @@ service cloud.firestore {
         request.resource.data.last_provider_rating is map;
     }
 
+    function isAdminAppListedEmailAuth() {
+      return request.auth != null &&
+        request.auth.token.email is string &&
+        request.auth.token.email in [
+          'hossam@mota7.com',
+          'ibrahem@mota7.com',
+          'admin@mota7.com'
+        ];
+    }
+
+    function mota7ServiceUserOwnsOwnerPhone(ownerPhone) {
+      return request.auth != null &&
+        ownerPhone is string &&
+        exists(/databases/$(database)/documents/users/$(ownerPhone)) &&
+        get(/databases/$(database)/documents/users/$(ownerPhone)).data.uid == request.auth.uid;
+    }
+
+    function adminAppDeviceTokenWritable() {
+      let d = request.resource.data;
+      return d.token is string
+        && d.admin_email == request.auth.token.email
+        && isAdminAppListedEmailAuth()
+        && d.app == 'mota7_admin';
+    }
+
+    function mota7AppDeviceTokenWritable() {
+      let d = request.resource.data;
+      return d.token is string
+        && d.owner_phone is string
+        && d.app == 'mota7'
+        && mota7ServiceUserOwnsOwnerPhone(d.owner_phone);
+    }
+
+    match /device_tokens/{tokenDocId} {
+      allow read: if false;
+      allow create: if isAdmin() || adminAppDeviceTokenWritable() || mota7AppDeviceTokenWritable();
+      allow update: if isAdmin()
+        || (
+          resource.data.app == 'mota7_admin'
+          && request.resource.data.app == 'mota7_admin'
+          && adminAppDeviceTokenWritable()
+          && request.resource.data.admin_email == resource.data.admin_email
+        )
+        || (
+          resource.data.app == 'mota7'
+          && request.resource.data.app == 'mota7'
+          && request.resource.data.owner_phone == resource.data.owner_phone
+          && mota7AppDeviceTokenWritable()
+        );
+      allow delete: if isAdmin()
+        || (
+          resource.data.app == 'mota7_admin'
+          && resource.data.admin_email == request.auth.token.email
+          && isAdminAppListedEmailAuth()
+        )
+        || (
+          resource.data.app == 'mota7'
+          && resource.data.owner_phone is string
+          && mota7ServiceUserOwnsOwnerPhone(resource.data.owner_phone)
+        );
+    }
+
     match /blocked_users/{phone} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
@@ -194,6 +256,36 @@ service cloud.firestore {
     match /banners/{docId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * تناغم FCM خارج الدوال — علامات بمعرّفات آمنة (حساب خدمة فقط عبر firebase-admin، يتجاوز القواعد).
+     * لا قراءة/كتابة من العميل.
+     */
+    match /spark_processed_events/{id} {
+      allow read, write: if false;
+    }
+
+    /**
+     * طابور إعلانات حُفظ بعد نجاح setDoc/updateDoc — المعالجة عبر مشغّل Spark خارجي؛ الحذف بـ Admin.
+     */
+    match /spark_fcm_jobs/{jobId} {
+      allow read: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['kind', 'ad_id', 'requestedAt'])
+        && request.resource.data.kind == 'ad_saved'
+        && request.resource.data.ad_id is string
+        && request.resource.data.ad_id.size() >= 5
+        && request.resource.data.requestedAt is timestamp
+        && exists(/databases/$(database)/documents/ads/$(request.resource.data.ad_id))
+        && (
+          get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.userId == request.auth.uid
+          || (
+            userDocIdFromAuth() != '' &&
+            get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.owner_phone == userDocIdFromAuth()
+          )
+        );
+      allow update, delete: if false;
     }
 
     /**

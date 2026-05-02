@@ -25,6 +25,7 @@
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@angular/router": "^20.0.0",
     "@capacitor/android": "^8.1.0",
+    "@capacitor-firebase/messaging": "^8.2.0",
     "@capacitor/app": "8.0.1",
     "@capacitor/app-launcher": "^8.0.1",
     "@capacitor/core": "8.2.0",

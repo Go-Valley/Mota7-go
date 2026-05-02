@@ -16,6 +16,7 @@ import { NtfyListenerService } from './core/services/ntfy-listener.service';
 import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
+import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
 const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
@@ -37,6 +38,7 @@ export class AppComponent implements OnInit {
   private alertCtrl = inject(AlertController);
   private platform = inject(Platform);
   private ntfyListener = inject(NtfyListenerService);
+  private deviceFcmMota7 = inject(DeviceFcmMota7RegistrationService);
   private userAccountStatus = inject(UserAccountStatusService);
   readonly mandatoryUpdate = inject(MandatoryUpdateService);
 
@@ -238,6 +240,9 @@ export class AppComponent implements OnInit {
       onAuthStateChanged(this.auth, async (user) => {
       if (user) {
         console.log('المستخدم مسجل دخول:', user.uid);
+        if (Capacitor.isNativePlatform()) {
+          void this.deviceFcmMota7.registerIfEligible(user);
+        }
       } else {
         console.log('لا يوجد مستخدم مسجل');
       }

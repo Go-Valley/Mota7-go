@@ -125,11 +125,11 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
   onLoginPhoneKeyDown(ev: KeyboardEvent): void {
-    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
+    if (!ev || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
       return;
     }
     const key = ev.key;
-    if (key.length !== 1) {
+    if (typeof key !== 'string' || key.length !== 1) {
       return;
     }
     const asDigit = orderPhoneToEnglishDigits(key);

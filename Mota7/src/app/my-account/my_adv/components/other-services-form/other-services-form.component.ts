@@ -8,6 +8,7 @@ import { Auth } from '@angular/fire/auth';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
@@ -205,6 +206,7 @@ async saveServiceAd() {
       if (this.isEditMode) {
         adPayload.status = 'pending';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
+        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
         ntfySnapshot = {
           ad_type: 'other',
           category_id: adPayload.category_id,
@@ -223,6 +225,7 @@ async saveServiceAd() {
         expiry.setDate(expiry.getDate() + 30);
         adPayload.expiry_date = expiry;
         await setDoc(doc(this.firestore, 'ads', adId), adPayload);
+        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
         ntfySnapshot = {
           ad_type: 'other',
           category_id: adPayload.category_id,

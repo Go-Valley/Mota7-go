@@ -10,16 +10,6 @@
   (keydown.space)="$event.preventDefault(); openStorePage($event)"
 >
   <div class="store-logo-row" dir="rtl">
-    <button
-      type="button"
-      class="store-contact-btn store-contact-btn--call"
-      *ngIf="hasStoreContact"
-      (click)="contactAction('call', $event)"
-      aria-label="اتصال هاتفي"
-    >
-      <ion-icon name="call" aria-hidden="true"></ion-icon>
-    </button>
-
     <div class="store-logo-stack">
       <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
 
@@ -56,16 +46,6 @@
         </div>
       </div>
     </div>
-
-    <button
-      type="button"
-      class="store-contact-btn store-contact-btn--whatsapp"
-      *ngIf="hasStoreContact"
-      (click)="contactAction('whatsapp', $event)"
-      aria-label="واتساب"
-    >
-      <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
-    </button>
   </div>
 
   <div class="store-heading" dir="rtl">

@@ -2,7 +2,10 @@ import { Timestamp } from '@angular/fire/firestore';
 import { Capacitor } from '@capacitor/core';
 import { AppLauncher } from '@capacitor/app-launcher';
 
-/** نافذة الطلب بعد القبول (طرفا الطلب) */
+/**
+ * نافذة الطلب المعلّق (من وقت الإنشاء) والطلب بعد القبول (من وقت acceptedAt)، بالملّي ثانية.
+ * مطابقة تلقائي الخادم: firebase/functions/index.js — عند التغيير حدّث الدالة أيضاً ليبقى الحذف/الإكمال التلقائي صحيحاً.
+ */
 export const ORDER_ACCEPTED_WINDOW_MS = 30 * 60 * 1000;
 
 /** مدة إظهار وضع الأرشفة على الشاشة بعد إنهاء المهمة */

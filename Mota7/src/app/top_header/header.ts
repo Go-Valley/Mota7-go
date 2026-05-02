@@ -11,6 +11,8 @@ import { CommonModule } from '@angular/common';
 })
 export class Mota7HeaderComponent {
   @Input() title: string = '';
+  /** اتجاه عنوان الشريط: rtl للعربية (قص النص والنقاط من الجهة الصحيحة)؛ auto يعتمد على أول حرف قوي */
+  @Input() titleDir: 'rtl' | 'ltr' | 'auto' = 'auto';
   @Input() showBackButton: boolean = true;
   
   // ننشئ حدث جديد باسم backClick

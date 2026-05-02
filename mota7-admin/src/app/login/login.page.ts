@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 import { FingerprintAIO } from '@awesome-cordova-plugins/fingerprint-aio/ngx';
 import { readIonTextInputValueFromEvent } from '../core/utils/ion-text-input.util';
+import { DeviceFcmAdminRegistrationService } from '../core/services/device-fcm-admin-registration.service';
 
 @Component({
   selector: 'app-login',
@@ -20,13 +21,14 @@ export class LoginPage implements OnInit {
   email: string = '';
   pass: string = '';
   
-  readonly ALLOWED_ADMINS = ['hossam@mota7.com', 'ibrahem@mota7.com'];
+  readonly ALLOWED_ADMINS = ['hossam@mota7.com', 'ibrahem@mota7.com', 'admin@mota7.com'];
 
   private auth: Auth = inject(Auth);
   private injector = inject(Injector);
   private platform = inject(Platform);
   private faio = inject(FingerprintAIO);
   private alertCtrl = inject(AlertController);
+  private adminFcm = inject(DeviceFcmAdminRegistrationService);
 
   constructor(private router: Router) {}
 
@@ -71,6 +73,10 @@ export class LoginPage implements OnInit {
           localStorage.setItem('admin_mail', userEmail);
           localStorage.setItem('admin_pass', userPass);
         }
+
+        await this.adminFcm.registerAfterFirebaseLogin(
+          String(userCredential.user.email || userEmail).toLowerCase().trim()
+        );
 
         (document.activeElement as HTMLElement).blur();
         this.router.navigate(['/dashboard']);
@@ -129,6 +135,9 @@ export class LoginPage implements OnInit {
         signInWithEmailAndPassword(this.auth, savedMail, savedPass)
       );
       if (userCredential.user) {
+        await this.adminFcm.registerAfterFirebaseLogin(
+          String(userCredential.user.email || savedMail).toLowerCase().trim()
+        );
         this.router.navigate(['/dashboard']);
       }
 

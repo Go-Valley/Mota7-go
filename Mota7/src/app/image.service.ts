@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import imageCompression from 'browser-image-compression';
+import { cloudinaryDeliveryUrlDropVersion } from 'src/app/core/utils/cloudinary-list-image.util';
 
 export interface CloudinaryUploadResult {
   url: string;
@@ -48,7 +49,12 @@ export class ImageService {
 
     const secureUrl = String(result.secure_url || '');
     const publicId = String(result.public_id || '');
-    const url = secureUrl.replace('/upload/', '/upload/c_limit,w_1200,h_1200,q_auto:good,f_auto/');
+    const withDelivery = secureUrl.replace(
+      '/upload/',
+      '/upload/c_limit,w_1200,h_1200,q_auto:good,f_auto/'
+    );
+    /* ربط الإصدار v123 في الرابط يسبب 404 لاحقاً إذا تغيّر الأصل؛ التوصيل بدون v يستخدم أحدث نسخة */
+    const url = cloudinaryDeliveryUrlDropVersion(withDelivery);
 
     return { url, publicId };
   }

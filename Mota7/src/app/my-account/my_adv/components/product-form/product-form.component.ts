@@ -14,6 +14,7 @@ import {
 } from 'ionicons/icons';
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
 import {
   normalizeUserFreeText,
@@ -494,6 +495,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         adPayload.status = 'pending';
         adPayload.admin_reason = '';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
+        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
       } else {
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
@@ -506,6 +508,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         adPayload.impression_count = 0;
         adPayload.stats = { views: 0, calls: 0, whatsapp: 0, ratings: 0 };
         await setDoc(doc(this.firestore, 'ads', adId), adPayload);
+        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
         ntfySnapshot = {
           ad_type: adPayload.ad_type,
           category_id: adPayload.category_id,

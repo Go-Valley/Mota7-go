@@ -1,12 +1,13 @@
 <app-mota7-header
   [title]="ad?.store_name || 'المتجر'"
+  titleDir="rtl"
   (backClick)="goBack()"
 ></app-mota7-header>
 
 <ion-content class="store-detail-content" [fullscreen]="true">
   <div class="store-detail-hero" *ngIf="!loading && !error && ad">
     <div class="store-detail-hero__glow"></div>
-    <div class="store-detail-hero__inner">
+    <div class="store-detail-hero__inner" dir="rtl" lang="ar">
       <div class="store-detail-logo-wrap">
         <div class="store-detail-logo-ring">
           <img

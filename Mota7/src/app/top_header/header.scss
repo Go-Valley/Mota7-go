@@ -20,8 +20,22 @@ ion-header {
         font-weight: 700 !important;
         font-size: 1.2rem;
         color: #000000;
-        margin: 0; 
+        margin: 0;
         padding-top: 0px;
+        text-align: center;
+        /* عرض منطقي كامل حتى لا يُقتطع بداية العربي عند الحواف */
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        unicode-bidi: isolate;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .mota7-title[dir='rtl'],
+      .mota7-title[dir='auto'] {
+        unicode-bidi: plaintext;
       }
   
       .mota7-back-button {

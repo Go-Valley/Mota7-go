@@ -11,6 +11,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['*']
   },
   plugins: {
+    FirebaseMessaging: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
     SplashScreen: {
       /** 0 يخفض طبقة Capacitor فوراً؛ اللوجو من شاشة Angular app-launch-shell فقط */
       launchShowDuration: 0,

@@ -18,7 +18,21 @@ function looksLikeCloudinaryTransform(segment: string): boolean {
 }
 
 /**
- * يُدرج تحويل Cloudinary بعد /upload/ مع احترام مجلد الإصدار v123/
+ * يزيل أول مقطع مسار يطابق v123 فقط (إصدار Cloudinary الاختياري).
+ * إصدارات قديمة في Firestore تسبب 404 بينما الـ public_id لا يزال موجوداً؛
+ * التوصيل بدون v... يحل إلى أحدث نسخة.
+ */
+function stripFirstCloudinaryVersionSegment(tail: string): string {
+  const segs = tail.split('/');
+  const i = segs.findIndex((s) => /^v\d+$/.test(s));
+  if (i === -1) return tail;
+  const next = [...segs];
+  next.splice(i, 1);
+  return next.join('/');
+}
+
+/**
+ * يُدرج تحويل Cloudinary بعد /upload/، ويُسقِط إصدار v123 من المسار عند وجوده.
  */
 export function cloudinaryTransformUrl(
   url: string | null | undefined,
@@ -31,15 +45,25 @@ export function cloudinaryTransformUrl(
   const parts = u.split('/upload/');
   if (parts.length < 2) return u;
   const head = parts.slice(0, -1).join('/upload/') + '/upload/';
-  let tail = parts[parts.length - 1];
+  let tail = stripFirstCloudinaryVersionSegment(parts[parts.length - 1]);
 
   const seg0 = firstPathSegment(tail);
   if (looksLikeCloudinaryTransform(seg0)) {
-    return u;
+    return head + tail;
   }
 
-  /* التحويلات تسبق المسار كاملاً (بما فيه v123/ إن وُجد) */
   tail = `${transformation}/${tail}`;
+  return head + tail;
+}
+
+/** إزالة مقطع v123 من رابط التوصيل فقط (بدون إضافة تحويلات). مفيد بعد الرفع أو لروابط مخزنة. */
+export function cloudinaryDeliveryUrlDropVersion(url: string | null | undefined): string {
+  const u = (url || '').trim();
+  if (!u || !u.includes('/upload/')) return u;
+  const parts = u.split('/upload/');
+  if (parts.length < 2) return u;
+  const head = parts.slice(0, -1).join('/upload/') + '/upload/';
+  const tail = stripFirstCloudinaryVersionSegment(parts[parts.length - 1]);
   return head + tail;
 }
 

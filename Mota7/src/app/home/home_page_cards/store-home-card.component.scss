@@ -30,7 +30,6 @@
   }
 }
 
-/* اتصال يمين اللوجو، واتساب يساره — ترتيب DOM: اتصال | لوجو | واتساب مع dir="rtl" */
 .store-logo-row {
   display: flex;
   flex-direction: row;
@@ -41,7 +40,7 @@
   max-width: 320px;
 }
 
-/* عمود: مشاهدات فوق دائرة اللوجو، مع إبقاء أزرار الاتصال على الجانبين */
+/* عمود: مشاهدات فوق دائرة اللوجو */
 .store-logo-stack {
   display: flex;
   flex-direction: column;
@@ -49,47 +48,6 @@
   justify-content: flex-start;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.store-contact-btn {
-  flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  border: none;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    filter 0.18s ease;
-
-  ion-icon {
-    font-size: 24px;
-    color: #fff;
-  }
-
-  &:active {
-    transform: scale(0.94);
-    filter: brightness(0.95);
-  }
-}
-
-.store-contact-btn--call {
-  background: linear-gradient(145deg, #2563eb, #1d4ed8);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.25) inset,
-    0 6px 18px rgba(37, 99, 235, 0.45);
-}
-
-.store-contact-btn--whatsapp {
-  background: linear-gradient(145deg, #22c55e, #16a34a);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.25) inset,
-    0 6px 18px rgba(22, 163, 74, 0.42);
 }
 
 .store-circle {

@@ -1,0 +1,13 @@
+{
+  "name": "mota7-spark-runner",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node runOnce.cjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

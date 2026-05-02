@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['*'],
   },
   plugins: {
+    FirebaseMessaging: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
     SplashScreen: {
       launchShowDuration: 3000,
       launchAutoHide: true,

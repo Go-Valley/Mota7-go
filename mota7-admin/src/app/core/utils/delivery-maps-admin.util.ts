@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { AppLauncher } from '@capacitor/app-launcher';
 
-/** نفس نافذة الطلب المقبول في تطبيق العميل (30 دقيقة) */
+/** نفس نافذة طلب عميل mota7 (معلّق من createdAt ومقبول من acceptedAt) — تنظيف الخادم: firebase/functions index.js */
 export const ORDER_ACCEPTED_WINDOW_MS = 30 * 60 * 1000;
 
 export function orderFieldToMs(v: unknown, fallback: number): number {

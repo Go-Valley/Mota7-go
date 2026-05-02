@@ -8,7 +8,9 @@
   "scripts": {
     "lint": "echo \"no lint\"",
     "firebase": "firebase",
-    "deploy:deleteCloudinary": "cd ../.. && firebase deploy --only functions:deleteCloudinaryAssets"
+    "deploy:deleteCloudinary": "cd ../.. && firebase deploy --only functions:deleteCloudinaryAssets",
+    "deploy:orderSweep": "cd ../.. && firebase deploy --only functions:processOrderDeadlineSweep",
+    "deploy:fcm": "cd ../.. && firebase deploy --only functions:fcmNotifyOnOrderCreated,functions:fcmNotifyOnOrderCompleted,functions:fcmNotifyOnAdCreated,functions:fcmNotifyOnAdUpdated"
   },
   "devDependencies": {
     "firebase-tools": "^13.29.1"

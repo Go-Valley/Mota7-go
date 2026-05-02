@@ -12,6 +12,7 @@ import { AppLauncher } from '@capacitor/app-launcher';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
+import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
@@ -350,6 +351,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         };
         await runInInjectionContext(this.injector, async () => {
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
+          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
         });
       } else {
         adPayload.status = 'pending';
@@ -364,6 +366,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         adPayload.expiry_date = expiry;
         await runInInjectionContext(this.injector, async () => {
           await setDoc(doc(this.firestore, 'ads', adId), adPayload);
+          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
         });
         ntfySnapshot = {
           ad_type: 'delivery',
