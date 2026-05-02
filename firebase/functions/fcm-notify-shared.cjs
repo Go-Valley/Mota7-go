@@ -2,7 +2,7 @@
  * مشترك بين مشغلات Firestore لإرسال FCM إلى topic الإداريين وتجميع رسائل مقدّمي الخدمة.
  */
 
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 
 const ADMIN_TOPIC = 'admin_all';
 

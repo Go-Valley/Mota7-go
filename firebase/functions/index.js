@@ -3,7 +3,7 @@
  */
 const functions = require('firebase-functions');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 const cloudinary = require('cloudinary').v2;
 const {
   sweepExpiredPendingOrders,

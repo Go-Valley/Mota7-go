@@ -30,14 +30,6 @@ jobs:
         working-directory: firebase/spark-runner
         run: npm install --omit=dev
 
-      # أي require داخل firebase/functions/*.cjs يفعِّل البحث في firebase/functions/node_modules قبل الصعود؛
-      # لا يكتشف تنصيب spark-runner تلقائياً؛ نربط اسم الحزمة بنسخة spark-runner لمشهد CI واحد.
-      - name: Bridge firebase-admin for firebase/functions loaders
-        run: |
-          mkdir -p firebase/functions/node_modules
-          ln -sfn "$(pwd)/firebase/spark-runner/node_modules/firebase-admin" \
-            "$(pwd)/firebase/functions/node_modules/firebase-admin"
-
       - name: Run Spark batch
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}

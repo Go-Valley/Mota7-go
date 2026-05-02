@@ -13,7 +13,7 @@
  *   node reclassify-legacy-migrated-ads.cjs --apply   # كتابة فعلية
  */
 
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 
 const PREFIX = 'mig_legacy_';
 const LEGACY_FALLBACK_OTHER_CATEGORY_ID = 'contracting-supplies';

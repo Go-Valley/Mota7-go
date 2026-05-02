@@ -2,7 +2,7 @@
  * منطق FCM المشترك — يستعمله كل من مشغلات Firestore (Blaze) وميزامنة Spark الخارجية.
  */
 
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 const { collectMatchedProviderPhones } = require('./resolve-provider-phones.cjs');
 const {
   getMota7TokensForPhones,

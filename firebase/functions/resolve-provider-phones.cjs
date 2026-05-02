@@ -3,7 +3,7 @@
  * جمع owner_phone لمقدّمي خدمات يُطابقون الطلب وفق نوع الخدمة والمفتاح.
  */
 
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 
 const AD_TYPES_BY_SERVICE = {
   delivery: 'delivery',

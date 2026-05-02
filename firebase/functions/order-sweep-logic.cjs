@@ -3,7 +3,7 @@
  * قبل الاستخدام: تهيئة firebase-admin (initializeApp مرة واحدة).
  */
 
-const admin = require('firebase-admin');
+const admin = require('./require-firebase-admin.cjs');
 
 /** مطابق Mota7: src/app/core/utils/order-lifecycle.util.ts */
 const ORDER_ACCEPTED_WINDOW_MS = 30 * 60 * 1000;
