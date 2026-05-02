@@ -26,6 +26,12 @@ jobs:
         with:
           node-version: '20'
 
+      # الوحدات المشتركة (order-sweep-logic، fcm-handlers-internal) تقع تحت firebase/functions
+      # وتحمِّل firebase-admin من node_modules ذلك المجلد، وليس من spark-runner وحده.
+      - name: Install firebase/functions deps
+        working-directory: firebase/functions
+        run: npm install --omit=dev
+
       - name: Install spark-runner deps
         working-directory: firebase/spark-runner
         run: npm install --omit=dev
