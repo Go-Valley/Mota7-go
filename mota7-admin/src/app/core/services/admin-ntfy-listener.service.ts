@@ -151,9 +151,15 @@ export class AdminNtfyListenerService {
     await this.setup.prepareLocalNotifications();
 
     void titleFromServer; // نتعمد توحيد نص إشعار لوحة التحكم.
+    const svc = (parsed.svc || '').trim().toLowerCase();
+    const isShopping = svc === 'shopping';
     const serviceName = this.mapServiceTypeToArabic(parsed);
-    const title = 'طلب خدمة جديد';
-    const body = `طلب (${serviceName}) جديد تم طلبه`;
+    const title = isShopping ? 'طلب مشتريات جديد' : 'طلب خدمة جديد';
+    const body = isShopping
+      ? parsed.preview?.trim()
+        ? `طلب عربة: ${parsed.preview}`
+        : 'تم إرسال طلب شراء من العربة'
+      : `طلب (${serviceName}) جديد تم طلبه`;
 
     await this.scheduleWithFallback({
       title,
@@ -166,6 +172,7 @@ export class AdminNtfyListenerService {
 
   private mapServiceTypeToArabic(parsed: ParsedOrderNtfy): string {
     const svc = (parsed.svc || '').trim().toLowerCase();
+    if (svc === 'shopping') return 'مشتريات';
     if (svc === 'delivery') return 'توصيل';
     if (svc === 'education') return 'تعليمي';
     if (svc === 'other') return 'خدمة';

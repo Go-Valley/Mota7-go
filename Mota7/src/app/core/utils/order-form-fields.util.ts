@@ -4,22 +4,23 @@
  * بينما الـ native input داخل shadow DOM يعكس القيمة الحقيقية — نقرأه أولاً عبر composedPath.
  */
 export function readIonTextInputValueFromEvent(ev: Event): string {
-  const t = ev.target as any;
-  if (t && typeof t.value === 'string') {
-    return t.value;
-  }
-  
-  if ('detail' in ev) {
-    const detailVal = (ev as any).detail?.value;
-    if (detailVal !== undefined) {
-      return detailVal == null ? '' : String(detailVal);
-    }
-  }
-
+  /** أولاً: الـ input الحقيقي تحت shadow (خاصة IME عربي — قيمة ion-input تتأخر أو تبقى فارغة) */
   const path = typeof ev.composedPath === 'function' ? ev.composedPath() : [];
   for (const n of path) {
     if (n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement) {
       return n.value;
+    }
+  }
+
+  const t = ev.target as { value?: unknown } | null;
+  if (t && typeof t.value === 'string') {
+    return t.value;
+  }
+
+  if ('detail' in ev) {
+    const detailVal = (ev as CustomEvent).detail?.value;
+    if (detailVal !== undefined) {
+      return detailVal == null ? '' : String(detailVal);
     }
   }
 

@@ -5,10 +5,19 @@ interface CacheEntry<T> {
   ts: number;
 }
 
+/** ميتا مزامنة قائمة إعلانات الرئيسية (حد أعلى لـ updated_at + آخر مزامنة كاملة) */
+export interface HomeAdsSyncMeta {
+  highWaterMs: number;
+  lastFullSyncMs: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FirestoreCacheService {
 
   private static readonly PREFIX = 'mota7_cache_';
+
+  /** مفتاح نسبي (يُسبق بـ PREFIX داخل get/set/remove) */
+  private static readonly ADS_SYNC_META_PREFIX = 'ads_sync_meta_';
 
   static readonly KEYS = {
     TAXONOMY_BUNDLE: 'taxonomy_bundle',
@@ -76,6 +85,23 @@ export class FirestoreCacheService {
     try {
       localStorage.removeItem(FirestoreCacheService.PREFIX + key);
     } catch { /* ignore */ }
+  }
+
+  /** مفتاح قائمة إعلانات نوع منطقي: delivery | education | other | product | store */
+  static adsListCacheKey(adType: string): string {
+    return `${FirestoreCacheService.KEYS.ADS_PREFIX}${adType}`;
+  }
+
+  getHomeAdsSyncMeta(adType: string): HomeAdsSyncMeta | null {
+    return this.get<HomeAdsSyncMeta>(FirestoreCacheService.ADS_SYNC_META_PREFIX + adType);
+  }
+
+  setHomeAdsSyncMeta(adType: string, meta: HomeAdsSyncMeta): void {
+    this.set(FirestoreCacheService.ADS_SYNC_META_PREFIX + adType, meta);
+  }
+
+  removeHomeAdsSyncMeta(adType: string): void {
+    this.remove(FirestoreCacheService.ADS_SYNC_META_PREFIX + adType);
   }
 
   clearAll(): void {

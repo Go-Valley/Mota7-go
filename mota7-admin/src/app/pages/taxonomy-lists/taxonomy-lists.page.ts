@@ -144,45 +144,47 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
     this.detachCategoriesDocListener();
     this.loading = true;
     const ref = doc(this.firestore, 'Categories', this.selectedDocId);
-    this.categoriesDocUnsub = onSnapshot(
-      ref,
-      (snap) => {
-        this.ngZone.run(() => {
-          if (!this.live) return;
-          this.loading = false;
-          if (!snap.exists()) {
-            this.items = [];
-            this.metaNameAr = '';
-            this.metaIcon = '';
-            void this.presentToast(
-              'المستند غير موجود — استخدم «تهيئة القيم الافتراضية»',
-              'warning'
-            );
-            return;
-          }
-          const d = snap.data() as any;
-          const remoteItems = Array.isArray(d.items)
-            ? JSON.parse(JSON.stringify(d.items))
-            : [];
-          const remoteNameAr = d.nameAr ?? '';
-          const remoteIcon = d.icon ?? '';
-          // لا نستبدل مسودّة المستخدم بعد أول مزامنة ناجحة وطالما هناك تغييرات غير محفوظة
-          if (this.remoteApplyBlockedByDirty()) {
-            return;
-          }
-          this.items = remoteItems;
-          this.metaNameAr = remoteNameAr;
-          this.metaIcon = remoteIcon;
-          this.lastLoadedHash = this.buildCurrentHash();
-        });
-      },
-      (err) => {
-        console.error(err);
-        this.ngZone.run(() => {
-          this.loading = false;
-          void this.presentToast('تعذر القراءة من Firestore', 'danger');
-        });
-      }
+    this.categoriesDocUnsub = runInInjectionContext(this.injector, () =>
+      onSnapshot(
+        ref,
+        (snap) => {
+          this.ngZone.run(() => {
+            if (!this.live) return;
+            this.loading = false;
+            if (!snap.exists()) {
+              this.items = [];
+              this.metaNameAr = '';
+              this.metaIcon = '';
+              void this.presentToast(
+                'المستند غير موجود — استخدم «تهيئة القيم الافتراضية»',
+                'warning'
+              );
+              return;
+            }
+            const d = snap.data() as any;
+            const remoteItems = Array.isArray(d.items)
+              ? JSON.parse(JSON.stringify(d.items))
+              : [];
+            const remoteNameAr = d.nameAr ?? '';
+            const remoteIcon = d.icon ?? '';
+            // لا نستبدل مسودّة المستخدم بعد أول مزامنة ناجحة وطالما هناك تغييرات غير محفوظة
+            if (this.remoteApplyBlockedByDirty()) {
+              return;
+            }
+            this.items = remoteItems;
+            this.metaNameAr = remoteNameAr;
+            this.metaIcon = remoteIcon;
+            this.lastLoadedHash = this.buildCurrentHash();
+          });
+        },
+        (err) => {
+          console.error(err);
+          this.ngZone.run(() => {
+            this.loading = false;
+            void this.presentToast('تعذر القراءة من Firestore', 'danger');
+          });
+        }
+      )
     );
   }
 

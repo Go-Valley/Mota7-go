@@ -1,4 +1,11 @@
-import { DestroyRef, Injectable, NgZone, inject } from '@angular/core';
+import {
+  DestroyRef,
+  EnvironmentInjector,
+  Injectable,
+  NgZone,
+  inject,
+  runInInjectionContext,
+} from '@angular/core';
 import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
 import { Capacitor } from '@capacitor/core';
 import { AppLauncher } from '@capacitor/app-launcher';
@@ -15,24 +22,27 @@ export class WtsappGroupLinkService {
   private readonly firestore = inject(Firestore);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(EnvironmentInjector);
 
   private inviteUrl = WTSAPP_GROUP_DEFAULT_LINK;
 
   constructor() {
-    const docRef = doc(this.firestore, WTSAPP_GROUP_DOC_PATH[0], WTSAPP_GROUP_DOC_PATH[1]);
-    const unsub = onSnapshot(
-      docRef,
-      (snap) => {
-        const raw = snap.exists() ? snap.data()?.['link'] : undefined;
-        const next = this.normalizeInviteUrl(raw) ?? WTSAPP_GROUP_DEFAULT_LINK;
-        this.zone.run(() => {
-          this.inviteUrl = next;
-        });
-      },
-      (err) => {
-        console.error('[wtsapp_group/mota7]', err);
-      }
-    );
+    const unsub = runInInjectionContext(this.injector, () => {
+      const docRef = doc(this.firestore, WTSAPP_GROUP_DOC_PATH[0], WTSAPP_GROUP_DOC_PATH[1]);
+      return onSnapshot(
+        docRef,
+        (snap) => {
+          const raw = snap.exists() ? snap.data()?.['link'] : undefined;
+          const next = this.normalizeInviteUrl(raw) ?? WTSAPP_GROUP_DEFAULT_LINK;
+          this.zone.run(() => {
+            this.inviteUrl = next;
+          });
+        },
+        (err) => {
+          console.error('[wtsapp_group/mota7]', err);
+        }
+      );
+    });
     this.destroyRef.onDestroy(() => unsub());
   }
 

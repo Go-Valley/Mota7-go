@@ -154,6 +154,33 @@ async function notifyAdUpdated(adId, before, after) {
   );
 }
 
+/** @param {string} shoppingId مستند مجموعة shopping (ليس delivery_charges) */
+async function notifyShoppingOrderCreated(shoppingId, doc) {
+  if (shoppingId === 'delivery_charges') return;
+  if (String(doc.status || '') !== 'pending') return;
+
+  const buyer = String(doc.buyerName || '').trim();
+  const phone = String(doc.buyerPhone || '').trim();
+  let total = '';
+  const gt = doc.grandTotal;
+  if (typeof gt === 'number' && Number.isFinite(gt)) {
+    total = ` — الإجمالي ${gt}`;
+  }
+
+  await notifyAdminTopic(
+    'طلب مشتريات جديد (معلق)',
+    buyer
+      ? `طلب عربة من ${buyer}${phone ? ` — ${phone}` : ''}${total}`
+      : phone
+        ? `طلب عربة — ${phone}${total}`
+        : `طلب عربة جديد${total}`,
+    {
+      kind: 'shopping_order_new',
+      shopping_id: shoppingId,
+    }
+  );
+}
+
 module.exports = {
   shortOrderPreview,
   shortAdPreview,
@@ -161,5 +188,6 @@ module.exports = {
   notifyOrderCompleted,
   notifyAdCreated,
   notifyAdUpdated,
+  notifyShoppingOrderCreated,
   adUpdateIsNonStatsOnly,
 };

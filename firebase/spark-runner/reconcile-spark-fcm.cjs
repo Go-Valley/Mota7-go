@@ -9,6 +9,7 @@ const {
   notifyOrderCompleted,
   notifyAdCreated,
   notifyAdUpdated,
+  notifyShoppingOrderCreated,
 } = require('../functions/fcm-handlers-internal.cjs');
 
 /**
@@ -48,6 +49,10 @@ function sanitizeDocSegment(id) {
 
 function markerOrdNew(orderId) {
   return `ord_new_${sanitizeDocSegment(orderId)}`;
+}
+
+function markerShopNew(orderId) {
+  return `shop_new_${sanitizeDocSegment(orderId)}`;
 }
 
 function markerOrdCompleted(orderId) {
@@ -136,6 +141,49 @@ async function reconcilePendingOrderNotifications(db) {
       notified += 1;
     } catch (e) {
       console.error('[Spark] notifyOrderCreated', doc.id, e);
+    }
+  }
+  return notified;
+}
+
+const SHOPPING_DELIVERY_DOC = 'delivery_charges';
+
+/**
+ * طلبات عربة المشتريات (مجموعة shopping) — تنبيه للأدمن مثل الطلبات وإعلانات جديدة.
+ * @param {FirebaseFirestore.Firestore} db
+ */
+async function reconcilePendingShoppingOrderNotifications(db) {
+  const since = admin.firestore.Timestamp.fromMillis(Date.now() - ORDER_NEW_LOOKBACK_MS);
+  const snap = await db
+    .collection('shopping')
+    .where('status', '==', 'pending')
+    .where('createdAt', '>=', since)
+    .orderBy('createdAt', 'asc')
+    .limit(ORDER_NEW_BATCH)
+    .get();
+
+  if (snap.empty) return 0;
+
+  const markers = db.collection('spark_processed_events');
+
+  /** @type {FirebaseFirestore.QueryDocumentSnapshot[]} */
+  const orderDocs = snap.docs.filter((d) => d.id !== SHOPPING_DELIVERY_DOC);
+  const mIds = orderDocs.map((d) => markerShopNew(d.id));
+  const alreadySent = await batchCheckExistingMarkers(db, markers, mIds);
+
+  let notified = 0;
+  for (const doc of orderDocs) {
+    const mid = markerShopNew(doc.id);
+    if (alreadySent.has(mid)) continue;
+    try {
+      await notifyShoppingOrderCreated(doc.id, doc.data() || {});
+      await markers.doc(mid).set(
+        { t: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+      notified += 1;
+    } catch (e) {
+      console.error('[Spark] notifyShoppingOrderCreated', doc.id, e);
     }
   }
   return notified;
@@ -255,12 +303,13 @@ async function processAdSavedJobs(db) {
 
 async function runSparkFcmOnce() {
   const db = admin.firestore();
-  const [ordNew, ordDone, jobs] = await Promise.all([
+  const [ordNew, shopNew, ordDone, jobs] = await Promise.all([
     reconcilePendingOrderNotifications(db),
+    reconcilePendingShoppingOrderNotifications(db),
     reconcileCompletedOrderNotifications(db),
     processAdSavedJobs(db),
   ]);
-  return { ordNew, ordDone, jobs };
+  return { ordNew, shopNew, ordDone, jobs };
 }
 
-module.exports = { runSparkFcmOnce, substantiveJsonFromAd, markerOrdNew };
+module.exports = { runSparkFcmOnce, substantiveJsonFromAd, markerOrdNew, markerShopNew };

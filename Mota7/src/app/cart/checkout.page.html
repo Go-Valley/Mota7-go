@@ -1,0 +1,161 @@
+<app-mota7-header
+  [title]="checkoutToolbarTitle()"
+  [showBackButton]="true"
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content class="checkout-content">
+  <div class="checkout-wrapper">
+
+    @if (itemCount()) {
+      <section class="checkout-order-lines" aria-label="المنتجات في الطلب">
+        <div class="col-head">
+          <h3 class="col-title">{{ isEditingOrder() ? 'تعديل منتجات الطلب' : 'المنتجات في العربة' }}</h3>
+          <p class="col-hint">يمكن حذف أي منتج</p>
+        </div>
+
+        <ion-list lines="none" class="cart-list">
+          @for (row of lines(); track row.lineId) {
+            <ion-item-sliding class="cart-slide">
+              <ion-item class="cart-line cart-line--compact" lines="none">
+                <ion-label class="cart-line-label-only">
+                  <div class="product-detail-card cart-product-card">
+                    <p class="pdc-desc">{{ productLineDescription(row) }}</p>
+                    <div class="pdc-grid">
+                      <div class="pdc-cell">
+                        <span class="pdc-k">البائع</span>
+                        <span class="pdc-v">{{ row.sellerName || '—' }}</span>
+                      </div>
+                      <div class="pdc-cell">
+                        <span class="pdc-k">السعر</span>
+                        <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
+                      </div>
+                      <div class="pdc-cell">
+                        <span class="pdc-k">مدينة البائع</span>
+                        <span class="pdc-v pdc-city" dir="auto">{{ row.locationLabel || '—' }}</span>
+                      </div>
+                      <div class="pdc-cell">
+                        <span class="pdc-k">حالة المنتج</span>
+                        <span class="pdc-v">{{ row.condition }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </ion-label>
+                <ion-button
+                  slot="end"
+                  fill="clear"
+                  color="danger"
+                  class="co-remove-inline"
+                  [attr.aria-label]="'حذف ' + row.title"
+                  (click)="removeLine(row.lineId)"
+                >
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </ion-button>
+              </ion-item>
+              <ion-item-options side="start">
+                <ion-item-option color="danger" (click)="removeLine(row.lineId)">حذف</ion-item-option>
+              </ion-item-options>
+            </ion-item-sliding>
+          }
+        </ion-list>
+      </section>
+    } @else {
+      <section class="checkout-empty-lines" role="status">
+        <p>
+          لا توجد منتجات في هذا الطلب. ارجع للعربة أو الرئيسية لإضافة منتجات قبل التأكيد.
+        </p>
+      </section>
+    }
+
+    <section class="form-section">
+      <ion-label class="input-label">الاسم<span class="required">*</span></ion-label>
+      <ion-item lines="none" class="custom-input">
+        <ion-icon name="person-outline" slot="start"></ion-icon>
+        <ion-input
+          #inputName
+          type="text"
+          [maxlength]="nameMaxLen"
+          placeholder="اكتب اسمك هنا"
+          class="ion-text-right dark-text"
+          [ngModel]="name"
+          (ionInput)="onNameInput($event)"
+          (beforeinput)="onNameBeforeInput($event)"
+          (compositionend)="onNameCompositionEnd()"
+        ></ion-input>
+      </ion-item>
+
+      <ion-label class="input-label">رقم الهاتف<span class="required">*</span></ion-label>
+      <ion-item lines="none" class="custom-input">
+        <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
+        <ion-input
+          #inputPhone
+          type="tel"
+          maxlength="11"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          placeholder="01xxxxxxxxx"
+          class="ion-text-right dark-text"
+          [ngModel]="phone"
+          (ngModelChange)="onPhoneChange($event)"
+          (keydown)="onPhoneKeyDown($event)"
+          (beforeinput)="onPhoneBeforeInput($event)"
+          (paste)="onPhonePaste($event)"
+        ></ion-input>
+      </ion-item>
+      <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
+
+      <ion-label class="input-label">المدينة<span class="required">*</span></ion-label>
+      <ion-item lines="none" class="custom-input custom-select">
+        <ion-icon name="location-outline" slot="start"></ion-icon>
+        <ion-select
+          [ngModel]="buyerCity()"
+          (ngModelChange)="onBuyerCityChange($event)"
+          interface="action-sheet"
+          mode="ios"
+          placeholder="اختر المدينة"
+          cancelText="إلغاء"
+          class="full-width-select dark-text"
+          toggleIcon="chevron-down-outline"
+        >
+          <ion-select-option value="الخارجة">الخارجة</ion-select-option>
+          <ion-select-option value="الداخلة">الداخلة</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </section>
+
+    <section class="payment-method-box">
+      <div class="pm-title">
+        <ion-icon name="cash-outline"></ion-icon>
+        <span>الدفع عند الاستلام</span>
+      </div>
+      <p class="pm-hint">
+        ادفع عند الاستلام. سيتم إضافة رسوم خدمة التوصيل على إجمالي المبلغ.
+      </p>
+    </section>
+
+    <section class="totals-section">
+      <div class="row">
+        <span>إجمالي المبلغ</span>
+        <span>{{ itemsTotal() | number : '1.0-2' }} ج.م</span>
+      </div>
+      <div class="row">
+        <span>مصاريف التوصيل</span>
+        <span>{{ deliveryFee() | number : '1.0-2' }} ج.م</span>
+      </div>
+      <div class="row total">
+        <span>إجمالي المبلغ المدفوع</span>
+        <span>{{ grandTotal() | number : '1.0-2' }} ج.م</span>
+      </div>
+    </section>
+
+    <ion-button
+      expand="block"
+      class="confirm-btn"
+      shape="round"
+      (click)="confirmOrder()"
+    >
+      {{ confirmButtonLabel() }}
+    </ion-button>
+
+  </div>
+</ion-content>

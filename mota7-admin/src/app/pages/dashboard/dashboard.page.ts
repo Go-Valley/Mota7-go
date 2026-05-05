@@ -20,8 +20,14 @@ import {
   personRemoveOutline,
   checkmarkDoneCircle,
   layersOutline,
-  chevronDownCircleOutline
+  chevronDownCircleOutline,
+  bagHandleOutline,
+  carOutline
 } from 'ionicons/icons';
+import {
+  SHOPPING_COLLECTION,
+  SHOPPING_DELIVERY_CHARGES_DOC_ID,
+} from '../../core/constants/shopping-firestore-admin.const';
 
 @Component({
   selector: 'app-dashboard',
@@ -46,6 +52,7 @@ export class DashboardPage implements OnInit, ViewWillLeave {
     activeBanners: 0,
     blockedUsers: 0,
     pendingRequests: 0,
+    pendingShoppingOrders: 0,
     completedRequests: 0,
     acceptedRequests: 0,
     totalOrders: 0 // إضافة عداد إجمالي الطلبات
@@ -68,7 +75,9 @@ export class DashboardPage implements OnInit, ViewWillLeave {
       personRemoveOutline,
       checkmarkDoneCircle,
       layersOutline,
-      'chevron-down-circle-outline': chevronDownCircleOutline
+      'chevron-down-circle-outline': chevronDownCircleOutline,
+      'bag-handle-outline': bagHandleOutline,
+      'car-outline': carOutline
     });
   }
 
@@ -81,6 +90,18 @@ export class DashboardPage implements OnInit, ViewWillLeave {
    * لا علاقة له بقائمة الإعلانات الفارغة على الأندرويد.
    */
   ionViewWillLeave(): void {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }
+
+  /**
+   * إزالة التركيز من كارت التنقّل قبل أن يضع Ionic aria-hidden على الـ outlet.
+   * pointerdown أبكر من الانتقال؛ click يغطي تفعيل لوحة المفاتيح (Enter على role="link").
+   */
+  onLuxuryNavInteraction(ev: Event): void {
+    const t = ev.target as HTMLElement | null;
+    if (!t?.closest('.luxury-nav-card')) {
+      return;
+    }
     (document.activeElement as HTMLElement | null)?.blur?.();
   }
 
@@ -130,6 +151,17 @@ export class DashboardPage implements OnInit, ViewWillLeave {
       
       // حساب إجمالي كافة الطلبات
       this.stats.totalOrders = orders.length;
+    });
+
+    // 6. طلبات العربة (shopping) — الطلبات المعلقة فقط لشارة القائمة
+    const shoppingRef = collection(this.firestore, SHOPPING_COLLECTION);
+    collectionData(shoppingRef, { idField: 'id' }).subscribe((shoppingDocs: { id?: string; status?: string }[]) => {
+      this.stats.pendingShoppingOrders = shoppingDocs.filter(
+        (d) =>
+          d.id &&
+          d.id !== SHOPPING_DELIVERY_CHARGES_DOC_ID &&
+          String(d.status ?? 'pending').toLowerCase().includes('pending')
+      ).length;
     });
   }
 

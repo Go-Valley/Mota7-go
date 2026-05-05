@@ -48,6 +48,30 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
   return ['KIND:order', `SVC:${st}`, `PREVIEW:${preview}`].join('\n');
 }
 
+/** نظام رسائل لوحة الأدمن (محللاً كنوع طلب) — بدون أسطر تعرِّف بحروف مختلفة لتفادي كسر المعالجين */
+export function buildShoppingOrderNtfyMessageBody(order: Record<string, unknown>): string {
+  const name = String(order['buyerName'] ?? '').trim();
+  const city = String(order['buyerCity'] ?? '').trim();
+  let totalStr = '';
+  const gt = order['grandTotal'];
+  if (typeof gt === 'number' && Number.isFinite(gt)) {
+    totalStr = `${gt}`;
+  }
+  const nItems = Array.isArray(order['items'])
+    ? (order['items'] as unknown[]).length
+    : Number(order['itemsCount']);
+  const count =
+    typeof nItems === 'number' && Number.isFinite(nItems) && nItems > 0
+      ? `${Math.floor(nItems)} سلعة`
+      : '';
+  const parts = [count, city, totalStr ? `${totalStr} ج` : ''].filter(Boolean);
+  let preview =
+    name && parts.length ? `${name} — ${parts.join(' · ')}` : name ? name : parts.join(' · ');
+  if (!preview.trim()) preview = 'طلب مشتريات من العربة';
+  preview = preview.slice(0, 220).replace(/\n/g, ' ').trim();
+  return ['KIND:order', 'SVC:shopping', `PREVIEW:${preview}`].join('\n');
+}
+
 export interface ParsedOrderNtfy {
   svc: string;
   dKey: string;

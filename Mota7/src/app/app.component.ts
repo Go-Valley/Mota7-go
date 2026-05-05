@@ -18,6 +18,7 @@ import { UserAccountStatusService } from './my-account/user-account-status.servi
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
 import { OfflineBannerComponent } from './shared/offline-banner/offline-banner.component';
+import { ShoppingFirestoreSeedService } from './core/services/shopping-firestore-seed.service';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
 const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
@@ -42,6 +43,7 @@ export class AppComponent implements OnInit {
   private deviceFcmMota7 = inject(DeviceFcmMota7RegistrationService);
   private userAccountStatus = inject(UserAccountStatusService);
   readonly mandatoryUpdate = inject(MandatoryUpdateService);
+  private shoppingSeed = inject(ShoppingFirestoreSeedService);
 
   /**
    * بعد انتهاء التهيئة على الموبايل نخفي شاشة اللوجو (assets/start.png).
@@ -74,6 +76,8 @@ export class AppComponent implements OnInit {
     const launchT0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
     await this.platform.ready();
+
+    void this.shoppingSeed.ensureShoppingDeliveryChargesDoc();
 
     if (!isNative) {
       this.launchPhaseComplete.set(true);

@@ -7,6 +7,7 @@ import { NativeBiometric, BiometricAuthError } from 'capacitor-native-biometric'
 import { CommonModule } from '@angular/common';
 import { AdminNtfyListenerService } from './core/services/admin-ntfy-listener.service';
 import { AdminNtfySetupService } from './core/services/admin-ntfy-setup.service';
+import { ShoppingFirestoreSeedService } from './core/services/shopping-firestore-seed.service';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +21,7 @@ export class AppComponent {
   private platform = inject(Platform);
   private adminNtfyListener = inject(AdminNtfyListenerService);
   private adminNtfySetup = inject(AdminNtfySetupService);
+  private shoppingSeed = inject(ShoppingFirestoreSeedService);
 
   constructor() {
     this.initializeApp();
@@ -27,6 +29,8 @@ export class AppComponent {
 
   async initializeApp() {
     await this.platform.ready();
+
+    void this.shoppingSeed.ensureShoppingDeliveryChargesDoc();
 
     if (Capacitor.isNativePlatform()) {
       try {

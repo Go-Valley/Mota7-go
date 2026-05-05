@@ -1,0 +1,64 @@
+<app-mota7-header
+  title="مصاريف التوصيل"
+  [showBackButton]="true"
+  (backClick)="goBack()"
+></app-mota7-header>
+
+<ion-content class="delivery-charges-page">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب للتحديث"
+      refreshingSpinner="circles">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <div class="wrap" dir="rtl">
+    <div class="intro card-surface">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      <p>
+        القيم ستُحمّل وتُحدَّث في Firebase في المسار التالي: مجموعة
+        <strong>shopping</strong>
+        /
+        مستند
+        <strong>delivery_charges</strong>
+        ، الحقلان <strong>in</strong> و<strong>out</strong> كما تعمل شاشة «تأكيد طلب الشراء» في تطبيق المستخدم.
+      </p>
+    </div>
+
+    @if (loadingDoc) {
+      <div class="loading-hint"><ion-spinner name="crescent"></ion-spinner> جاري التحميل...</div>
+    } @else {
+      <div class="fields card-surface">
+        <div class="field-block">
+          <label class="lbl">in — توصيل داخل المدينة</label>
+          <p class="hint">عندما تكون كل سلع العربة ضمن مدينة المشتري المختارة (الخارجة مع الخارجة، الداخلة مع الداخلة).</p>
+          <ion-input
+            type="text"
+            inputmode="decimal"
+            fill="outline"
+            placeholder="مثال: 25"
+            [(ngModel)]="inAmount">
+          </ion-input>
+        </div>
+
+        <div class="field-block sep">
+          <label class="lbl">out — توصيل بين المدينتين</label>
+          <p class="hint">عند وجود منتج بالعربة من مدينة مختلفة عن مدينة المشتري في النموذج.</p>
+          <ion-input
+            type="text"
+            inputmode="decimal"
+            fill="outline"
+            placeholder="مثال: 50"
+            [(ngModel)]="outAmount">
+          </ion-input>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="save-btn" (click)="saveCharges()">
+        <ion-icon name="save-outline" slot="start"></ion-icon>
+        حفظ المبالغ
+      </ion-button>
+    }
+  </div>
+</ion-content>

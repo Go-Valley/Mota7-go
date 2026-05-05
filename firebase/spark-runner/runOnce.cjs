@@ -84,7 +84,7 @@ const { runSparkFcmOnce } = require('./reconcile-spark-fcm.cjs');
     console.log(`Order sweep: deleted_pending=${deleted} auto_completed_accepted=${autoCompleted}`);
   }
 
-  let fcm = { ordNew: 0, ordDone: 0, jobs: 0 };
+  let fcm = { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0 };
   if (!quotaHit) {
     fcm = await runSparkFcmOnce().catch((e) => {
       if (isQuotaExhausted(e)) {
@@ -93,13 +93,14 @@ const { runSparkFcmOnce } = require('./reconcile-spark-fcm.cjs');
       } else {
         console.error('FCM reconcile:', e);
       }
-      return { ordNew: 0, ordDone: 0, jobs: 0 };
+      return { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0 };
     });
   }
 
   console.log(
     JSON.stringify({
       spark_fcm_ord_new_notified: fcm.ordNew,
+      spark_fcm_shop_new_notified: fcm.shopNew,
       spark_fcm_ord_completed_notified: fcm.ordDone,
       spark_fcm_ad_jobs_processed: fcm.jobs,
       quota_exhausted: quotaHit,

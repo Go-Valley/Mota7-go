@@ -1,6 +1,14 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom">
-    
+
+    <ion-tab-button tab="cart">
+      @if (cartCount() > 0) {
+        <ion-badge color="danger" class="tab-cart-badge">{{ cartBadgeText() }}</ion-badge>
+      }
+      <ion-icon name="cart-outline"></ion-icon>
+      <ion-label>العربة</ion-label>
+    </ion-tab-button>
+
     <ion-tab-button tab="my-account">
       <ion-icon name="person-outline"></ion-icon>
       <ion-label>حسابي</ion-label>

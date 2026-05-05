@@ -9,6 +9,7 @@ const {
   notifyOrderCompleted,
   notifyAdCreated,
   notifyAdUpdated,
+  notifyShoppingOrderCreated,
 } = require('./fcm-handlers-internal.cjs');
 
 const orderCreateOpts = {
@@ -57,4 +58,16 @@ exports.fcmNotifyOnAdUpdated = onDocumentUpdated(adUpdateOpts, async (event) => 
   const after = event.data?.after?.data() || {};
   const aid = event.params.adId;
   await notifyAdUpdated(aid, before, after);
+});
+
+const shoppingCreateOpts = {
+  document: 'shopping/{shoppingId}',
+  region: 'europe-west1',
+};
+
+exports.fcmNotifyOnShoppingOrderCreated = onDocumentCreated(shoppingCreateOpts, async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+  const sid = event.params.shoppingId;
+  await notifyShoppingOrderCreated(sid, snap.data() || {});
 });

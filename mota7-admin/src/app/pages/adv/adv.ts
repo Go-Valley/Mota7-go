@@ -19,7 +19,8 @@ import {
   documentTextOutline,
   chevronDownCircleOutline,
   searchOutline,
-  closeOutline
+  closeOutline,
+  cartOutline
 } from 'ionicons/icons';
 
 // استيراد الـ 5 كروت المختصرة
@@ -63,6 +64,7 @@ export class AdvPage implements OnInit, OnDestroy {
       'chevron-down-circle-outline': chevronDownCircleOutline,
       'search-outline': searchOutline,
       'close-outline': closeOutline,
+      'cart-outline': cartOutline,
     });
   }
 
@@ -482,11 +484,13 @@ export class AdvPage implements OnInit, OnDestroy {
 
     const isExpired = ad.status === 'expired';
 
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: 'إدارة إعلان: ' + (ad.details?.title || ad.details?.driver_name || ad.details?.teacher_name || 'بدون عنوان'),
-      mode: 'ios',
-      cssClass: 'mota7-action-sheet',
-      buttons: [
+    const sheetButtons: {
+      text: string;
+      icon?: string;
+      role?: string;
+      cssClass?: string;
+      handler?: () => void;
+    }[] = [
         { 
           text: 'قبول الإعلان', 
           icon: 'checkmark-circle-outline',
@@ -497,6 +501,18 @@ export class AdvPage implements OnInit, OnDestroy {
           icon: 'create-outline',
           handler: () => { this.editAd(ad); }
         },
+    ];
+
+    if (this.normalizeAdType(ad.ad_type) === 'product') {
+      const cartEnabled = ad.cart_enabled !== false;
+      sheetButtons.push({
+        text: cartEnabled ? 'تعطيل زر العربة على كارت المنتج' : 'تفعيل زر العربة على كارت المنتج',
+        icon: 'cart-outline',
+        handler: () => { void this.setProductCartEnabled(ad.id || ad.ad_id, !cartEnabled); },
+      });
+    }
+
+    sheetButtons.push(
         { 
           text: 'رفض الإعلان (سبب)', 
           icon: 'close-circle-outline',
@@ -547,9 +563,51 @@ export class AdvPage implements OnInit, OnDestroy {
           handler: () => { void this.confirmDelete(ad); }
         },
         { text: 'إلغاء', role: 'cancel' }
-      ]
+    );
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'إدارة إعلان: ' + (ad.details?.title || ad.details?.driver_name || ad.details?.teacher_name || 'بدون عنوان'),
+      mode: 'ios',
+      cssClass: 'mota7-action-sheet',
+      buttons: sheetButtons,
     });
     await actionSheet.present();
+  }
+
+  /**
+   * يتحكم في ظهور زر «إضافة للعربة» على كارت المنتج في التطبيق.
+   * `cart_enabled !== false` = الزر يعمل؛ `false` = زر بهتان/معطّل على الكارت.
+   */
+  async setProductCartEnabled(adId: string | undefined, enabled: boolean): Promise<void> {
+    if (!adId) {
+      return;
+    }
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'ads', adId), {
+          cart_enabled: enabled,
+          updated_at: serverTimestamp(),
+        })
+      );
+      const toast = await this.toastCtrl.create({
+        message: enabled ? 'تم تفعيل زر العربة على كارت المنتج' : 'تم تعطيل زر العربة (بهتان) على كارت المنتج',
+        duration: 2200,
+        color: 'success',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await toast.present();
+    } catch (e) {
+      console.error(e);
+      const errToast = await this.toastCtrl.create({
+        message: 'تعذّر حفظ إعداد العربة. حاول مرة أخرى.',
+        duration: 2800,
+        color: 'danger',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await errToast.present();
+    }
   }
 
   async updateAdStatus(adId: string, status: string) {

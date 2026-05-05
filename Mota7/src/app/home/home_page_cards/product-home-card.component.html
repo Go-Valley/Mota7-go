@@ -62,7 +62,7 @@
     <div class="meta-grid-modern">
       <div class="grid-item">
         <ion-icon name="location-outline"></ion-icon>
-        <span>{{ ad.details?.location || 'الخارجة' }}</span>
+        <span>{{ sellerCityDisplay }}</span>
       </div>
       <div class="grid-item price-item">
         <ion-icon name="cash-outline"></ion-icon>
@@ -72,6 +72,23 @@
         <ion-icon name="shield-checkmark-outline"></ion-icon>
         <span>{{ ad.details?.condition || 'جديد' }}</span>
       </div>
+    </div>
+
+    <div
+      class="product-add-cart-shell"
+      role="presentation"
+      (click)="$event.stopPropagation()"
+    >
+      <ion-button
+        expand="block"
+        size="small"
+        class="btn-add-cart"
+        [disabled]="addToCartDisabled"
+        [title]="addToCartTooltip"
+        (click)="addProductToCart($event)"
+      >
+        إضافة للعربة
+      </ion-button>
     </div>
   </div>
 </div>

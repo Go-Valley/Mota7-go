@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { buildOrderNtfyMessageBody } from '../utils/order-ntfy.util';
+import { buildOrderNtfyMessageBody, buildShoppingOrderNtfyMessageBody } from '../utils/order-ntfy.util';
 import { NewAdNtfyService } from './new-ad-ntfy.service';
 
 /**
@@ -32,6 +32,39 @@ export class NewOrderNtfyService {
         method: 'POST',
         headers: {
           Title: 'Mota7: new order',
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+        body,
+        mode: 'cors',
+      });
+      void res;
+    } catch {
+      /* ntfy is best-effort; avoid console noise on mobile/WebView */
+    }
+  }
+
+  /** نشر بعد تأكيد طلب من العربة — نفس مسار اشعارات طلب الخدمة (موضوع الطلبات) */
+  async publishShoppingOrder(snapshot: Record<string, unknown>): Promise<void> {
+    await this.bootstrap.prepareLocalNotifications();
+
+    const cfg = environment.ntfy;
+    if (!cfg?.enabled || cfg.ordersEnabled === false) {
+      return;
+    }
+
+    const topicName = (cfg.ordersTopic || cfg.topic || '').trim();
+    if (!topicName) {
+      return;
+    }
+
+    const body = buildShoppingOrderNtfyMessageBody(snapshot);
+    try {
+      const base = cfg.baseUrl.replace(/\/$/, '');
+      const topic = encodeURIComponent(topicName);
+      const res = await fetch(`${base}/${topic}`, {
+        method: 'POST',
+        headers: {
+          Title: 'Mota7: shopping order',
           'Content-Type': 'text/plain; charset=utf-8',
         },
         body,

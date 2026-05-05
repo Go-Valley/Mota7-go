@@ -1,0 +1,216 @@
+<app-mota7-header
+  title="العربة وعمليات الشراء"
+  [showBackButton]="true"
+  (backClick)="goBack()"
+></app-mota7-header>
+
+<ion-content class="shop-orders-page">
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب للتحديث"
+      refreshingSpinner="circles"
+      refreshingText="جاري التحديث...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <div class="page-inner" dir="rtl">
+    @if (orders.length === 0) {
+      <div class="empty-state">
+        <ion-icon name="bag-handle-outline" aria-hidden="true"></ion-icon>
+        <p>لا توجد طلبات مشتريات في المجموعة حالياً.</p>
+      </div>
+    } @else {
+      <div class="orders-stack">
+        @for (o of orders; track o.id) {
+          <article
+            class="order-shell"
+            role="button"
+            tabindex="0"
+            (click)="openDetail(o)"
+            (keyup.enter)="openDetail(o)"
+          >
+            <div class="order-card">
+              <div class="order-card__ribbon">
+                <span class="status-pill status-pill--stack" [ngClass]="statusPillClass(o.status)">
+                  <span class="status-pill__title">{{ statusTitle(o.status) }}</span>
+                  <span class="status-pill__desc">{{ statusBody(o.status) }}</span>
+                </span>
+                <span class="order-date">{{ o.createdLabel }}</span>
+              </div>
+              <div class="order-card__body">
+                <div class="row-main">
+                  <div class="buyer-block">
+                    <div class="line name">
+                      <ion-icon name="person-outline"></ion-icon>
+                      <span>{{ o.buyerName || '—' }}</span>
+                    </div>
+                    <div class="line phone-muted">{{ o.buyerPhone || '—' }}</div>
+                  </div>
+                  <div class="total-block">
+                    <span class="total-label">الإجمالي المدفوع</span>
+                    <span class="total-val">{{ o.grandTotal | number : '1.0-2' }} ج.م</span>
+                  </div>
+                </div>
+
+                <div class="quick-actions">
+                  <a class="chip chip-call" [href]="tel(o.buyerPhone)" (click)="$event.stopPropagation()">
+                    <ion-icon name="call-outline"></ion-icon>
+                    اتصال
+                  </a>
+                  <button
+                    type="button"
+                    class="chip chip-wa"
+                    (click)="openWhatsappBuyer(o, $event)"
+                  >
+                    <ion-icon name="logo-whatsapp"></ion-icon>
+                    واتساب
+                  </button>
+                  <button type="button" class="chip chip-edit" (click)="openEdit(o, $event)">
+                    <ion-icon name="create-outline"></ion-icon>
+                    تعديل
+                  </button>
+                  <button type="button" class="chip chip-del" (click)="confirmDelete(o, $event)">
+                    <ion-icon name="trash-outline"></ion-icon>
+                    حذف
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+</ion-content>
+
+<!-- تفاصيل الطلب ~95% من الشاشة -->
+<ion-modal
+  [isOpen]="detailModalOpen"
+  (didDismiss)="closeDetail()"
+  [initialBreakpoint]="0.95"
+  [breakpoints]="[0, 0.95]"
+  handle="true"
+  class="shop-order-detail-modal"
+  [backdropDismiss]="true"
+>
+  <ng-template>
+    <ion-header class="detail-head">
+      <ion-toolbar>
+        <ion-title>تفاصيل الطلب</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeDetail()" aria-label="إغلاق">
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="detail-content">
+      @if (selectedOrder; as o) {
+        <div class="detail-wrap">
+          <section class="buyer-summary card-surface">
+            <h2 class="section-title">بيانات المشتري</h2>
+            <div class="grid-2">
+              <div><span class="k">الاسم</span><span class="v">{{ o.buyerName }}</span></div>
+              <div><span class="k">الهاتف</span><span class="v ltr">{{ o.buyerPhone }}</span></div>
+              <div><span class="k">المدينة</span><span class="v">{{ o.buyerCity }}</span></div>
+              <div class="status-grid-cell">
+                <span class="k">الحالة</span>
+                <div class="v status-detail">
+                  <div class="status-detail__title">{{ statusTitle(o.status) }}</div>
+                  <div class="status-detail__body">{{ statusBody(o.status) }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="totals-strip">
+              <div><span class="k">سلع</span><span class="v">{{ o.itemsTotal | number : '1.0-2' }} ج.م</span></div>
+              <div><span class="k">توصيل</span><span class="v">{{ o.deliveryFee | number : '1.0-2' }} ج.م</span></div>
+              <div class="grand"><span class="k">الإجمالي</span><span class="v">{{ o.grandTotal | number : '1.0-2' }} ج.م</span></div>
+            </div>
+            <div class="buyer-contact-row">
+              <a class="chip chip-call" [href]="tel(o.buyerPhone)"><ion-icon name="call-outline"></ion-icon> المشتري</a>
+              <button type="button" class="chip chip-wa" (click)="openWhatsappBuyer(o, $event)">
+                <ion-icon name="logo-whatsapp"></ion-icon> المشتري
+              </button>
+              <button type="button" class="chip chip-edit" (click)="openEditThenCloseDetail(o)">تعديل الطلب</button>
+            </div>
+          </section>
+
+          <section class="products-section">
+            <h2 class="section-title">المنتجات ({{ o.items.length }})</h2>
+            @for (it of o.items; track $index) {
+              <div class="product-card card-surface">
+                <div class="product-head">
+                  <span class="pi-title">{{ it.title || 'منتج' }}</span>
+                  <span class="pi-price">{{ it.unitPrice | number : '1.0-2' }} ج.م</span>
+                </div>
+                <p class="pi-desc">{{ it.shortNote }}</p>
+                <div class="pi-meta-grid">
+                  <div><span class="k">البائع</span><span class="v">{{ it.sellerName || '—' }}</span></div>
+                  <div><span class="k">المدينة</span><span class="v">{{ it.locationLabel || '—' }}</span></div>
+                  <div><span class="k">الحالة</span><span class="v">{{ it.condition }}</span></div>
+                  <div><span class="k">معرّف</span><span class="v adid">{{ it.adId || '—' }}</span></div>
+                </div>
+                <div class="seller-actions">
+                  <a class="chip chip-call sm" [href]="tel(it.sellerPhone)">
+                    <ion-icon name="call-outline"></ion-icon> اتصال بالبائع
+                  </a>
+                  <button
+                    type="button"
+                    class="chip chip-wa sm"
+                    (click)="openWhatsappSeller(it, $event)"
+                  >
+                    <ion-icon name="logo-whatsapp"></ion-icon> واتساب البائع
+                  </button>
+                </div>
+              </div>
+            }
+          </section>
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- تعديل سريع -->
+<ion-modal
+  [isOpen]="editModalOpen"
+  [initialBreakpoint]="0.92"
+  [breakpoints]="[0, 0.92]"
+  handle="true"
+  (didDismiss)="closeEdit()"
+>
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>تعديل الطلب</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeEdit()">إلغاء</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding edit-modal-content" dir="rtl">
+      <ion-list lines="none">
+        <ion-item>
+          <ion-input label="اسم المشتري" labelPlacement="floating" [(ngModel)]="editBuyerName"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="رقم الهاتف" labelPlacement="floating" [(ngModel)]="editBuyerPhone"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="المدينة" labelPlacement="floating" [(ngModel)]="editBuyerCity"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-select label="حالة الطلب" labelPlacement="floating" [(ngModel)]="editStatus" interface="action-sheet">
+            <ion-select-option value="pending">قيد الانتظار — الطلب قيد المراجعة</ion-select-option>
+            <ion-select-option value="active">نشط — تمت الموافقة وجاري تحضير الطلبات للتوصيل</ion-select-option>
+            <ion-select-option value="shipping">جاري الشحن — تم شحن طلباتك للتوصيل إليك</ion-select-option>
+            <ion-select-option value="done">إتمام الطلب — تم تنفيذ الطلب بنجاح (شكراً لاستخدامك «مُتاح»)</ion-select-option>
+            <ion-select-option value="reject">رفض — الطلب مرفوض؛ يرجى التواصل مع الإدارة</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" class="save-edit-btn" (click)="saveEdit()">حفظ التغييرات</ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>

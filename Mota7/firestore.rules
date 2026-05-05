@@ -258,6 +258,65 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    /** رابط دعوة مجموعة «مُتاح» على واتساب — القراءة للتطبيق بدون إدخال القواعد العامة */
+    match /wtsapp_group/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * مجموعة shopping:
+     * - مستند ثابت delivery_charges يحوي in / out لمبالغ التوصيل؛ يُنشأ تلقائياً من التطبيق/اللوحة إن لم يكن موجوداً.
+     * - مستندات الطلبات ستُضاف لاحقاً بمعرّفات تُولَّد آلياً (حين تُفعَّل القواعد المناسبة لإنشاء الطلب من العميل).
+     */
+    match /shopping/{docId} {
+      /** عموماً: قائمة مجموعة الطلبات للإدارة فقط */
+      allow list: if isAdmin();
+
+      /** مستند الأسعار وسندات الطلب عبر المعرف المباشر (يتطلب المعرف الذي يمسكه التطبيق) */
+      allow get: if docId == 'delivery_charges'
+        || isAdmin()
+        || (docId != 'delivery_charges');
+
+      /** أول تهيئة لمستند الأسعار… */
+      allow create: if docId == 'delivery_charges'
+        && !exists(/databases/$(database)/documents/shopping/delivery_charges)
+        && request.resource.data.keys().hasOnly(['in', 'out', 'docType'])
+        && request.resource.data.docType == 'delivery_config'
+        && request.resource.data.in is string
+        && request.resource.data.out is string
+        && request.resource.data.in.size() <= 32
+        && request.resource.data.out.size() <= 32;
+
+      /**
+       * إنشاء طلب شراء من التطبيق:
+       */
+      allow create: if docId != 'delivery_charges'
+        && request.resource.data.buyerName is string
+        && request.resource.data.buyerName.size() > 0
+        && request.resource.data.buyerPhone is string
+        && request.resource.data.buyerPhone.size() >= 10
+        && request.resource.data.buyerCity is string
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.grandTotal is number;
+
+      /** عميل الطلب بينما الحالة لا تزال معلقة؛ الأدمن يعدّل دائماً */
+      allow update: if isAdmin()
+        || (
+          docId != 'delivery_charges'
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'pending'
+        );
+      /** عميل أو أدمن: حذف عند الغاء قبل التوصيل أو الرفض (لا حذف عند active لتفادي فقد الشحنة القيد المعالجة) */
+      allow delete: if docId != 'delivery_charges'
+        && (
+          isAdmin()
+          || resource.data.status == 'reject'
+          || resource.data.status == 'pending'
+        );
+    }
+
     /**
      * تناغم FCM خارج الدوال — علامات بمعرّفات آمنة (حساب خدمة فقط عبر firebase-admin، يتجاوز القواعد).
      * لا قراءة/كتابة من العميل.
@@ -290,10 +349,12 @@ service cloud.firestore {
 
     /**
      * باقي المسارات: قراءة عامة، كتابة للأدمن.
-     * القواعد أعلاه أخصّ لمستندات التطبيق الشائعة.
+     * مجموعة shopping: لا تُنشَر قراءة طلبات المستخدمين عامة — فقط مستند delivery_charges (والأدمن).
      */
     match /{path=**} {
-      allow read: if true;
+      allow read: if !(path.matches('shopping/{sid}'))
+        || sid == 'delivery_charges'
+        || isAdmin();
       allow write: if isAdmin();
     }
   }

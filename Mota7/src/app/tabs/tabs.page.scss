@@ -7,6 +7,25 @@
    Tab Buttons
 ========================================= */
 
+:host ion-tab-button[tab='cart']::part(native) {
+  position: relative;
+}
+
+:host ion-tab-button[tab='cart'] .tab-cart-badge {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 54%;
+  z-index: 3;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0 4px;
+  pointer-events: none;
+}
+
 :host ion-tab-button {
   position: relative;
   z-index: 2;

@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { sellerCityLabelForProductAd } from 'src/app/core/utils/product-seller-location.util';
 import { cloudinaryGalleryImageUrl } from 'src/app/core/utils/cloudinary-list-image.util';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
@@ -42,6 +43,10 @@ export class ProductDetailsComponent implements OnInit {
     if (!url) return '';
     const o = cloudinaryGalleryImageUrl(url);
     return o || url;
+  }
+
+  get sellerCityDisplay(): string {
+    return sellerCityLabelForProductAd(this.ad);
   }
 
   close() {

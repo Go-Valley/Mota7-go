@@ -71,7 +71,7 @@
       </div>
     </div>
     
-    <div class="admin-grid">
+    <div class="admin-grid" (pointerdown)="onLuxuryNavInteraction($event)" (click)="onLuxuryNavInteraction($event)">
       <div class="luxury-nav-card" [routerLink]="['/users']" role="link" tabindex="0">
         <div class="card-icon blue">
           <ion-icon name="people-outline"></ion-icon>
@@ -103,6 +103,29 @@
         <div class="card-info">
           <h3>إدارة الإعلانات</h3>
           <p>قبول، رفض، وتعديل الإعلانات</p>
+        </div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" [routerLink]="['/shopping-orders']" role="link" tabindex="0">
+        <div class="card-icon brown">
+          <ion-icon name="bag-handle-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>العربة وعمليات الشراء</h3>
+          <p>طلبات شراء السلع، التفاصيل، والتواصل</p>
+        </div>
+        <div class="badge-count-inline brown-bg">{{ stats.pendingShoppingOrders }}</div>
+        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
+      </div>
+
+      <div class="luxury-nav-card" [routerLink]="['/delivery-charges']" role="link" tabindex="0">
+        <div class="card-icon slate">
+          <ion-icon name="car-outline"></ion-icon>
+        </div>
+        <div class="card-info">
+          <h3>مصاريف التوصيل</h3>
+          <p>مبالغ التوصيل داخل المدينة (in) وبين المدن (out)</p>
         </div>
         <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
       </div>

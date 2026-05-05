@@ -1,0 +1,212 @@
+<app-mota7-header title="العربة" [showBackButton]="false">
+</app-mota7-header>
+
+<ion-content class="cart-content" (click)="onCartContentTap($event)">
+  @if (hasOrders()) {
+    <section class="orders-section" aria-label="طلباتي المؤكّدة">
+      <div class="section-head">
+        <h2 class="section-title">طلباتي</h2>
+        <p class="section-sub">
+          متابعة حالة الطلبات
+        </p>
+      </div>
+
+      @for (o of orderRows(); track o.id) {
+        <article class="order-card">
+          <div class="order-card__ribbon">
+            <span class="status-pill status-pill--stacked" [ngClass]="statusClass(o)">
+              <span class="status-pill__title">{{ statusTitle(o) }}</span>
+              <span class="status-pill__desc">{{ statusDescription(o) }}</span>
+            </span>
+            <span class="order-ref" dir="ltr">{{ orderRefLabel(o) }}</span>
+          </div>
+
+          <div class="order-card__buyer">
+            <div class="buyer-name">{{ o.buyerName }}</div>
+            <div class="buyer-row">
+              <span class="muted">الجوال:</span>
+              <span dir="ltr" class="buyer-strong">{{ o.buyerPhone }}</span>
+            </div>
+            <div class="buyer-row">
+              <span class="muted">المدينة:</span>
+              <span>{{ o.buyerCity || '—' }}</span>
+            </div>
+            @if (o.paymentMethod) {
+              <div class="buyer-row">
+                <span class="muted">الدفع:</span>
+                <span>{{ o.paymentMethod }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="order-card__divider"></div>
+
+          <div class="order-card__lines-head">
+            <span>المنتجات</span>
+            <span>{{ o.items.length }} سلعة</span>
+          </div>
+
+          <div class="order-lines">
+            @for (it of o.items; track it.adId + '-' + $index) {
+              <div class="product-detail-card" role="group">
+                <p class="pdc-desc">{{ productLineDescription(it) }}</p>
+                <div class="pdc-grid">
+                  <div class="pdc-cell">
+                    <span class="pdc-k">البائع</span>
+                    <span class="pdc-v">{{ it.sellerName || '—' }}</span>
+                  </div>
+                  <div class="pdc-cell">
+                    <span class="pdc-k">السعر</span>
+                    <span class="pdc-v pdc-price">{{ it.unitPrice | number : '1.0-2' }} ج.م</span>
+                  </div>
+                  <div class="pdc-cell">
+                    <span class="pdc-k">مدينة البائع</span>
+                    <span class="pdc-v pdc-city" dir="auto">{{ it.locationLabel || '—' }}</span>
+                  </div>
+                  <div class="pdc-cell">
+                    <span class="pdc-k">حالة المنتج</span>
+                    <span class="pdc-v">{{ it.condition }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="order-card__totals">
+            <div class="total-row">
+              <span>إجمالي المنتجات</span>
+              <span>{{ o.itemsTotal | number : '1.0-2' }} ج.م</span>
+            </div>
+            <div class="total-row">
+              <span>التوصيل</span>
+              <span>{{ o.deliveryFee | number : '1.0-2' }} ج.م</span>
+            </div>
+            <div class="total-row grand">
+              <span>الإجمالي الكلي</span>
+              <span>{{ o.grandTotal | number : '1.0-2' }} ج.م</span>
+            </div>
+          </div>
+
+          <div class="order-card__actions">
+            <ion-button
+              fill="outline"
+              size="small"
+              class="btn-edit"
+              [disabled]="!canEditOrder(o)"
+              (click)="editOrder(o)"
+            >
+              <ion-icon slot="start" name="create-outline" aria-hidden="true"></ion-icon>
+              تعديل
+            </ion-button>
+            <ion-button
+              fill="outline"
+              color="danger"
+              size="small"
+              class="btn-del"
+              [disabled]="!canDeleteOrder(o)"
+              (click)="deleteOrderPermanently(o)"
+            >
+              <ion-icon slot="start" name="trash-outline" aria-hidden="true"></ion-icon>
+              حذف
+            </ion-button>
+          </div>
+
+          @if (o.status === 'reject') {
+            <ion-button
+              expand="block"
+              class="wa-cta"
+              type="button"
+              (click)="openAdminWhatsapp(o)"
+            >
+              <ion-icon slot="start" name="logo-whatsapp" aria-hidden="true"></ion-icon>
+              تواصل مع الإدارة
+            </ion-button>
+          }
+        </article>
+      }
+    </section>
+  }
+
+  @if (hasItems()) {
+    <div class="cart-basket-block">
+      <div class="basket-toolbar">
+        <h2 class="section-title cart-basket-title">سلة المشتريات</h2>
+        <ion-button fill="clear" color="medium" size="small" (click)="clearAll(); $event.stopPropagation()">
+          إفراغ العربة
+        </ion-button>
+      </div>
+
+      <ion-list #cartListEl lines="none" class="cart-list">
+        @for (row of lines(); track row.lineId) {
+          <ion-item-sliding class="cart-slide">
+            <ion-item class="cart-line cart-line--compact" lines="none">
+              <ion-label class="cart-line-label-only">
+                <div class="product-detail-card cart-product-card">
+                  <p class="pdc-desc">{{ productLineDescription(row) }}</p>
+                  <div class="pdc-grid">
+                    <div class="pdc-cell">
+                      <span class="pdc-k">البائع</span>
+                      <span class="pdc-v">{{ row.sellerName || '—' }}</span>
+                    </div>
+                    <div class="pdc-cell">
+                      <span class="pdc-k">السعر</span>
+                      <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
+                    </div>
+                    <div class="pdc-cell">
+                      <span class="pdc-k">مدينة البائع</span>
+                      <span class="pdc-v pdc-city" dir="auto">{{ row.locationLabel || '—' }}</span>
+                    </div>
+                    <div class="pdc-cell">
+                      <span class="pdc-k">حالة المنتج</span>
+                      <span class="pdc-v">{{ row.condition }}</span>
+                    </div>
+                  </div>
+                </div>
+              </ion-label>
+            </ion-item>
+            <ion-item-options side="start">
+              <ion-item-option color="danger" (click)="remove(row.lineId)">حذف</ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        }
+      </ion-list>
+
+      <div class="cart-summary">
+        <div class="row">
+          <span>عدد السلع</span>
+          <span>{{ count() }}</span>
+        </div>
+        <div class="row total">
+          <span>إجمالي المشتريات</span>
+          <span>{{ total() | number : '1.0-2' }} ج.م</span>
+        </div>
+        <ion-button expand="block" class="cta" shape="round" (click)="goToCheckout()">
+          متابعة لإتمام عملية الشراء ( {{ count() }} )
+        </ion-button>
+      </div>
+    </div>
+  }
+
+  @if (!hasItems() && !hasOrders()) {
+    <div class="cart-empty" role="status">
+      <ion-icon name="bag-outline" aria-hidden="true"></ion-icon>
+      <p class="cart-empty-title">العربة فارغة</p>
+      <p class="cart-empty-hint">
+        أضف منتجات من الأسعار المتاحة، ثم ارجع هنا لمتابعة الطلب.
+      </p>
+      <ion-button expand="block" fill="outline" type="button" (click)="goToHome()">
+        تصفّح الرئيسية
+      </ion-button>
+    </div>
+  } @else if (!hasItems() && hasOrders()) {
+    <div class="basket-muted-hint" role="note">
+      <ion-icon name="bag-outline" aria-hidden="true"></ion-icon>
+      <p>
+        العربة فارغة حالياً. يمكنك إضافة منتجات جديدة من الرئيسية، أو متابعة حالة الطلبات أعلاه.
+      </p>
+      <ion-button expand="block" fill="outline" size="small" type="button" (click)="goToHome()">
+        تصفّح وإضافة منتجات
+      </ion-button>
+    </div>
+  }
+</ion-content>

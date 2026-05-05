@@ -1,1 +1,31 @@
 @use '../shared/home-premium-card';
+
+.product-add-cart-shell {
+  padding: 4px 10px 12px;
+}
+
+.product-add-cart-shell ion-button.btn-add-cart {
+  --border-radius: 999px;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-size: 0.82rem;
+  min-height: 38px;
+
+  &::part(native) {
+    justify-content: center;
+  }
+
+  /**
+   * نفس المظهر لكل حالات التعطيل: لا سعر صالح، أو تعطيل العربة من الأدمن —
+   * بهتان، بدون تموّج، وبدون استقبال نقر
+   */
+  &[disabled],
+  &[aria-disabled='true'] {
+    opacity: 0.42;
+    filter: saturate(0.75);
+    --ripple-color: transparent;
+    pointer-events: none;
+    cursor: default;
+  }
+}

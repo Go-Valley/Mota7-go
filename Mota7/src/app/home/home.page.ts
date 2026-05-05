@@ -3,8 +3,22 @@ import { NavigationEnd, Router } from '@angular/router';
 import { IonicModule, Platform, AlertController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
-import { Firestore, collection, collectionData, query, orderBy, where, getDocs, limit, startAfter } from '@angular/fire/firestore';
-import type { QueryConstraint } from 'firebase/firestore';
+import {
+  Firestore,
+  collection,
+  collectionData,
+  doc,
+  getDoc,
+  query,
+  orderBy,
+  where,
+  getDocs,
+  limit,
+  startAfter,
+} from '@angular/fire/firestore';
+import { Auth } from '@angular/fire/auth';
+import type { QueryConstraint, QueryDocumentSnapshot, QuerySnapshot } from 'firebase/firestore';
+import { documentId, Timestamp } from 'firebase/firestore';
 import { Observable, of, Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { map, catchError, filter, startWith } from 'rxjs/operators';
@@ -41,6 +55,10 @@ import { STORES_CATEGORIES_DATA } from '../core/constants/stores-data';
 import { AppTaxonomyService } from '../core/services/app-taxonomy.service';
 import { resolveTaxonomyIcon } from '../core/utils/taxonomy-icon.util';
 import { FirestoreCacheService } from '../core/services/firestore-cache.service';
+import { HomeAdsRealtimeService } from '../core/services/home-ads-realtime.service';
+import { normalizeProfileCityToShoppingCheckout } from '../core/utils/shopping-checkout-buyer-storage.util';
+import { normalizeAdTypeValue } from '../core/utils/duplicate-ad.util';
+import { computeHighWaterMsFromAds, createdAtMsForSort } from '../core/utils/ad-sync-ms.util';
 
 @Component({
   selector: 'app-home',
@@ -68,6 +86,8 @@ export class HomePage implements OnInit, OnDestroy {
   private alertCtrl = inject(AlertController);
   private taxonomy = inject(AppTaxonomyService);
   private fCache = inject(FirestoreCacheService);
+  private homeAdsRt = inject(HomeAdsRealtimeService);
+  private auth = inject(Auth);
   private taxonomySub?: Subscription;
 
   /** لا نعيد تصفير الصفحة إذا رجع المستخدم من صفحة تفاصيل المتجر حتى يعود لقسم المتاجر بنفس حالته. */
@@ -78,6 +98,7 @@ export class HomePage implements OnInit, OnDestroy {
   ionViewWillEnter() {
     if (this.preserveNextViewEnter) {
       this.preserveNextViewEnter = false;
+      this.ensureRealtimeIfSectionOpen();
       return;
     }
     this.backToHome(); // سيقوم بتصفير الحالة كلما دخلت الصفحة من التابس
@@ -127,6 +148,8 @@ export class HomePage implements OnInit, OnDestroy {
   // --- متغيرات زر المدينة ---
   showCityPopover: boolean = false;
   selectedCityLabel: string = 'الكل';
+  /** إذا اختار المستخدم المدينة من الزر لا نفرض مدينة الحساب مرة ثانية قبل الرجوع للواجهة الرئيسية. */
+  private cityChosenExplicitSinceHub = false;
   deliveryCategories = DELIVERY_CATEGORY.items;
   selectedDeliveryCategory: string = 'all';
   educationStages = EDUCATION_CATEGORY.items;
@@ -154,8 +177,9 @@ export class HomePage implements OnInit, OnDestroy {
   /** تخزين مؤقت للإعلانات المصفّاة (نوع + مدينة) لتفادي إعادة الجلب عند تغيير التاب الفرعي فقط */
   private tabCountsPoolCache: { adType: string; cityLabel: string; pool: any[] } | null = null;
 
-  /** رسالة عند الاعتماد الكامل على الثوابت (فشل جلب التصنيفات من Firestore) */
-  taxonomyLoadWarning: string | null = null;
+  /** مزامنة كاملة دورية — الإعلانات المحذوفة من السحابة لا تصل عبر الدلتا */
+  private readonly homeAdsFullSyncIntervalMs = 7 * 24 * 60 * 60 * 1000;
+
   constructor() {
     addIcons({ 
       'car': car, 'school': school, 'construct': construct, 
@@ -186,6 +210,7 @@ export class HomePage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.taxonomySub?.unsubscribe();
     this.routerEventsSub?.unsubscribe();
+    this.homeAdsRt.stop();
   }
 
   ngOnInit() {
@@ -195,12 +220,6 @@ export class HomePage implements OnInit, OnDestroy {
       this.otherServices = b.otherItems;
       this.productCategories = b.productItems;
       this.storeTypes = b.storeItems;
-      if (!b.loadedFromFirebase) {
-        this.taxonomyLoadWarning =
-          'اهلأ بيك على "مُتاح"';
-      } else {
-        this.taxonomyLoadWarning = null;
-      }
       const stage = this.educationStages.find((s: any) => s.id === this.selectedEducationStage);
       if (this.selectedEducationStage !== 'all') {
         this.educationSubjects = stage?.subjects || [];
@@ -258,6 +277,31 @@ export class HomePage implements OnInit, OnDestroy {
 
     // معالجة زر الرجوع في الموبايل
     this.setupBackButtonHandler();
+
+    /** تسخين كاش الأقسام في الخلفية بعد فتح التطبيق — لا يعطل الواجهة */
+    setTimeout(() => void this.warmAdsCachesInBackground(), 1800);
+  }
+
+  /**
+   * جلب كل أنواع الإعلانات وتخزينها محلياً بينما المستخدم على الشبكة الرئيسية،
+   * فيفتح القسم بسرعة دون «فراغ» مؤقت.
+   */
+  private async warmAdsCachesInBackground(): Promise<void> {
+    if (this.selectedCategory) {
+      return;
+    }
+    const types = ['delivery', 'education', 'other', 'product', 'store'] as const;
+    for (const t of types) {
+      const cacheKey = FirestoreCacheService.adsListCacheKey(t);
+      if (this.fCache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.ADS_LIST)) {
+        continue;
+      }
+      try {
+        await this.syncAdsFromNetwork(t);
+      } catch (e) {
+        console.warn('[home] warm ads cache:', t, e);
+      }
+    }
   }
 
   // --- دوال زر المدينة ---
@@ -270,6 +314,7 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   selectCity(city: string) {
+    this.cityChosenExplicitSinceHub = true;
     this.selectedCityLabel = city;
     this.showCityPopover = false;
     // مسح الكاش لإجبار إعادة الجلب من الخادم لمدينة جديدة
@@ -326,14 +371,50 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   openService(service: any) {
+    const enteringFromHub = !this.selectedCategory;
     this.selectedCategory = typeof service === 'string' ? service : (service.id || service.nameAr);
     this.selectedCategoryName = typeof service === 'string' ? this.getStaticName(service) : service.nameAr;
     this.resetFilters();
-    
+
     if (this.selectedCategoryName === 'نقل وتوصيل' || this.selectedCategory === 'transportation') {
       this.selectedCategory = 'transportation';
     }
-    this.loadAdsForCategory(this.selectedCategory);
+    void this.openCategoryWithOptionalCityHydrate(this.selectedCategory, enteringFromHub);
+  }
+
+  /**
+   * عند أول دخول من شبكة الأقسام: ربط فلتر المدينة بحقل city في ملف تعريف المستخدم (خارجة/داخلة) إن وجد،
+   * ثم تحميل الإعلانات حتى يتطابق نص الزر مع الفلترة.
+   */
+  private async openCategoryWithOptionalCityHydrate(
+    categoryId: string | null,
+    enteringFromHub: boolean
+  ): Promise<void> {
+    if (!categoryId) return;
+    if (enteringFromHub && !this.cityChosenExplicitSinceHub && this.selectedCityLabel === 'الكل') {
+      await this.tryApplyLoggedInUserCityFilter();
+    }
+    this.loadAdsForCategory(categoryId);
+  }
+
+  private async tryApplyLoggedInUserCityFilter(): Promise<void> {
+    try {
+      const u = this.auth.currentUser;
+      const email = u?.email ?? '';
+      if (!email.includes('@')) return;
+      const key = email.split('@')[0];
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'users', key))
+      );
+      if (!snap.exists()) return;
+      const d = snap.data() as Record<string, unknown>;
+      const canon = normalizeProfileCityToShoppingCheckout(d['city']);
+      if (canon !== 'الخارجة' && canon !== 'الداخلة') return;
+      this.selectedCityLabel = canon;
+      this.tabCountsPoolCache = null;
+    } catch {
+      /* ignore */
+    }
   }
 
   private resetFilters() {
@@ -358,22 +439,24 @@ export class HomePage implements OnInit, OnDestroy {
     else if (categoryId === 'products') adType = 'product';
     else if (categoryId === 'stores_types') adType = 'store';
 
-    // إعادة ضبط الحالة للتحميل الأول
+    // إعادة ضبط الحالة للتحميل الأول — نفترض التحميل حتى يقرر الكاش/الشبكة خلاف ذلك
     this.adsList = [];
     this.lastVisible = null;
     this.hasMore = true;
-    this.isLoadingPage = false;
+    this.isLoadingPage = true;
 
     // refreshSectionTabCounts سيقوم بجلب البيانات وتحديث adsList داخلياً
     void this.refreshSectionTabCounts();
   }
 
   backToHome() {
+    this.homeAdsRt.stop();
     this.selectedCategory = null;
     this.selectedCategoryName = '';
     this.resetFilters();
     this.filteredAds$ = undefined;
     this.selectedCityLabel = 'الكل';
+    this.cityChosenExplicitSinceHub = false;
     this.showCityPopover = false;
     this.clearSearch();
     this.tabCountsPoolCache = null;
@@ -514,18 +597,67 @@ export class HomePage implements OnInit, OnDestroy {
       .trim();
   }
 
-  private isCityMatch(adCity: any): boolean {
-    if (this.selectedCityLabel === 'الكل') return true;
+  private canonFromShownCityLabel(label: string): 'الخارجة' | 'الداخلة' | null {
+    if (label === 'الكل') return null;
+    const c = normalizeProfileCityToShoppingCheckout(label);
+    return c === 'الخارجة' || c === 'الداخلة' ? c : null;
+  }
+
+  /** مصادر نص المدينة للإعلان (للمنتجات: الحقل الرئيسي + موقع السلعة في التفاصيل إن وجد) */
+  private adCityFieldSources(ad: any): string[] {
+    const chunks: string[] = [];
+    if (typeof ad?.city === 'string' && ad.city.trim()) {
+      chunks.push(ad.city.trim());
+    }
+    if (ad?.details && typeof ad.details === 'object') {
+      const loc = (ad.details as Record<string, unknown>)['location'];
+      if (typeof loc === 'string' && loc.trim()) {
+        chunks.push(loc.trim());
+      }
+    }
+    return chunks;
+  }
+
+  private adSellerCityCanon(ad: any): 'الخارجة' | 'الداخلة' | null {
+    const parts = this.adCityFieldSources(ad);
+    if (!parts.length) return null;
+    const mergedCanon = normalizeProfileCityToShoppingCheckout(parts.join(' '));
+    if (mergedCanon === 'الخارجة' || mergedCanon === 'الداخلة') {
+      return mergedCanon;
+    }
+    for (const p of parts) {
+      const c = normalizeProfileCityToShoppingCheckout(p);
+      if (c === 'الخارجة' || c === 'الداخلة') return c;
+    }
+    return null;
+  }
+
+  /** تطابق نصّي قديم عند تعذّر تصنيف المدينة صراحةً إلى خارجة/داخلة */
+  private isCityMatchLegacyFreeText(adCity: any): boolean {
     const selected = this.normalizeCity(this.selectedCityLabel);
-    const ad = this.normalizeCity(adCity);
+    const adNorm = this.normalizeCity(adCity);
     if (!selected) return true;
-    if (!ad) return false;
-    return ad === selected || ad.includes(selected) || selected.includes(ad);
+    if (!adNorm) return false;
+    return adNorm === selected || adNorm.includes(selected) || selected.includes(adNorm);
+  }
+
+  private isCityMatchAd(ad: any): boolean {
+    if (this.selectedCityLabel === 'الكل') return true;
+    const want = this.canonFromShownCityLabel(this.selectedCityLabel);
+    const got = this.adSellerCityCanon(ad);
+    if (want !== null && got !== null) {
+      return want === got;
+    }
+    /** إعلان بلا مدينة مصنّفة صراحةً: نعرضه مع أي مدينة لتفادي إخفاء القسم بالكامل */
+    if (want !== null && got === null) {
+      return true;
+    }
+    return this.isCityMatchLegacyFreeText(ad?.city ?? '');
   }
 
   /** نفس شروط العرض في القائمة: مفعل + المدينة المختارة */
   private passesBaseHomeFilters(ad: any): boolean {
-    return ad?.status === 'active' && this.isCityMatch(ad.city);
+    return ad?.status === 'active' && this.isCityMatchAd(ad);
   }
 
   private mapCategoryToAdType(categoryId: string): string | null {
@@ -545,34 +677,255 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * قيم `ad_type` في Firestore قديمة أو حديثة — نجلب كل المتحقق منها ثم نوحّدها للواجهة.
+   * نستخدم orderBy(documentId()) وليس created_at حتى لا تُستبعد مستندات بلا حقل created_at.
+   */
+  private firestoreAdTypeVariants(logicalType: string): string[] {
+    switch (logicalType) {
+      case 'other':
+        return ['other', 'other_services'];
+      case 'store':
+        return ['store', 'stores', 'shop'];
+      default:
+        return [logicalType];
+    }
+  }
+
+  private normalizeFetchedAdRow(d: { id: string; data: () => Record<string, unknown> }): any {
+    const raw = Object.assign({ id: d.id }, d.data() || {}) as Record<string, unknown>;
+    raw['ad_type'] = normalizeAdTypeValue(raw['ad_type']);
+    return raw;
+  }
+
+  /** كل من where/orderBy/Timestamp/query/collection/getDocs يُراقَب من Angular Fire — تنفيذ الدفعة داخل السياق. */
+  private getAdsDocsSnap(buildConstraints: () => QueryConstraint[]): Promise<QuerySnapshot> {
+    return runInInjectionContext(this.injector, () =>
+      getDocs(query(collection(this.firestore, 'ads'), ...buildConstraints()))
+    );
+  }
+
+  /** توحيد نوع الإعلان من الكاش المحلي (بعد ترقية التطبيق أو بيانات قديمة) */
+  private withNormalizedAdType(ad: any): any {
+    if (!ad || typeof ad !== 'object') {
+      return ad;
+    }
+    return { ...ad, ad_type: normalizeAdTypeValue(ad.ad_type) };
+  }
+
   private async fetchAllRawAdsByType(adType: string): Promise<any[]> {
-    const all: any[] = [];
-    let lastVisible: any = null;
-    const pageSize = 300;
-    await runInInjectionContext(this.injector, async () => {
-      const adsRef = collection(this.firestore, 'ads');
+    const variants = this.firestoreAdTypeVariants(adType);
+    const byId = new Map<string, any>();
+    const pageSize = 400;
+    for (const variant of variants) {
+      let lastVisible: any = null;
       for (;;) {
-        const qBase = query(
-          adsRef,
-          where('ad_type', '==', adType),
-          orderBy('created_at', 'desc'),
-          limit(pageSize)
-        );
-        const qFinal = lastVisible ? query(qBase, startAfter(lastVisible)) : qBase;
-        const snap = await getDocs(qFinal);
+        const snap = await this.getAdsDocsSnap(() => {
+          const constraints: QueryConstraint[] = [
+            where('ad_type', '==', variant),
+            orderBy(documentId()),
+            limit(pageSize),
+          ];
+          if (lastVisible) {
+            constraints.push(startAfter(lastVisible));
+          }
+          return constraints;
+        });
         if (snap.empty) {
           break;
         }
         for (const d of snap.docs) {
-          all.push(Object.assign({ id: d.id }, d.data() || {}));
+          byId.set(d.id, this.normalizeFetchedAdRow(d));
         }
         if (snap.docs.length < pageSize) {
           break;
         }
         lastVisible = snap.docs[snap.docs.length - 1];
       }
+    }
+    return Array.from(byId.values()).sort(
+      (a, b) => createdAtMsForSort(b) - createdAtMsForSort(a)
+    );
+  }
+
+  private mergeAdsById(base: any[], deltaRows: any[]): any[] {
+    const map = new Map<string, any>();
+    for (const a of base) {
+      const id = String(a?.id ?? a?.ad_id ?? '').trim();
+      if (id) map.set(id, a);
+    }
+    for (const u of deltaRows) {
+      const id = String(u?.id ?? u?.ad_id ?? '').trim();
+      if (id) map.set(id, u);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => createdAtMsForSort(b) - createdAtMsForSort(a)
+    );
+  }
+
+  /**
+   * إعلانات غيّرت على السحابة بعد highWaterMs (حقول updated_at فعلياً).
+   * قراءات Firestore = عدد المستندات المُرجعة فقط (+ صفحات الترقيم).
+   */
+  private async fetchDeltaRawAdsByType(adType: string, sinceMs: number): Promise<any[]> {
+    if (sinceMs <= 0) {
+      return [];
+    }
+    const variants = this.firestoreAdTypeVariants(adType);
+    const merged = new Map<string, any>();
+    const pageSize = 300;
+    for (const variant of variants) {
+      let lastDoc: QueryDocumentSnapshot | undefined;
+      for (;;) {
+        const snap = await this.getAdsDocsSnap(() => {
+          const sinceTs = Timestamp.fromMillis(sinceMs);
+          const constraints: QueryConstraint[] = [
+            where('ad_type', '==', variant),
+            where('updated_at', '>', sinceTs),
+            orderBy('updated_at'),
+            orderBy(documentId()),
+            limit(pageSize),
+          ];
+          if (lastDoc) {
+            constraints.push(startAfter(lastDoc));
+          }
+          return constraints;
+        });
+        if (snap.empty) {
+          break;
+        }
+        for (const d of snap.docs) {
+          merged.set(d.id, this.normalizeFetchedAdRow(d));
+        }
+        if (snap.docs.length < pageSize) {
+          break;
+        }
+        lastDoc = snap.docs[snap.docs.length - 1] as QueryDocumentSnapshot;
+      }
+    }
+    return Array.from(merged.values());
+  }
+
+  private async fullSyncAndPersistAds(adType: string): Promise<any[]> {
+    const raw = await this.fetchAllRawAdsByType(adType);
+    const cacheKey = FirestoreCacheService.adsListCacheKey(adType);
+    this.fCache.set(cacheKey, raw);
+    this.fCache.setHomeAdsSyncMeta(adType, {
+      highWaterMs: computeHighWaterMsFromAds(raw),
+      lastFullSyncMs: Date.now(),
     });
-    return all;
+    return raw;
+  }
+
+  /**
+   * مزامنة ذكية: دلتا بـ updated_at إن وُجدت ميتا صالحة، وإلا جلب كامل.
+   * مزامنة كاملة تُفرض دورياً (أسبوع) أو عند فشل الدلتا/نقص الميتا.
+   */
+  private async syncAdsFromNetwork(adType: string): Promise<any[]> {
+    const cacheKey = FirestoreCacheService.adsListCacheKey(adType);
+    const cached = this.fCache.get<any[]>(cacheKey) ?? [];
+    let meta = this.fCache.getHomeAdsSyncMeta(adType);
+
+    /** ترقية من إصدارات قديمة: كاش إعلانات بدون ملف ميتا */
+    if (!meta && cached.length > 0) {
+      const hw = computeHighWaterMsFromAds(cached.map((a) => this.withNormalizedAdType(a)));
+      if (hw > 0) {
+        meta = {
+          highWaterMs: hw,
+          lastFullSyncMs: this.fCache.getTimestamp(cacheKey) ?? Date.now(),
+        };
+        this.fCache.setHomeAdsSyncMeta(adType, meta);
+      }
+    }
+
+    if (cached.length === 0) {
+      return await this.fullSyncAndPersistAds(adType);
+    }
+    if (
+      !meta ||
+      meta.highWaterMs <= 0 ||
+      Date.now() - meta.lastFullSyncMs > this.homeAdsFullSyncIntervalMs
+    ) {
+      return await this.fullSyncAndPersistAds(adType);
+    }
+
+    const metaFixed = meta;
+
+    try {
+      const delta = await this.fetchDeltaRawAdsByType(adType, metaFixed.highWaterMs);
+      if (delta.length === 0) {
+        return cached;
+      }
+      const merged = this.mergeAdsById(cached, delta);
+      const hw = computeHighWaterMsFromAds(merged);
+      this.fCache.set(cacheKey, merged);
+      this.fCache.setHomeAdsSyncMeta(adType, {
+        highWaterMs: hw,
+        lastFullSyncMs: metaFixed.lastFullSyncMs,
+      });
+      return merged;
+    } catch (e) {
+      console.warn('[home] delta sync failed, full sync:', adType, e);
+      return await this.fullSyncAndPersistAds(adType);
+    }
+  }
+
+  /** تطبيق نتيجة الاستماع اللحظي على الكاش المعروض (بعد فلترة المدينة/النشاط). */
+  private applyRealtimeSnapshot(adType: string, raw: any[]): void {
+    const cat = this.selectedCategory;
+    if (!cat || this.mapCategoryToAdType(cat) !== adType) {
+      return;
+    }
+    const cityLabel = this.selectedCityLabel;
+    const pool = raw
+      .map((ad) => slimAdForHomeFeed(this.withNormalizedAdType(ad), adType))
+      .filter((ad) => this.passesBaseHomeFilters(ad));
+    this.tabCountsPoolCache = { adType, cityLabel, pool };
+    this.applyTabCountsForCategory(cat, pool);
+    this.syncAdsListWithPool();
+    this.isLoadingPage = false;
+  }
+
+  /**
+   * استماع لحظي لنوع الإعلان: إضافة / تعديل / حذف تنعكس على الكارتات فوراً.
+   * عند فشل الاستماع يُستخدم syncAdsFromNetwork احتياطياً.
+   */
+  private ensureRealtimeForSection(adType: string): void {
+    const reqId = ++this.tabCountsRequestId;
+    this.homeAdsRt.start(
+      adType,
+      (raw) => {
+        if (reqId !== this.tabCountsRequestId) {
+          return;
+        }
+        if (this.mapCategoryToAdType(this.selectedCategory ?? '') !== adType) {
+          return;
+        }
+        this.applyRealtimeSnapshot(adType, raw);
+      },
+      async () => {
+        try {
+          const raw = await this.syncAdsFromNetwork(adType);
+          if (reqId !== this.tabCountsRequestId) {
+            return;
+          }
+          if (this.mapCategoryToAdType(this.selectedCategory ?? '') !== adType) {
+            return;
+          }
+          this.applyRealtimeSnapshot(adType, raw);
+        } catch (e) {
+          console.error('[home] realtime fallback sync', e);
+          this.isLoadingPage = false;
+        }
+      }
+    );
+  }
+
+  private ensureRealtimeIfSectionOpen(): void {
+    const adType = this.mapCategoryToAdType(this.selectedCategory ?? '');
+    if (adType) {
+      this.ensureRealtimeForSection(adType);
+    }
   }
 
   private applyTabCountsForCategory(cat: string, pool: any[]): void {
@@ -641,10 +994,12 @@ export class HomePage implements OnInit, OnDestroy {
   private async refreshSectionTabCounts(): Promise<void> {
     const cat = this.selectedCategory;
     if (!cat) {
+      this.isLoadingPage = false;
       return;
     }
     const adType = this.mapCategoryToAdType(cat);
     if (!adType) {
+      this.isLoadingPage = false;
       return;
     }
 
@@ -653,89 +1008,45 @@ export class HomePage implements OnInit, OnDestroy {
     if (memCache && memCache.adType === adType && memCache.cityLabel === cityLabel) {
       this.applyTabCountsForCategory(cat, memCache.pool);
       this.syncAdsListWithPool();
+      this.isLoadingPage = false;
+      this.ensureRealtimeForSection(adType);
       return;
     }
 
-    const cacheKey = FirestoreCacheService.KEYS.ADS_PREFIX + adType;
+    const cacheKey = FirestoreCacheService.adsListCacheKey(adType);
     const cached = this.fCache.get<any[]>(cacheKey);
     const isFresh = this.fCache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.ADS_LIST);
 
-    // إذا الكاش طازج (< 5 دقائق) → اعرضه فقط بدون جلب من الشبكة
-    if (isFresh && cached && Array.isArray(cached)) {
-      const pool = cached
-        .map(ad => slimAdForHomeFeed(ad, adType))
+    const poolFromCachedRows = (rows: any[]): any[] =>
+      rows
+        .map((ad) => slimAdForHomeFeed(this.withNormalizedAdType(ad), adType))
         .filter((ad) => this.passesBaseHomeFilters(ad));
+
+    // إذا الكاش طازج (< 5 دقائق) → اعرض من الجهاز ثم إبقاء الاستماع اللحظي نشطاً
+    if (isFresh && cached && Array.isArray(cached) && cached.length > 0) {
+      const pool = poolFromCachedRows(cached);
       this.tabCountsPoolCache = { adType, cityLabel, pool };
       this.applyTabCountsForCategory(cat, pool);
       this.syncAdsListWithPool();
-      return;
-    }
-
-    // إذا الكاش موجود لكن قديم → اعرضه فوراً ثم حدّث في الخلفية (SWR)
-    if (cached && Array.isArray(cached)) {
-      const pool = cached
-        .map(ad => slimAdForHomeFeed(ad, adType))
-        .filter((ad) => this.passesBaseHomeFilters(ad));
-      this.tabCountsPoolCache = { adType, cityLabel, pool };
-      this.applyTabCountsForCategory(cat, pool);
-      this.syncAdsListWithPool();
-      // جلب في الخلفية بدون إظهار loading
-      void this.backgroundRefreshAds(cat, adType, cityLabel, cacheKey);
-      return;
-    }
-
-    // لا يوجد كاش → جلب من الشبكة مع loading
-    const reqId = ++this.tabCountsRequestId;
-    try {
-      this.isLoadingPage = true;
-      const raw = await this.fetchAllRawAdsByType(adType);
-      this.fCache.set(cacheKey, raw);
-
-      if (reqId !== this.tabCountsRequestId) {
-        return;
-      }
-      const pool = raw
-        .map(ad => slimAdForHomeFeed(ad, adType))
-        .filter((ad) => this.passesBaseHomeFilters(ad));
-        
-      this.tabCountsPoolCache = { adType, cityLabel, pool };
-      this.applyTabCountsForCategory(cat, pool);
-      this.syncAdsListWithPool();
-    } catch (e) {
-      console.error('refreshSectionTabCounts', e);
-    } finally {
       this.isLoadingPage = false;
+      this.ensureRealtimeForSection(adType);
+      return;
     }
-  }
 
-  /** جلب الإعلانات في الخلفية وتحديث العرض عند الوصول (SWR) */
-  private async backgroundRefreshAds(
-    cat: string,
-    adType: string,
-    cityLabel: string,
-    cacheKey: string
-  ): Promise<void> {
-    const reqId = ++this.tabCountsRequestId;
-    try {
-      const raw = await this.fetchAllRawAdsByType(adType);
-      this.fCache.set(cacheKey, raw);
-
-      // تأكد أن المستخدم لم يغيّر القسم أثناء الجلب
-      if (reqId !== this.tabCountsRequestId || this.selectedCategory !== cat) {
-        return;
-      }
-
-      const pool = raw
-        .map(ad => slimAdForHomeFeed(ad, adType))
-        .filter((ad) => this.passesBaseHomeFilters(ad));
-
+    // كاش قديم: عرض فوري من الجهاز ثم يحدث الـ snapshot التالي من الشبكة
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const pool = poolFromCachedRows(cached);
       this.tabCountsPoolCache = { adType, cityLabel, pool };
       this.applyTabCountsForCategory(cat, pool);
       this.syncAdsListWithPool();
-    } catch (e) {
-      // فشل التحديث في الخلفية — نتجاهل لأن المستخدم يرى الكاش القديم
-      console.warn('backgroundRefreshAds failed:', e);
+      this.isLoadingPage = false;
+      this.ensureRealtimeForSection(adType);
+      return;
     }
+
+    // لا كاش: انتظار أول snapshot من الاستماع (أو الرجوع الاحتياطي)
+    this.isLoadingPage = true;
+    this.ensureRealtimeForSection(adType);
   }
 
   /**
@@ -1026,7 +1337,7 @@ export class HomePage implements OnInit, OnDestroy {
         ? this.searchQueryTokens
         : this.tokenizeText(this.searchText);
       const scored = pageAds
-        .filter((ad: any) => ad.status === 'active' && this.isCityMatch(ad.city))
+        .filter((ad: any) => ad.status === 'active' && this.isCityMatchAd(ad))
         .map((ad: any) => ({ ad, score: this.computeAdSearchScore(ad, queryTokens) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
@@ -1059,8 +1370,14 @@ export class HomePage implements OnInit, OnDestroy {
 
   // دالة معالجة سحب الشاشة لأسفل لعمل refresh
   async handleRefresh(event: any) {
-    this.tabCountsPoolCache = null; // مسح الكاش لإجبار إعادة التحميل من الخادم
+    this.tabCountsPoolCache = null;
     if (this.selectedCategory) {
+      const adType = this.mapCategoryToAdType(this.selectedCategory);
+      if (adType) {
+        this.homeAdsRt.stop();
+        this.fCache.remove(FirestoreCacheService.adsListCacheKey(adType));
+        this.fCache.removeHomeAdsSyncMeta(adType);
+      }
       await this.refreshSectionTabCounts();
     } else if (this.searchText.length >= 2) {
       await this.loadSearchResults();
@@ -1128,7 +1445,7 @@ export class HomePage implements OnInit, OnDestroy {
         slimAdForHomeFeed(Object.assign({ id: d.id }, d.data() || {}), adType)
       );
       const filtered = pageAds.filter(
-        (ad: any) => ad.status === 'active' && this.isCityMatch(ad.city)
+        (ad: any) => ad.status === 'active' && this.isCityMatchAd(ad)
       );
       const merged = [...this.adsList, ...filtered];
       this.adsList = sortHomeFeedAdsForDisplay(merged);

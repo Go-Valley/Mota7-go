@@ -478,6 +478,9 @@ async saveProduct(isStoreProduct: boolean = false) {
         })(),
       };
 
+      /** زر العربة معطّل حتى يفعّله الأدمن من لوحة «إعلان المنتج» بعد الموافقة. */
+      adPayload.cart_enabled = false;
+
       if (isStoreProduct && this.currentStore) {
         adPayload.storeId = this.currentStore.ad_id || this.currentStore.id;
         adPayload.storeName = this.currentStore.store_name || this.currentStore.storeName;

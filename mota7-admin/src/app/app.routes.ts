@@ -32,6 +32,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/adv/adv').then(m => m.AdvPage)
   },
   {
+    path: 'shopping-orders',
+    loadComponent: () =>
+      import('./pages/shopping-orders/shopping-orders.page').then((m) => m.ShoppingOrdersPage),
+  },
+  {
+    path: 'delivery-charges',
+    loadComponent: () =>
+      import('./pages/delivery-charges/delivery-charges.page').then((m) => m.DeliveryChargesPage),
+  },
+  {
     path: 'banners',
     loadComponent: () => import('./pages/banners/banners.page').then( m => m.BannersPage)
   },

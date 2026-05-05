@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
@@ -12,6 +12,9 @@ import { Analytics } from '@angular/fire/analytics';
 import { logEvent } from 'firebase/analytics';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
 import { cloudinaryListThumbnailUrl } from 'src/app/core/utils/cloudinary-list-image.util';
+import { CartService } from 'src/app/core/services/cart.service';
+import { productHasPurchasablePrice } from 'src/app/core/utils/price-parse.util';
+import { sellerCityLabelForProductAd } from 'src/app/core/utils/product-seller-location.util';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 
@@ -31,6 +34,8 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
   private analytics = inject(Analytics, { optional: true });
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
+  private cart = inject(CartService);
   displayName: string = 'جاري التحميل...';
   /** قيم محسوبة مرّة واحدة لتفادي إعادة الحساب في كل دورة كشف تغيّرات */
   thumbSrc: string = 'assets/mota7.png';
@@ -67,12 +72,61 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
   setDisplayName() {
     if (this.ad?.owner_name && this.ad.owner_name !== 'مستخدم متاح') {
       this.displayName = this.ad.owner_name;
-    } 
+    }
     else if (this.ad?.details?.owner_name && this.ad.details.owner_name !== 'مستخدم متاح') {
       this.displayName = this.ad.details.owner_name;
-    } 
+    }
     else {
       this.displayName = 'متاح';
+    }
+  }
+
+  get canPurchase(): boolean {
+    return !!(this.ad && productHasPurchasablePrice(this.ad.details));
+  }
+
+  /**
+   * العربة لا تُفعّل إلا لإعلان **active** وفيه تفعيل من الأدمن (`cart_enabled !== false`).
+   * إعلانات قيد المراجعة أو قبل تفعيل الأدمن تبقى الزرّ معطّلة.
+   */
+  get cartEnabledOnCard(): boolean {
+    if (!this.ad || String(this.ad.status ?? '') !== 'active') {
+      return false;
+    }
+    return this.ad.cart_enabled !== false;
+  }
+
+  get addToCartDisabled(): boolean {
+    return !this.canPurchase || !this.cartEnabledOnCard;
+  }
+
+  /** تلميح زر العربة المعطّل */
+  get addToCartTooltip(): string {
+    if (!this.addToCartDisabled || !this.canPurchase) {
+      return '';
+    }
+    if (String(this.ad?.status ?? '') !== 'active') {
+      return 'معطّل أثناء مراجعة الإعلان؛ يُفعَّل بعد الموافقة من الإدارة';
+    }
+    if (this.ad?.cart_enabled === false) {
+      return 'تم تعطيل الإضافة للعربة لهذا الإعلان — سيُفعّل من لوحة الإدارة عند الجاهزية';
+    }
+    return '';
+  }
+
+  get sellerCityDisplay(): string {
+    return sellerCityLabelForProductAd(this.ad);
+  }
+
+  addProductToCart(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.canPurchase || !this.cartEnabledOnCard) {
+      return;
+    }
+    const ok = this.cart.addProductAd(this.ad);
+    if (ok) {
+      this.cdr.markForCheck();
     }
   }
 

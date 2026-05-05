@@ -81,11 +81,6 @@
       <div class="underline" *ngIf="!selectedCategory"></div>
     </div>
 
-    <div class="taxonomy-fallback-banner" *ngIf="taxonomyLoadWarning && !selectedCategory" role="status">
-      <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-      <span>{{ taxonomyLoadWarning }}</span>
-    </div>
-
     <div class="delivery-tabs" *ngIf="selectedCategory === 'transportation'">
       <button type="button" class="delivery-tab" [class.active]="selectedDeliveryCategory === 'all'" (click)="selectDeliveryCategory('all')">الكل<span class="tab-count">({{ deliveryTabCounts['all'] ?? 0 }})</span></button>
       <button type="button" class="delivery-tab" *ngFor="let item of deliveryCategories; trackBy: trackByItemId" [class.active]="selectedDeliveryCategory === item.id" (click)="selectDeliveryCategory(item.id)">{{ item.nameAr }}<span class="tab-count">({{ deliveryTabCounts[item.id] ?? 0 }})</span></button>
@@ -197,6 +192,11 @@
     </div>
 
     <div class="ads-display-container" *ngIf="selectedCategory">
+      <div class="section-feed-loading" *ngIf="isLoadingPage && adsList.length === 0" role="status" aria-live="polite">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>جاري تحميل الإعلانات…</p>
+      </div>
+
       <ng-container *ngIf="selectedCategory === 'transportation'">
         <app-delivery-home-card 
           *ngFor="let ad of adsList; trackBy: trackByAdId" 
@@ -233,7 +233,7 @@
         </app-store-home-card>
       </ng-container>
 
-      <div class="empty-state" *ngIf="adsList.length === 0">
+      <div class="empty-state" *ngIf="!isLoadingPage && adsList.length === 0">
         <ion-icon name="alert-circle-outline"></ion-icon>
         <p>لا توجد إعلانات متاحة حالياً</p>
       </div>

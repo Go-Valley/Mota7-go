@@ -62,6 +62,8 @@ export function slimAdForHomeFeed(ad: any, adType: string): any {
       isStoreProduct: ad.isStoreProduct,
       impression_count: ad.impression_count,
       stats: ad.stats && typeof ad.stats === 'object' ? { views: ad.stats.views } : undefined,
+      /** لوحة الأدمن: تعطيل زر العربة على الكارت */
+      cart_enabled: ad.cart_enabled,
       details: slimProductDetails(ad.details),
       _feedSlim: true,
     };

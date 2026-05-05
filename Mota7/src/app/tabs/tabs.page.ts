@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  computed,
   inject,
   Injector,
   NgZone,
@@ -12,6 +13,7 @@ import {
   personOutline,
   homeOutline,
   addCircleOutline,
+  cartOutline,
   person,
   home,
   addCircle,
@@ -32,6 +34,7 @@ import { DeliveryServiceComponent } from '../my-order/delivery-service/delivery-
 import { EducationalServiceComponent } from '../my-order/educational-service/educational-service.component';
 import { OtherServiceComponent } from '../my-order/other-service/other-service.component';
 import { WtsappGroupLinkService } from '../core/services/wtsapp-group-link.service';
+import { CartService } from '../core/services/cart.service';
 
 @Component({
   selector: 'app-tabs',
@@ -47,6 +50,14 @@ export class TabsPage implements OnInit {
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
   private wtsappGroupLink = inject(WtsappGroupLinkService);
+  private cart = inject(CartService);
+
+  /** شارة عدد السلع على تبويب العربة */
+  readonly cartCount = this.cart.itemCount;
+  readonly cartBadgeText = computed(() => {
+    const n = this.cart.itemCount();
+    return n > 99 ? '99+' : String(n);
+  });
 
   isServiceModalOpen: boolean = false;
   isAppTutorialOpen = false;
@@ -61,6 +72,7 @@ export class TabsPage implements OnInit {
       'person-outline': personOutline,
       'home-outline': homeOutline,
       'add-circle-outline': addCircleOutline,
+      'cart-outline': cartOutline,
       person: person,
       home: home,
       'add-circle': addCircle,
