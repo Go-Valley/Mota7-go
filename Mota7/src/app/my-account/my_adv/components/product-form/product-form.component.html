@@ -82,7 +82,7 @@
             #inputPrice
             type="text"
             [ngModel]="priceInputStr"
-            (ngModelChange)="onProductPriceChange($event)"
+            (ionInput)="onProductPriceInput($event)"
             (keydown)="onProductPriceKeyDown($event)"
             placeholder="أرقام فقط">
           </ion-input>

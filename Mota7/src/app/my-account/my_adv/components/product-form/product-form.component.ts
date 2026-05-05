@@ -172,10 +172,37 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
+  /**
+   * تحويل الأرقام من أي شكل شائع (عربية، فارسية، هندية، بعرض كامل…) إلى 0-9،
+   * مع إزالة أحرف الاتجاه الخفيفة التي تسبب فشل التعرف على Android/WebView.
+   */
   private toEnglishDigits(value: unknown): string {
-    return String(value ?? '')
-      .replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 1632))
-      .replace(/[۰-۹]/g, (d: string) => String(d.charCodeAt(0) - 1776));
+    let s = String(value ?? '')
+      .replace(/[\u200B-\u200D\uFEFF\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '');
+    let out = '';
+    for (const ch of s) {
+      const cp = ch.codePointAt(0)!;
+      let d: number | null = null;
+      if (cp >= 0x0660 && cp <= 0x0669) {
+        d = cp - 0x0660;
+      } else if (cp >= 0x06f0 && cp <= 0x06f9) {
+        d = cp - 0x06f0;
+      } else if (cp >= 0xff10 && cp <= 0xff19) {
+        d = cp - 0xff10;
+      } else if (cp >= 0x0966 && cp <= 0x096f) {
+        d = cp - 0x0966;
+      } else if (cp >= 0x0ce6 && cp <= 0x0cef) {
+        d = cp - 0x0ce6;
+      } else if (cp >= 0x0be6 && cp <= 0x0bef) {
+        d = cp - 0x0be6;
+      }
+      if (d !== null) {
+        out += String(d);
+      } else {
+        out += ch;
+      }
+    }
+    return out;
   }
 
   /** اعتراض مفتاح غير رقمي — تحذير فوري (مثل سلوك الرقم 0). */
@@ -200,11 +227,19 @@ export class ProductFormComponent implements OnInit {
   }
 
   /**
+   * السعر: أرقام فقط؛ قراءة من الـ native input (مهم مع IME عربي / WebView)
+   * حتى لا تُعتبر الخانة فارغة بينما القيمة موجودة في الـ shadow DOM.
+   */
+  onProductPriceInput(ev: Event): void {
+    const raw = readIonTextInputValueFromEvent(ev);
+    this.applyProductPriceFromRaw(raw);
+  }
+
+  /**
    * السعر: أرقام فقط؛ عند أول حرف غير رقم تظهر رسالة فوراً ولا يُحتفظ بالحروف؛ لا يبدأ بـ 0.
    */
-  onProductPriceChange(val: string): void {
-    const raw = val || '';
-    const english = this.toEnglishDigits(raw);
+  private applyProductPriceFromRaw(raw: string): void {
+    const english = this.toEnglishDigits(raw || '');
     const hasNonDigit = /\D/.test(english);
     const digitsOnly = english.replace(/\D/g, '');
     const normalized = digitsOnly.replace(/^0+/, '') || '';
