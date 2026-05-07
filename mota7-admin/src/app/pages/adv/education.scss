@@ -25,26 +25,26 @@
     z-index: 20;
     --color: #000;
   }
-  .sort-badge {
+  .manual-sort-level-pill {
     position: absolute;
-    top: 10%;
+    top: 4px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 38px;
-    height: 26px;
-    padding: 0 10px;
-    border-radius: 14px;
+    transform: translateX(-50%);
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 900;
     color: #ffffff;
-    z-index: 15;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    &.gold { background: #d4af37; }
-    &.blue { background: #2f6bff; }
-    &.gray { background: #b60000; }
+    z-index: 16;
+    background: linear-gradient(180deg, #ff9d00 0%, #e76e07 100%);
+    box-shadow: 0 2px 8px rgba(231, 110, 7, 0.45);
+    line-height: 1;
+    pointer-events: none;
   }
 
   .admin-top-info {
@@ -121,8 +121,14 @@
         ion-icon { font-size: 30px; color: #1a4ed8; }
       }
       .verification-badge {
-        position: absolute; bottom: -5px; right: -5px; width: 26px; height: 26px;
-        .verify-img { width: 100%; height: 100%; object-fit: contain; }
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
       }
     }
 

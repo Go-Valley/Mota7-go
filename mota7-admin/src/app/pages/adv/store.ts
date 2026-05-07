@@ -19,18 +19,22 @@ import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { STORES_CATEGORIES_DATA } from '@mota7-app/core/constants/stores-data';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
 
 @Component({
   selector: 'app-store-card',
   templateUrl: './store.html',
   styleUrls: ['./store.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule]
+  imports: [CommonModule, IonicModule, VerificationBadgeComponent]
 })
 export class StoreCard implements OnInit {
   @Input() ad: any;
   @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
+
+  readonly manualSortLevel1to5 = manualSortLevel1to5;
   
   showProducts: boolean = false;
   private alertCtrl = inject(AlertController);

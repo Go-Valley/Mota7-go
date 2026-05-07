@@ -13,18 +13,22 @@ import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
 
 @Component({
   selector: 'app-education-card',
   templateUrl: './education.html',
   styleUrls: ['./education.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, VerificationBadgeComponent]
 })
 export class EducationCard implements OnInit {
   @Input() ad: any;
   @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
+
+  readonly manualSortLevel1to5 = manualSortLevel1to5;
 
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);

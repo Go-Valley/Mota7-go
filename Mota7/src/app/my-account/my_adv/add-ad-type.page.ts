@@ -27,6 +27,7 @@ import { EducationFormComponent } from './components/education-form/education-fo
 import { DeliveryFormComponent } from './components/delivery-form/delivery-form.component';
 import { Mota7HeaderComponent } from '../../top_header/header';
 import { UserAccountStatusService } from '../user-account-status.service';
+import { AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE } from '../../core/utils/user-ad-quota.util';
 
 @Component({
   selector: 'app-add-ad-type',
@@ -130,7 +131,11 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
             ? { locationFunc: () => getDeliveryAdCurrentLocation() }
             : {},
         canDismiss: async (_data, role) => {
-          if (role === 'confirm') return true;
+          if (
+            role === 'confirm' ||
+            role === AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+          )
+            return true;
           if (exitConfirmPending) {
             return exitConfirmPending;
           }

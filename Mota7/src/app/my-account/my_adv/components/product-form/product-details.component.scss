@@ -46,11 +46,33 @@
   .content-padding {
     padding: 24px 20px;
 
-    .product-main-title {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #1a1a1a;
-      margin: 0 0 10px 0;
+    .product-title-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+
+      .product-main-title {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1a1a1a;
+      }
+
+      .product-detail-verify-badge {
+        flex-shrink: 0;
+        line-height: 0;
+
+        ::ng-deep .verify-tier-img {
+          max-height: 30px;
+          width: auto;
+          object-fit: contain;
+          filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.18));
+        }
+      }
     }
 
     .divider {

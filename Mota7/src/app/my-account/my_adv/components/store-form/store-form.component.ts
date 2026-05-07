@@ -11,6 +11,14 @@ import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
+import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
+import {
+  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
+  checkOwnerAdQuota,
+  presentOwnerAdQuotaExceeded,
+  tierFromUserDoc,
+} from 'src/app/core/utils/user-ad-quota.util';
+import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
@@ -23,13 +31,14 @@ import {
 
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-store-form',
   templateUrl: './store-form.component.html',
   styleUrls: ['./store-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, VerificationBadgeComponent],
 })
 export class StoreFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -41,9 +50,10 @@ export class StoreFormComponent implements OnInit {
   storeCategories: any[] = [...STORES_CATEGORIES_DATA.items];
   isSubmitting = false; 
   ownerRealName: string = '';
-  userVerificationStatus: string = 'none'; // متغير حالة التوثيق
-
-  /** معرف Cloudinary للوجو الحالي (للحذف عند الاستبدال أو حذف الإعلان) */
+  userVerificationStatus: string = 'none'; // متغير حالة التوثيق (طبقة فعّالة من المستخدم أو الإعلان)
+  /** لعرض شارة التوثيق بنفس منطق الكروت (نوافذ الصلاحية) */
+  storeBadgeValidFrom: unknown = null;
+  storeBadgeValidUntil: unknown = null;
   logoCloudinaryPublicId: string | null = null;
 
   storeData = {
@@ -63,6 +73,7 @@ export class StoreFormComponent implements OnInit {
   private imageService = inject(ImageService);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
@@ -93,8 +104,11 @@ export class StoreFormComponent implements OnInit {
   fillFormForEdit() {
     const d = this.editAdData;
     this.ownerRealName = d.owner_name || ''; 
-    this.userVerificationStatus = d.verification_level || 'none'; // جلب الحالة من الإعلان عند التعديل
-    
+    this.userVerificationStatus = canonicalTierForFirestore(
+      d.verification_level ?? d.is_verified
+    ); // جلب الحالة من الإعلان عند التعديل
+    this.storeBadgeValidFrom = d.verification_valid_from;
+    this.storeBadgeValidUntil = d.verification_valid_until;
     let rawWhatsapp = d.whatsapp_phone || '';
     if (rawWhatsapp.startsWith('20')) {
       rawWhatsapp = '0' + rawWhatsapp.substring(2);
@@ -126,12 +140,31 @@ export class StoreFormComponent implements OnInit {
         const data = userDoc.data();
         // تأكدنا من جلب fullName أو name حسب بياناتك
         this.ownerRealName = data['fullName'] || data['name'] || 'صاحب متجر';
-        this.userVerificationStatus = data['verification_status'] || 'none';
+        this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
+        this.storeBadgeValidFrom = data['verification_valid_from'];
+        this.storeBadgeValidUntil = data['verification_valid_until'];
         this.storeData.contactPhone = data['phone'] || '';
         this.storeData.whatsappPhone = data['phone'] || '';
         this.storeData.city = data['city'] || 'الخارجة';
       }
     }
+  }
+
+  /** حقول الشارة على مساحة اللوجو — مطابقة لحقول الإعلان أو المستخدم */
+  storeBadgeTierRaw(): string | undefined {
+    if (this.isEditMode && this.editAdData) {
+      const d = this.editAdData;
+      return d.verification_level ?? d.is_verified;
+    }
+    return this.userVerificationStatus;
+  }
+
+  storeBadgeVerifiedRaw(): string | undefined {
+    if (this.isEditMode && this.editAdData) {
+      const d = this.editAdData;
+      return d.is_verified ?? d.verification_level;
+    }
+    return this.userVerificationStatus;
   }
 
   async onLogoUpload(event: any) {
@@ -256,9 +289,41 @@ export class StoreFormComponent implements OnInit {
         }
       }
 
+      if (!this.isEditMode) {
+        const userKey = user.email!.split('@')[0];
+        const quota = await checkOwnerAdQuota(
+          this.firestore,
+          this.injector,
+          this.storeData.contactPhone,
+          userKey,
+          user.uid
+        );
+        if (!quota.ok) {
+          await loader.dismiss();
+          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            onOpenSubscriptionPlans: async () => {
+              await this.modalCtrl.dismiss(
+                undefined,
+                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+              );
+              await this.navCtrl.navigateRoot('/tabs/my-account');
+              this.subsModalBridge.requestOpen();
+            },
+            quotaAdminContact: {
+              firestore: this.firestore,
+              injector: this.injector,
+              userDocId: userKey,
+              contactPhoneFallback: this.storeData.contactPhone,
+            },
+          });
+          return;
+        }
+      }
+
       const adId = this.isEditMode ? (this.editAdData.ad_id || this.editAdData.id) : `store_${this.storeData.contactPhone}_${Date.now()}`;
       const finalStatus = 'pending';
       const logoUrl = this.storeData.logo || 'assets/mota7.png';
+      const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
       const adPayload: any = {
         ad_id: adId,
         userId: user.uid,
@@ -277,7 +342,8 @@ export class StoreFormComponent implements OnInit {
         ad_type: 'store',
         isStore: true,
         status: finalStatus,
-        verification_level: this.userVerificationStatus,
+        verification_level: verifyTier,
+        is_verified: verifyTier,
         sort_order: 999,
         admin_reason: this.isEditMode ? (this.editAdData.admin_reason || '') : '',
         created_at: this.isEditMode ? this.editAdData.created_at : serverTimestamp(),

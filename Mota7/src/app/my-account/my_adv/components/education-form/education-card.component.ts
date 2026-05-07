@@ -26,13 +26,14 @@ import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data'
 import { EducationFormComponent } from './education-form.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-education-card',
   templateUrl: './education-card.component.html',
   styleUrls: ['./education-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent, VerificationBadgeComponent],
 })
 export class EducationCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
@@ -179,8 +180,7 @@ export class EducationCardComponent implements OnInit, OnChanges {
         adType: 'education'
       },
       cssClass: 'verification-modal',
-      breakpoints: [0, 1.1],
-      initialBreakpoint: 1.1
+      backdropDismiss: true,
     });
     await modal.present();
   }

@@ -40,27 +40,23 @@
       position: absolute;
       top: -10px;
       right: -10px;
-      width: 38px;
-      height: 38px;
+      min-width: 38px;
+      min-height: 38px;
+      padding: 4px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10;
       border: 3px solid #ffffff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      background: #ffffff;
+      line-height: 0;
 
-      ion-icon { font-size: 22px; color: #ffffff; }
-
-      // توثيق بلو (ستايل فيس بوك العالمي)
-      &.blue {
-        background: linear-gradient(135deg, #0062ff 0%, #00a3ff 100%);
-      }
-
-      // توثيق ذهبي (فخامة وعصرية)
-      &.gold {
-        background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-        ion-icon { color: #5d4037; }
+      ::ng-deep .verify-tier-img {
+        max-height: 28px;
+        width: auto;
+        display: block;
       }
     }
 

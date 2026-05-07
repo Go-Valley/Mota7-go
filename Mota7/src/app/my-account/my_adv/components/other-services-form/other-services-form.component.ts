@@ -11,7 +11,15 @@ import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import {
+  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
+  checkOwnerAdQuota,
+  presentOwnerAdQuotaExceeded,
+  tierFromUserDoc,
+} from 'src/app/core/utils/user-ad-quota.util';
+import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
+import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -45,6 +53,7 @@ export class OtherServicesFormComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -85,6 +94,9 @@ export class OtherServicesFormComponent implements OnInit {
       lng: ad.location?.lng || 0,
       city: ad.city || ''
     };
+    this.userVerificationStatus = canonicalTierForFirestore(
+      ad.verification_level ?? ad.is_verified
+    );
   }
 
   async loadUserProfile() {
@@ -101,6 +113,7 @@ export class OtherServicesFormComponent implements OnInit {
           this.serviceData.whatsappPhone = data['phone'] || '';
           this.serviceData.city = data['city'] || '';
           this.serviceData.providerName = data['fullName'] || data['name'] || '';
+          this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
           return data;
         }
       } catch (e) {
@@ -176,9 +189,41 @@ async saveServiceAd() {
       }
     }
 
+    if (!this.isEditMode) {
+      const userKey = user.email!.split('@')[0];
+      const quota = await checkOwnerAdQuota(
+        this.firestore,
+        this.injector,
+        this.serviceData.contactPhone,
+        userKey,
+        user.uid
+      );
+      if (!quota.ok) {
+        await loader.dismiss();
+        await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+          onOpenSubscriptionPlans: async () => {
+            await this.modalCtrl.dismiss(
+              undefined,
+              AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+            );
+            await this.navCtrl.navigateRoot('/tabs/my-account');
+            this.subsModalBridge.requestOpen();
+          },
+          quotaAdminContact: {
+            firestore: this.firestore,
+            injector: this.injector,
+            userDocId: userKey,
+            contactPhoneFallback: this.serviceData.contactPhone,
+          },
+        });
+        return;
+      }
+    }
+
     const adId = this.isEditMode ? this.currentAdId! : `${this.serviceData.contactPhone}_${this.serviceData.category_id}-${Date.now()}`;
 
     await runInInjectionContext(this.injector, async () => {
+      const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
       const adPayload: any = {
         ad_id: adId,
         userId: user.uid,
@@ -187,7 +232,8 @@ async saveServiceAd() {
         ad_type: 'other',
         category_id: this.serviceData.category_id,
         other_match_key: other_match_key,
-        verification_level: this.userVerificationStatus,
+        verification_level: verifyTier,
+        is_verified: verifyTier,
         sort_order: 999,
         details: {
           provider_name: nameToSave,

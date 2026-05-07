@@ -70,4 +70,11 @@ export const routes: Routes = [
     path: 'click-analytics',
     loadComponent: () => import('./pages/click_btn/click_btn').then((m) => m.ClickBtnPage),
   },
+  {
+    path: 'subscriptions-admin',
+    loadComponent: () =>
+      import('./pages/subscriptions-admin/subscriptions-admin.page').then(
+        (m) => m.SubscriptionsAdminPage
+      ),
+  },
 ];

@@ -27,13 +27,14 @@ import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { cloudinaryListThumbnailUrl } from '../../../../core/utils/cloudinary-list-image.util';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-product-card',
   templateUrl: './product-card.component.html',
   styleUrls: ['./product-card.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, AdCardEngagementRowComponent],
+  imports: [CommonModule, IonicModule, AdCardEngagementRowComponent, VerificationBadgeComponent],
 })
 
 export class ProductCardComponent implements OnInit, OnChanges {
@@ -184,8 +185,7 @@ export class ProductCardComponent implements OnInit, OnChanges {
         adType: 'product'
       },
       cssClass: 'verification-modal',
-      breakpoints: [0, 1.1],
-      initialBreakpoint: 1.1
+      backdropDismiss: true,
     });
     await modal.present();
   }

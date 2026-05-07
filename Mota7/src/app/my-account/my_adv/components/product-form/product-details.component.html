@@ -31,7 +31,17 @@
     </div>
 
     <div class="content-padding">
-      <h1 class="product-main-title">{{ ad.details?.title }}</h1>
+      <div class="product-title-row">
+        <h1 class="product-main-title">{{ ad.details?.title }}</h1>
+        <div class="product-detail-verify-badge">
+          <app-verification-badge
+            [tier]="ad.verification_level"
+            [verified]="ad.is_verified"
+            [validFrom]="ad.verification_valid_from"
+            [validUntil]="ad.verification_valid_until"
+          ></app-verification-badge>
+        </div>
+      </div>
       
       <div class="divider"></div>
 

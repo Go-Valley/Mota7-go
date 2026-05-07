@@ -18,21 +18,13 @@
             alt="شعار المتجر"
           />
         </div>
-        <div
-          class="store-detail-verify"
-          *ngIf="ad.verification_level && ad.verification_level !== 'none'"
-          [ngClass]="ad.verification_level"
-        >
-          <img
-            src="assets/gold.avif"
-            *ngIf="ad.verification_level === 'gold'"
-            alt=""
-          />
-          <img
-            src="assets/blue.webp"
-            *ngIf="ad.verification_level === 'blue'"
-            alt=""
-          />
+        <div class="store-detail-verify">
+          <app-verification-badge
+            [tier]="ad.verification_level"
+            [verified]="ad.is_verified"
+            [validFrom]="ad.verification_valid_from"
+            [validUntil]="ad.verification_valid_until"
+          ></app-verification-badge>
         </div>
       </div>
 

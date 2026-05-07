@@ -15,7 +15,15 @@ import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import {
+  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
+  checkOwnerAdQuota,
+  presentOwnerAdQuotaExceeded,
+  tierFromUserDoc,
+} from 'src/app/core/utils/user-ad-quota.util';
+import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
+import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline } from 'ionicons/icons';
 
@@ -59,6 +67,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   private navCtrl = inject(NavController);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
   private locationListenerHandles: PluginListenerHandle[] = [];
@@ -87,7 +96,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   initEditData(ad: any) {
     this.isEditMode = true;
     this.currentAdId = ad.id || ad.ad_id; 
-    this.userVerificationStatus = ad.verification_level || 'none';
+    this.userVerificationStatus = canonicalTierForFirestore(ad.verification_level ?? ad.is_verified);
     this.deliveryData = {
       category_id: ad.category_id || '',
       driverName: ad.details?.driver_name || '',
@@ -117,7 +126,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         this.deliveryData.city = data['city'] || '';
         this.deliveryData.driverName = data['fullName'] || '';
         // جلب حالة التوثيق من حساب المستخدم لتعيينها للإعلان
-        this.userVerificationStatus = data['verificationStatus'] || 'none';
+        this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
       }
     }
   }
@@ -316,7 +325,40 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         }
       }
 
+      if (!this.isEditMode) {
+        const userKey = user.email!.split('@')[0];
+        const quota = await checkOwnerAdQuota(
+          this.firestore,
+          this.injector,
+          this.deliveryData.contactPhone,
+          userKey,
+          user.uid
+        );
+        if (!quota.ok) {
+          await loader.dismiss();
+          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            onOpenSubscriptionPlans: async () => {
+              await this.modalCtrl.dismiss(
+                undefined,
+                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+              );
+              await this.navCtrl.navigateRoot('/tabs/my-account');
+              this.subsModalBridge.requestOpen();
+            },
+            quotaAdminContact: {
+              firestore: this.firestore,
+              injector: this.injector,
+              userDocId: userKey,
+              contactPhoneFallback: this.deliveryData.contactPhone,
+            },
+          });
+          return;
+        }
+      }
+
       const adId = this.isEditMode ? this.currentAdId! : `${this.deliveryData.contactPhone}_${this.deliveryData.category_id}-${Date.now()}`;
+
+      const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
 
       const adPayload: any = {
         ad_id: adId,
@@ -326,7 +368,8 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         category_id: this.deliveryData.category_id,
         ad_type: 'delivery',
         delivery_match_key: delivery_match_key,
-        verification_level: this.userVerificationStatus,
+        verification_level: verifyTier,
+        is_verified: verifyTier,
         sort_order: 999,
         details: {
           driver_name: this.deliveryData.driverName,

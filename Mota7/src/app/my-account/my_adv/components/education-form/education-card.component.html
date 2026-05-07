@@ -37,29 +37,13 @@
           <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
         </div>
 
-        <div
-          class="verification-badge"
-          *ngIf="ad.is_verified && ad.is_verified !== 'none'"
-          [ngClass]="ad.verification_level"
-        >
-          <img
-            loading="lazy"
-            decoding="async"
-            src="assets/gold.avif"
-            *ngIf="ad.is_verified === 'gold'"
-            class="verify-img"
-            alt="شارة التحقق الذهبية"
-            title="موثَّق - ذهبية"
-          >
-          <img
-            loading="lazy"
-            decoding="async"
-            src="assets/blue.webp"
-            *ngIf="ad.is_verified === 'blue'"
-            class="verify-img"
-            alt="شارة التحقق الزرقاء"
-            title="موثَّق - زرقاء"
-          >
+        <div class="verification-badge-wrap">
+          <app-verification-badge
+            [tier]="ad.verification_level"
+            [verified]="ad.is_verified"
+            [validFrom]="ad.verification_valid_from"
+            [validUntil]="ad.verification_valid_until"
+          ></app-verification-badge>
         </div>
       </div>
     </div>
@@ -111,7 +95,7 @@
   <div class="verification-request-section" *ngIf="ad.status">
     <button type="button" class="verification-btn" (click)="showVerificationModal()">
       <ion-icon name="shield-checkmark-outline"></ion-icon>
-      طلب توثيق الإعلان
+      طلب توثيق الإعلان VIP
     </button>
   </div>
 

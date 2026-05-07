@@ -16,6 +16,7 @@ import { addIcons } from 'ionicons';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 import { locationOutline } from 'ionicons/icons';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-store-home-card',
@@ -28,6 +29,7 @@ import { locationOutline } from 'ionicons/icons';
     IonicModule,
     AdImpressionTrackDirective,
     AdCardEngagementRowComponent,
+    VerificationBadgeComponent,
   ],
 })
 export class StoreHomeCardComponent implements OnInit, OnChanges {

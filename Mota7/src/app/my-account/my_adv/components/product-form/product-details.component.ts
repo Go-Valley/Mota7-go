@@ -11,6 +11,7 @@ import {
 
 // استيراد Swiper الرسمي
 import { register } from 'swiper/element/bundle';
+import { VerificationBadgeComponent } from 'src/app/shared/verification-badge/verification-badge.component';
 
 register();
 
@@ -19,7 +20,7 @@ register();
   templateUrl: './product-details.component.html',
   styleUrls: ['./product-details.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, VerificationBadgeComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class ProductDetailsComponent implements OnInit {

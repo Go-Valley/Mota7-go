@@ -1,12 +1,35 @@
-import { Component, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  CUSTOM_ELEMENTS_SCHEMA,
+  EnvironmentInjector,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, ActionSheetController } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { logoWhatsapp, closeOutline, colorPaletteOutline, imageOutline } from 'ionicons/icons';
-import { Firestore, collection, collectionData, query, where } from '@angular/fire/firestore';
+import {
+  logoWhatsapp,
+  closeOutline,
+  megaphoneOutline,
+  colorPaletteOutline,
+  rocketOutline,
+} from 'ionicons/icons';
+import {
+  Firestore,
+  collection,
+  collectionData,
+  doc,
+  getDoc,
+  query,
+  where,
+} from '@angular/fire/firestore';
 import { map, catchError, shareReplay, startWith } from 'rxjs/operators';
 import { Observable, of, combineLatest, interval } from 'rxjs';
 import { register } from 'swiper/element/bundle';
+import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { normalizeSubscriptionsConfig } from '../../core/models/subscriptions-config.model';
 
 register();
 
@@ -16,43 +39,46 @@ register();
   styleUrls: ['./banners.component.scss'],
   standalone: true,
   imports: [CommonModule, IonicModule],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class BannersComponent implements OnInit {
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
-  private actionSheetCtrl = inject(ActionSheetController);
+  private modalCtrl = inject(ModalController);
 
   activeBanners$!: Observable<any[] | null>;
 
-  /** يمنع فتح أكثر من Action Sheet فوق بعض (تكرار «إلغاء») */
-  private adRequestSheetOpen = false;
+  bannerDisplayPrice = 50;
+  bannerDesignPrice = 50;
+  showBannerModal = false;
 
-  // بيانات التواصل
-  private readonly WHATSAPP_NUMBER = '201220883999';
+  private readonly WHATSAPP_NUMBER = '01220883999';
 
   constructor() {
     addIcons({
       'logo-whatsapp': logoWhatsapp,
       'close-outline': closeOutline,
+      'megaphone-outline': megaphoneOutline,
       'color-palette-outline': colorPaletteOutline,
-      'image-outline': imageOutline
+      'rocket-outline': rocketOutline,
     });
   }
 
   ngOnInit() {
+    void this.loadBannerPrices();
     runInInjectionContext(this.injector, () => {
       const bannersRef = collection(this.firestore, 'banners');
       const q = query(bannersRef, where('status', '==', 'active'));
       const activeList$ = collectionData(q, { idField: 'id' }).pipe(
-        map((banners) => banners.filter((banner) => this.isCurrentlyActive(banner))),
+        map((banners) =>
+          banners.filter((banner) => this.isCurrentlyActive(banner))
+        ),
         catchError((err) => {
           console.error('Failed to load banners from Firestore:', err);
           return of([] as any[]);
         }),
         shareReplay(1)
       );
-      /** كل دقيقة: إعادة فرز غير المرقّمين عند تغيّر فتحة الساعة دون انتظار Firestore */
       const hourlyResort$ = interval(60_000).pipe(startWith(0));
 
       this.activeBanners$ = combineLatest([activeList$, hourlyResort$]).pipe(
@@ -68,15 +94,10 @@ export class BannersComponent implements OnInit {
     });
   }
 
-  // --- التعديل الإضافي لضمان أداء السلايدر مع الصور الكثيرة ---
   trackByFn(index: number, item: any) {
     return item.id || index;
   }
 
-  /**
-   * أولاً: بانرات بـ displayOrder بين 1–100 حسب الرقم (الأصغر أولاً).
-   * ثانياً: غير المرقّمين بترتيب شبه عشوائي يتغيّر كل ساعة (ليست أحدث إضافة أولاً).
-   */
   private sortBannersForDisplay(banners: any[]): any[] {
     const hourSlot = Math.floor(Date.now() / (60 * 60 * 1000));
     const displayRank = (x: any): number | null =>
@@ -100,9 +121,7 @@ export class BannersComponent implements OnInit {
     ranked.sort((a, b) => {
       const ra = displayRank(a)!;
       const rb = displayRank(b)!;
-      if (ra !== rb) {
-        return ra - rb;
-      }
+      if (ra !== rb) return ra - rb;
       return this.bannerCreatedMillis(b) - this.bannerCreatedMillis(a);
     });
 
@@ -115,7 +134,6 @@ export class BannersComponent implements OnInit {
     return [...ranked, ...unranked];
   }
 
-  /** FNV-1a على (فتحة الساعة + id) — نفس الترتيب لكل الأجهزة في نفس الساعة */
   private hourlyShuffleScore(hourSlot: number, bannerId: string): number {
     const s = `${hourSlot}:${bannerId}`;
     let h = 2166136261;
@@ -135,60 +153,53 @@ export class BannersComponent implements OnInit {
 
   isCurrentlyActive(banner: any): boolean {
     if (!banner.startDate || !banner.endDate) return true;
-  
-    const now = new Date(); // الوقت الحالي الفعلي بالثواني
-  
+    const now = new Date();
     const start = new Date(banner.startDate);
-    start.setHours(0, 0, 0, 0); // بداية يوم البدء
-  
+    start.setHours(0, 0, 0, 0);
     const end = new Date(banner.endDate);
-    end.setHours(23, 59, 59, 999); // نهاية يوم الانتهاء (حتى آخر لحظة في اليوم)
-    
+    end.setHours(23, 59, 59, 999);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
-  
-    // التحقق: هل الوقت الآن يقع بين بداية يوم البدء ونهاية يوم الانتهاء
     return now >= start && now <= end;
   }
-    
-  async openAdRequest() {
-    if (this.adRequestSheetOpen) {
-      return;
+
+  private async loadBannerPrices(): Promise<void> {
+    try {
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'subscriptions', 'config'))
+      );
+      if (!snap.exists()) return;
+      const cfg = normalizeSubscriptionsConfig(
+        snap.data() as Record<string, unknown>
+      );
+      this.bannerDisplayPrice = cfg.banner_display_price ?? 50;
+      this.bannerDesignPrice = cfg.banner_design_price ?? 50;
+    } catch (e) {
+      console.error('banner prices load error', e);
     }
-    this.adRequestSheetOpen = true;
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: '"مساحتك الإعلانية على "مُتاح',
-      subHeader: 'اختر الخدمة المطلوبة لبدء إعلانك',
-      mode: 'ios',
-      cssClass: 'mota7-premium-sheet',
-      backdropDismiss: true,
-      buttons: [
-        {
-          text: 'إرسال تصميم الإعلان',
-          icon: 'image-outline',
-          handler: () => { 
-            const msg = encodeURIComponent('السلام عليكم.. محتاج أرفع إعلاني بالمساحة الإعلانية على تطبيق "مُتاح"');
-            window.open(`whatsapp://send?phone=${this.WHATSAPP_NUMBER}&text=${msg}`, '_system');
-          }
-        },
-        {
-          text: 'طلب خدمة تصميم إعلاني',
-          icon: 'color-palette-outline',
-          handler: () => { 
-            const msg = encodeURIComponent('السلام عليكم.. محتاج أصمم بانر إعلاني وأرفعه بالمساحة الإعلانية على تطبيق "مُتاح"');
-            window.open(`whatsapp://send?phone=${this.WHATSAPP_NUMBER}&text=${msg}`, '_system');
-          }
-        },
-        { 
-          text: 'إلغاء', 
-          role: 'cancel',
-          icon: 'close-outline'
-        }
-      ]
-    });
-    void actionSheet.onDidDismiss().then(() => {
-      this.adRequestSheetOpen = false;
-    });
-    await actionSheet.present();
+  }
+
+  openAdRequest() {
+    this.showBannerModal = true;
+  }
+
+  closeBannerModal() {
+    this.showBannerModal = false;
+  }
+
+  requestBannerDisplay() {
+    openWhatsappNative(
+      this.WHATSAPP_NUMBER,
+      'السلام عليكم.. محتاج أرفع إعلاني بالمساحة الإعلانية على تطبيق "مُتاح"'
+    );
+    setTimeout(() => this.closeBannerModal(), 400);
+  }
+
+  requestBannerDesign() {
+    openWhatsappNative(
+      this.WHATSAPP_NUMBER,
+      'السلام عليكم.. محتاج أصمم بانر إعلاني وأرفعه بالمساحة الإعلانية على تطبيق "مُتاح"'
+    );
+    setTimeout(() => this.closeBannerModal(), 400);
   }
 
   handleBannerClick(banner: any) {

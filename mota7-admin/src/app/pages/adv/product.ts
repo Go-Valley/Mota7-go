@@ -13,18 +13,22 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { PRODUCTS_CATEGORY } from '@mota7-app/core/constants/products-data';
 import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
 
 @Component({
   selector: 'app-product-card',
   templateUrl: './product.html',
   styleUrls: ['./product.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule]
+  imports: [CommonModule, IonicModule, VerificationBadgeComponent]
 })
 export class ProductCard implements OnInit {
   @Input() ad: any;
   @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
+
+  readonly manualSortLevel1to5 = manualSortLevel1to5;
   displayName: string = 'متاح';
 
   private modalCtrl = inject(ModalController);

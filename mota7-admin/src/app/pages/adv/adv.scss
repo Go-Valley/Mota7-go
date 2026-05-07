@@ -192,8 +192,8 @@
     direction: rtl;
     border: 1px solid #eee;
 
-    /* شارة الترتيب فوق المحتوى قد تلتقط اللمس على الشاشات الصغيرة */
-    .sort-badge {
+    /* مستوى الترتيب اليدوي 1–5 */
+    .manual-sort-level-pill {
       pointer-events: none;
     }
 

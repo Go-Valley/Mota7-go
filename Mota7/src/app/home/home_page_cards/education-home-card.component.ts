@@ -21,6 +21,7 @@ import { Firestore } from '@angular/fire/firestore';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-education-home-card',
@@ -28,7 +29,13 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
   styleUrls: ['./education-home-card.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonicModule, CommonModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
+  imports: [
+    IonicModule,
+    CommonModule,
+    AdImpressionTrackDirective,
+    AdCardEngagementRowComponent,
+    VerificationBadgeComponent,
+  ],
 })
 export class EducationHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;

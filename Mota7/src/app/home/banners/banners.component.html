@@ -57,3 +57,65 @@
     
   </swiper-container>
 </div>
+
+<!-- ════════════════════════════════════════════════════════
+     Banner Ad Request — Premium Modal
+     ════════════════════════════════════════════════════════ -->
+<ion-modal
+  [isOpen]="showBannerModal"
+  (didDismiss)="closeBannerModal()"
+  [initialBreakpoint]="0.65"
+  [breakpoints]="[0, 0.65, 0.85]"
+  [handle]="true"
+  mode="ios"
+  class="banner-request-modal"
+>
+  <ng-template>
+    <ion-content class="banner-modal-content" dir="rtl">
+      <div class="bm-body">
+        <!-- Header area -->
+        <div class="bm-hero">
+          <div class="bm-logo-ring">
+            <img src="assets/mota7.png" alt="مُتاح" width="52" height="52" />
+          </div>
+          <h2 class="bm-title">مساحتك الإعلانية على "مُتاح"</h2>
+          <p class="bm-subtitle">اختر الخدمة المطلوبة لبدء إعلانك</p>
+        </div>
+
+        <!-- Option 1 — Display Banner -->
+        <button type="button" class="bm-option bm-option--display" (click)="requestBannerDisplay()">
+          <div class="bm-option__icon">
+            <ion-icon name="megaphone-outline"></ion-icon>
+          </div>
+          <div class="bm-option__info">
+            <span class="bm-option__label">📢 عرض بانر إعلاني على "مُتاح"</span>
+            <span class="bm-option__price">{{ bannerDisplayPrice }} جم<span class="bm-option__unit"> / شهر</span></span>
+          </div>
+          <div class="bm-option__wa">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+          </div>
+        </button>
+
+        <!-- Option 2 — Design Banner -->
+        <button type="button" class="bm-option bm-option--design" (click)="requestBannerDesign()">
+          <div class="bm-option__icon">
+            <ion-icon name="color-palette-outline"></ion-icon>
+          </div>
+          <div class="bm-option__info">
+            <span class="bm-option__label">🎨 تصميم بانر إعلاني</span>
+            <span class="bm-option__price">{{ bannerDesignPrice }} جم<span class="bm-option__unit"> (مرة واحدة)</span></span>
+          </div>
+          <div class="bm-option__wa">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+          </div>
+        </button>
+
+        <!-- Footer hint -->
+        <div class="bm-footer">
+          <ion-icon name="rocket-outline"></ion-icon>
+          <span>وصولك لآلاف العملاء يبدأ من هنا</span>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

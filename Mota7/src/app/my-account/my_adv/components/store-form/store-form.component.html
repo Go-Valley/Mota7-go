@@ -15,9 +15,13 @@
     <div class="logo-section">
       <div class="logo-uploader" (click)="logoInput.click()">
         
-        <div class="verification-badge-overlay" *ngIf="userVerificationStatus !== 'none'" [ngClass]="userVerificationStatus">
-          <ion-icon name="shield-checkmark" *ngIf="userVerificationStatus === 'gold'"></ion-icon>
-          <ion-icon name="checkmark-circle" *ngIf="userVerificationStatus === 'blue'"></ion-icon>
+        <div class="verification-badge-overlay">
+          <app-verification-badge
+            [tier]="storeBadgeTierRaw()"
+            [verified]="storeBadgeVerifiedRaw()"
+            [validFrom]="storeBadgeValidFrom"
+            [validUntil]="storeBadgeValidUntil"
+          ></app-verification-badge>
         </div>
 
         <div class="preview-img" *ngIf="storeData.logo">

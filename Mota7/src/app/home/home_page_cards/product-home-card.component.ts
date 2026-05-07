@@ -17,6 +17,7 @@ import { productHasPurchasablePrice } from 'src/app/core/utils/price-parse.util'
 import { sellerCityLabelForProductAd } from 'src/app/core/utils/product-seller-location.util';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-product-home-card',
@@ -24,7 +25,13 @@ import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.c
   styleUrls: ['./product-home-card.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IonicModule, AdImpressionTrackDirective, AdCardEngagementRowComponent]
+  imports: [
+    CommonModule,
+    IonicModule,
+    AdImpressionTrackDirective,
+    AdCardEngagementRowComponent,
+    VerificationBadgeComponent,
+  ],
 })
 export class ProductHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;

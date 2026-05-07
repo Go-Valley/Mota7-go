@@ -382,6 +382,36 @@ ion-modal.mota7-provider-rates-customer-modal::part(backdrop) {
   backdrop-filter: blur(10px);
 }
 
+/* مودال توثيق VIP — عرض ممتلئ وتمرير عبر ion-content (بدون sheet breakpoints) */
+ion-modal.verification-modal {
+  --width: 100%;
+  --max-width: 520px;
+  --height: 100%;
+  --max-height: 100%;
+  --border-radius: 0;
+  --background: transparent;
+}
+
+ion-modal.verification-modal::part(content) {
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 520px) {
+  ion-modal.verification-modal {
+    --width: min(100%, 520px);
+    --height: min(92vh, 880px);
+    --max-height: min(92vh, 880px);
+    --border-radius: 16px;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  ion-modal.verification-modal::part(content) {
+    border-radius: 16px;
+  }
+}
+
 /* دليل استخدام التطبيق — 90% ارتفاع الشاشة */
 ion-modal.app-tutorial-modal {
   --height: 90%;

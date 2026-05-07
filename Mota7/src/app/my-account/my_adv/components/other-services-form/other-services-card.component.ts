@@ -20,6 +20,7 @@ import { addIcons } from 'ionicons';
 import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import {
   OtherCategoryItem,
@@ -38,7 +39,7 @@ import {
   templateUrl: './other-services-card.component.html',
   styleUrls: ['./other-services-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent, VerificationBadgeComponent],
 })
 
 export class OtherServicesCardComponent implements OnInit, OnChanges {
@@ -180,8 +181,7 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
         adType: 'other'
       },
       cssClass: 'verification-modal',
-      breakpoints: [0, 1.1],
-      initialBreakpoint: 1.1
+      backdropDismiss: true,
     });
     await modal.present();
   }

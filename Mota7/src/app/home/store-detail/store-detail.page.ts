@@ -31,6 +31,7 @@ import {
 import { slimAdForHomeFeed } from 'src/app/core/utils/ad-home-feed-slim.util';
 import { cloudinaryListThumbnailUrl } from 'src/app/core/utils/cloudinary-list-image.util';
 import { ProductHomeCardComponent } from '../home_page_cards/product-home-card.component';
+import { VerificationBadgeComponent } from 'src/app/shared/verification-badge/verification-badge.component';
 import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-click-tracking.util';
 import { Analytics } from '@angular/fire/analytics';
 import { logEvent } from 'firebase/analytics';
@@ -42,7 +43,13 @@ import { FirestoreCacheService } from 'src/app/core/services/firestore-cache.ser
   templateUrl: './store-detail.page.html',
   styleUrls: ['./store-detail.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, ProductHomeCardComponent, Mota7HeaderComponent],
+  imports: [
+    CommonModule,
+    IonicModule,
+    ProductHomeCardComponent,
+    Mota7HeaderComponent,
+    VerificationBadgeComponent,
+  ],
 })
 export class StoreDetailPage implements OnInit {
   private firestore = inject(Firestore);

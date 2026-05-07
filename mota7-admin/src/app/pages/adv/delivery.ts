@@ -14,19 +14,23 @@ import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { extractNameBeforeLastUnderscoreFromMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
 
 @Component({
   selector: 'app-delivery-card',
   templateUrl: './delivery.html',
   styleUrls: ['./delivery.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, VerificationBadgeComponent]
 })
 export class DeliveryCard implements OnInit {
   @Input() ad: any;
   /** يُمرَّر من صفحة الإعلانات لتعطيل الإجراءات أثناء وضع التحديد المتعدد */
   @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
+
+  readonly manualSortLevel1to5 = manualSortLevel1to5;
 
   private alertCtrl = inject(AlertController);
   private firestore = inject(Firestore);

@@ -2,7 +2,8 @@ import { Component, OnDestroy, OnInit, inject, Injector, NgZone, runInInjectionC
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
-import { Firestore, collection, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs, getDoc, Timestamp } from '@angular/fire/firestore';
+import { deleteField } from 'firebase/firestore';
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { addIcons } from 'ionicons';
 import {
@@ -36,6 +37,18 @@ import { AdReasonModalComponent } from './ad-reason-modal.component';
 import { CloudinaryCleanupService } from '../../services/cloudinary-cleanup.service';
 import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-public-id.util';
 import { normalizeAdTypeValue } from '@mota7-app/core/utils/duplicate-ad.util';
+import {
+  canonicalTierForFirestore,
+  effectiveTierForAdFields,
+  isVerificationDateWindowActive,
+  parseFirestoreMillis,
+  tierSortWeight,
+  yyyyMmDdStringToUtcTimestamp,
+} from '../../core/utils/verification-tiers.util';
+import {
+  DateRangePickerModalComponent,
+  type DateRangePickerResult,
+} from '../../shared/date-range-picker-modal/date-range-picker-modal.component';
 
 @Component({
   selector: 'app-adv',
@@ -418,6 +431,33 @@ export class AdvPage implements OnInit, OnDestroy {
     return tokens.every(token => haystack.includes(token));
   }
 
+  /** ترتيب يدوي نشِط: مستوى 1–5 فقط، مع نافذة manual_sort_from / manual_sort_until إن وُجدت. */
+  private isManualSortSlotActive(ad: any): boolean {
+    const so = Number(ad?.sort_order);
+    if (!Number.isFinite(so) || so < 1 || so > 5) {
+      return false;
+    }
+    const fromMs = parseFirestoreMillis(ad?.manual_sort_from);
+    const untilMs = parseFirestoreMillis(ad?.manual_sort_until);
+    if (fromMs == null && untilMs == null) {
+      return true;
+    }
+    return isVerificationDateWindowActive(
+      ad?.manual_sort_from,
+      ad?.manual_sort_until
+    );
+  }
+
+  private tierWeightForActiveSort(ad: any): number {
+    const t = effectiveTierForAdFields(
+      ad?.verification_level,
+      ad?.is_verified,
+      ad?.verification_valid_from,
+      ad?.verification_valid_until
+    );
+    return tierSortWeight(t);
+  }
+
   getFilteredAds(status: string): any[] {
     let filtered = this.adsList.filter(ad => ad.status === status);
     
@@ -442,31 +482,31 @@ export class AdvPage implements OnInit, OnDestroy {
 
     if (status !== 'active') return filtered;
 
-    const getSort = (a: any) => Number.isFinite(a?.sort_order) ? a.sort_order : 999;
-    const getVer = (a: any) => a?.verification_level || 'none';
-    const verRank = (v: any) => v === 'gold' ? 0 : (v === 'blue' ? 1 : 2);
     const getDate = (a: any) => {
       const d = a?.created_at?.toDate ? a.created_at.toDate() : a?.created_at;
       return d ? new Date(d).getTime() : 0;
     };
 
     return [...filtered].sort((a, b) => {
-      const sa = getSort(a);
-      const sb = getSort(b);
-      const aManual = sa < 999;
-      const bManual = sb < 999;
-      if (aManual !== bManual) return aManual ? -1 : 1;
-      if (aManual && bManual && sa !== sb) return sa - sb;
+      const manualA = this.isManualSortSlotActive(a);
+      const manualB = this.isManualSortSlotActive(b);
+      if (manualA !== manualB) {
+        return manualA ? -1 : 1;
+      }
+      if (manualA && manualB) {
+        const sa = Number(a.sort_order);
+        const sb = Number(b.sort_order);
+        if (sa !== sb) {
+          return sa - sb;
+        }
+        return getDate(b) - getDate(a);
+      }
 
-      const va = verRank(getVer(a));
-      const vb = verRank(getVer(b));
-      if (va !== vb) return va - vb;
-
-      const aNormal = !aManual && va === 2;
-      const bNormal = !bManual && vb === 2;
-      if (aNormal && bNormal) return getDate(b) - getDate(a);
-      if (aNormal !== bNormal) return aNormal ? 1 : -1;
-
+      const wa = this.tierWeightForActiveSort(a);
+      const wb = this.tierWeightForActiveSort(b);
+      if (wa !== wb) {
+        return wb - wa;
+      }
       return getDate(b) - getDate(a);
     });
   }
@@ -530,21 +570,36 @@ export class AdvPage implements OnInit, OnDestroy {
           }
         },
         { 
-          text: 'بدون توثيق', 
+          text: 'مجاني', 
           icon: 'remove-circle-outline',
-          handler: () => { this.updateVerification(ad.id, 'none'); }
+          handler: () => { void this.promptAdVerificationDates(ad, 'none'); }
         },
         { 
-          text: 'توثيق أزرق', 
+          text: 'برونزي', 
+          icon: 'ribbon-outline',
+          handler: () => { void this.promptAdVerificationDates(ad, 'bronze'); }
+        },
+        { 
+          text: 'فضي', 
           icon: 'ribbon-outline',
           cssClass: 'blue-verify-btn',
-          handler: () => { this.updateVerification(ad.id, 'blue'); }
+          handler: () => { void this.promptAdVerificationDates(ad, 'silver'); }
         },
         { 
-          text: 'توثيق ذهبي', 
+          text: 'ذهبي', 
           icon: 'star-outline',
           cssClass: 'gold-verify-btn',
-          handler: () => { this.updateVerification(ad.id, 'gold'); }
+          handler: () => { void this.promptAdVerificationDates(ad, 'golden'); }
+        },
+        { 
+          text: 'ماسي Diamonds', 
+          icon: 'star-outline',
+          handler: () => { void this.promptAdVerificationDates(ad, 'Diamonds'); }
+        },
+        { 
+          text: 'VIP', 
+          icon: 'star-outline',
+          handler: () => { void this.promptAdVerificationDates(ad, 'vip'); }
         },
         { 
           text: 'تعديل الترتيب اليدوي', 
@@ -623,14 +678,147 @@ export class AdvPage implements OnInit, OnDestroy {
     );
   }
 
-  async updateVerification(adId: string, level: string) {
-    await runInInjectionContext(this.injector, () =>
-      updateDoc(doc(this.firestore, 'ads', adId), {
-        is_verified: level,
-        verification_level: level,
+  /** تاريخ إعلان من Firestore → YYYY-MM-DD (UTC) لمنتقي التقويم */
+  private initialAdDateYyyyMmDd(v: unknown): string | null {
+    if (v == null || v === '') {
+      return null;
+    }
+    let ms: number | null = null;
+    if (
+      typeof v === 'object' &&
+      v &&
+      typeof (v as { toMillis?: () => number }).toMillis === 'function'
+    ) {
+      ms = (v as { toMillis: () => number }).toMillis();
+    } else if (
+      typeof v === 'object' &&
+      v &&
+      typeof (v as { seconds?: number }).seconds === 'number'
+    ) {
+      const sec = (v as { seconds: number }).seconds;
+      const nano =
+        typeof (v as { nanoseconds?: number }).nanoseconds === 'number'
+          ? (v as { nanoseconds: number }).nanoseconds
+          : 0;
+      ms = sec * 1000 + Math.floor(nano / 1e6);
+    }
+    if (ms == null || !Number.isFinite(ms)) {
+      return null;
+    }
+    const d = new Date(ms);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+  }
+
+  /**
+   * توثيق الإعلان بشارة + نافذة صلاحية من/إلى (تقويم باللمس).
+   * «مجاني» يعيد المستوى المجاني ويزيل تواريخ التوثيق من الإعلان.
+   */
+  async promptAdVerificationDates(ad: any, level: string): Promise<void> {
+    const adId = ad?.id || ad?.ad_id;
+    if (!adId) {
+      return;
+    }
+    const tier = canonicalTierForFirestore(level === 'none' ? null : level);
+    if (level === 'none') {
+      await this.persistAdVerification(adId, tier, null, null, true);
+      return;
+    }
+
+    const initFrom = this.initialAdDateYyyyMmDd(ad?.verification_valid_from);
+    const initUntil = this.initialAdDateYyyyMmDd(ad?.verification_valid_until);
+
+    const modal = await this.modalCtrl.create({
+      component: DateRangePickerModalComponent,
+      componentProps: {
+        title: 'مدة توثيق الإعلان',
+        subtitle:
+          'تاريخ التوثيق من وإلى — اختر من التقويم باللمس (لا كتابة)',
+        confirmLabel: 'حفظ التوثيق',
+        allowWithoutDates: false,
+        initialFrom: initFrom,
+        initialUntil: initUntil,
+      },
+      mode: 'ios',
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<
+      DateRangePickerResult | null
+    >();
+    if (role !== 'confirm' || !data) {
+      return;
+    }
+    const fromTs = yyyyMmDdStringToUtcTimestamp(data.fromIsoDate, false);
+    const untilTs = yyyyMmDdStringToUtcTimestamp(data.untilIsoDate, true);
+    if (!fromTs || !untilTs) {
+      const t = await this.toastCtrl.create({
+        message: 'تواريخ غير صالحة — أعد الاختيار من التقويم',
+        duration: 2500,
+        color: 'warning',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    if (fromTs.toMillis() > untilTs.toMillis()) {
+      const t = await this.toastCtrl.create({
+        message: 'تاريخ البداية بعد تاريخ النهاية',
+        duration: 2200,
+        color: 'danger',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    await this.persistAdVerification(adId, tier, fromTs, untilTs, false);
+  }
+
+  private async persistAdVerification(
+    adId: string,
+    tier: string,
+    validFrom: Timestamp | null,
+    validUntil: Timestamp | null,
+    clearDates: boolean
+  ): Promise<void> {
+    try {
+      const payload: Record<string, unknown> = {
+        is_verified: tier,
+        verification_level: tier,
         updated_at: serverTimestamp(),
-      })
-    );
+      };
+      if (clearDates) {
+        payload['verification_valid_from'] = deleteField();
+        payload['verification_valid_until'] = deleteField();
+      } else {
+        payload['verification_valid_from'] =
+          validFrom != null ? validFrom : deleteField();
+        payload['verification_valid_until'] =
+          validUntil != null ? validUntil : deleteField();
+      }
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'ads', adId), payload)
+      );
+      const ok = await this.toastCtrl.create({
+        message: 'تم تحديث التوثيق',
+        duration: 1800,
+        color: 'success',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await ok.present();
+    } catch (e) {
+      console.error('persistAdVerification', e);
+      const err = await this.toastCtrl.create({
+        message: 'تعذّر حفظ التوثيق',
+        duration: 2500,
+        color: 'danger',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await err.present();
+    }
   }
 
   async promptReason(adId: string, status: string) {
@@ -710,60 +898,146 @@ export class AdvPage implements OnInit, OnDestroy {
         )
       );
       const reserved = new Set<number>();
-      snap.docs.forEach(d => {
+      snap.docs.forEach((d) => {
         const data: any = d.data();
         const so = data?.sort_order;
-        const isSameAd = (d.id === (ad.id || ad.ad_id));
-        if (!isSameAd && Number.isFinite(so) && so >= 1 && so <= 50) reserved.add(so);
+        const isSameAd = d.id === (ad.id || ad.ad_id);
+        if (!isSameAd && Number.isFinite(so) && so >= 1 && so <= 5) {
+          reserved.add(so);
+        }
       });
-      
+
       const inputs: any[] = [];
       const currentValue = Number(ad?.sort_order);
       const current = Number.isFinite(currentValue) ? currentValue : null;
       inputs.push({
         name: 'order',
         type: 'radio',
-        label: 'بدون ترتيب (افتراضي 999)',
+        label: 'بدون ترتيب يدوي (افتراضي 999)',
         value: 'none',
-        checked: !current || current === 999
+        checked: !current || current === 999 || current < 1 || current > 5,
       });
-      for (let i = 1; i <= 50; i++) {
+      for (let i = 1; i <= 5; i++) {
         const taken = reserved.has(i);
         inputs.push({
           name: 'order',
           type: 'radio',
-          label: taken ? `${i} (محجوز)` : `${i}`,
+          label: taken
+            ? `المستوى ${i} (محجوز)`
+            : `المستوى ${i}${i === 1 ? ' — يظهر أول القائمة' : ''}`,
           value: i,
           disabled: taken,
-          checked: current === i
+          checked: current === i,
         });
       }
-      
+
       const alert = await this.alertCtrl.create({
-        header: 'تعديل الترتيب اليدوي',
+        header: 'الترتيب اليدوي (1–5)',
+        subHeader: 'المستوى 1 يظهر أول القائمة — ثم مدة الترتيب من التقويم',
         mode: 'ios',
         inputs,
         buttons: [
           { text: 'إلغاء', role: 'cancel' },
           {
-            text: 'حفظ',
-            handler: async (selected) => {
-              if (!selected) return;
-              const sortOrder = selected === 'none' ? 999 : selected;
-              await runInInjectionContext(this.injector, () =>
-                updateDoc(doc(this.firestore, 'ads', ad.id || ad.ad_id), {
-                  sort_order: sortOrder,
-                  updated_at: serverTimestamp(),
-                })
-              );
+            text: 'متابعة',
+            handler: (selected) => {
+              void this.applyManualSortAfterPick(ad, selected);
+              return true;
             },
           },
-        ]
+        ],
       });
       await alert.present();
     } catch (e) {
       console.error('Error updating manual order:', e);
     }
+  }
+
+  private async applyManualSortAfterPick(
+    ad: any,
+    selected: unknown
+  ): Promise<void> {
+    if (selected == null || selected === '') {
+      return;
+    }
+    const sortOrder = selected === 'none' ? 999 : Number(selected);
+    const adRef = doc(this.firestore, 'ads', ad.id || ad.ad_id);
+    if (sortOrder === 999) {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(adRef, {
+          sort_order: 999,
+          manual_sort_from: deleteField(),
+          manual_sort_until: deleteField(),
+          updated_at: serverTimestamp(),
+        })
+      );
+      return;
+    }
+    const range =
+      (await this.promptManualSortDateRange(ad)) ?? null;
+    if (!range) {
+      return;
+    }
+    const fromTs = yyyyMmDdStringToUtcTimestamp(range.fromIsoDate, false);
+    const untilTs = yyyyMmDdStringToUtcTimestamp(range.untilIsoDate, true);
+    if (!fromTs || !untilTs) {
+      const t = await this.toastCtrl.create({
+        message: 'تواريخ غير صالحة للترتيب اليدوي — أعد الاختيار',
+        duration: 2500,
+        color: 'warning',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    if (fromTs.toMillis() > untilTs.toMillis()) {
+      const t = await this.toastCtrl.create({
+        message: 'تاريخ البداية بعد تاريخ النهاية',
+        duration: 2200,
+        color: 'danger',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(adRef, {
+        sort_order: sortOrder,
+        manual_sort_from: fromTs,
+        manual_sort_until: untilTs,
+        updated_at: serverTimestamp(),
+      })
+    );
+  }
+
+  private async promptManualSortDateRange(
+    ad: any
+  ): Promise<DateRangePickerResult | null> {
+    const initFrom = this.initialAdDateYyyyMmDd(ad?.manual_sort_from);
+    const initUntil = this.initialAdDateYyyyMmDd(ad?.manual_sort_until);
+    const modal = await this.modalCtrl.create({
+      component: DateRangePickerModalComponent,
+      componentProps: {
+        title: 'مدة الترتيب اليدوي',
+        subtitle:
+          'تاريخ الترتيب من وإلى — اختر من التقويم باللمس (المستويات 1–5)',
+        confirmLabel: 'تطبيق الترتيب',
+        allowWithoutDates: false,
+        initialFrom: initFrom,
+        initialUntil: initUntil,
+      },
+      mode: 'ios',
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<
+      DateRangePickerResult | null
+    >();
+    if (role !== 'confirm' || !data) {
+      return null;
+    }
+    return data;
   }
 
   async editAd(ad: any) {

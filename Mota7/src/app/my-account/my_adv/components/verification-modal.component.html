@@ -1,63 +1,131 @@
-<ion-content class="verification-content" dir="rtl">
-  <div class="modal-header">
-    <h2 class="header-title center-text">مزايا التوثيق مع مُتاح</h2>
-    <button type="button" class="close-button" (click)="closeModal()" title="إغلاق" aria-label="إغلاق">
-      <ion-icon name="close-outline"></ion-icon>
-    </button>
-  </div>
-
-  <div class="content-wrapper">
-    <!-- العنوان الرئيسي -->
-    <div class="main-title red-text center-text">
-      ✨ ارتقِ بحضورك.. اختر بصمتك في "مُتاح"
-    </div>
-
-    <!-- التوثيق الذهبي -->
-    <div class="section">
-      <div class="gold-title center-text">
-        ⚜️ التوثيق الذهبي | للنخبة
-      </div>
-      <div class="description">
-        صدارة لا تُنازع وثقة تبني إمبراطورية
-      </div>
-      <div class="feature">• السيادة: إعلانك دائماً في المربع الأول؛ أول ما تراه الأعين</div>
-      <div class="feature">• الانتشار: أولوية قصوى تضمن ظهورك أمام كافة مستخدمي التطبيق</div>
-      <div class="feature">• الاستحقاق: الصدارة التلقائية في نتائج البحث عن الخدمات والمنتجات</div>
-    </div>
-
-    <!-- التوثيق الأزرق -->
-    <div class="section">
-      <div class="blue-title center-text">
-        💎 التوثيق الأزرق | للمتميزين
-      </div>
-      <div class="description">
-        اثبت مصداقيتك وتفوق على المنافسين بذكاء
-      </div>
-      <div class="feature">• الأسبقية: ظهور دائم يكتسح كافة الإعلانات غير الموثقة</div>
-      <div class="feature">• الثقة: شارة زرقاء تمنحك موثوقية فورية لدى الباحثين</div>
-      <div class="feature">• التفضيل: أولوية تقنية تجعل الوصول إليك أسرع من غيرك</div>
-    </div>
-
-    <!-- لماذا التوثيق -->
-    <div class="section">
-      <div class="red-title center-text">
-        🛡️ لماذا التوثيق؟
-      </div>
-      <div class="feature">• هيبة العلامة: لأن الشارة هي صك الجودة في "مُتاح"</div>
-      <div class="feature">• قوة الجذب: وصول أعلى بنسبة 300% لزر الاتصال والواتساب</div>
-    </div>
-
-    <!-- أزرار التوثيق -->
-    <div class="buttons-section">
-      <button class="gold-button" (click)="requestVerification('gold')">
-        طلب التوثيق الذهبي
+<ion-header class="vip-modal-header ion-no-border" dir="rtl">
+  <ion-toolbar class="vip-modal-toolbar" mode="md">
+    <ion-buttons slot="start">
+      <button type="button" class="close-btn" (click)="closeModal()" aria-label="إغلاق">
+        <ion-icon name="close-outline"></ion-icon>
       </button>
-      <button class="blue-button" (click)="requestVerification('blue')">
-        طلب التوثيق الأزرق
+    </ion-buttons>
+    <ion-title class="header-title">مزايا التوثيق مع مُتاح</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="vip-modal-content" dir="rtl">
+  <div class="body-inner">
+    <!-- Tagline -->
+    <p class="tagline">ارتق بحضورك .. اختر بصمتك في "مُتاح"</p>
+
+    <!-- ─── Level 1 ─── -->
+    <div class="level-card level-1">
+      <div class="level-header">
+        <span class="level-label">المستوى الأول</span>
+        <span class="level-name">القمة المطلقة</span>
+        <img src="assets/subscrip/vip.jpg" class="vip-badge" alt="VIP" />
+      </div>
+      <p class="level-subtitle">الظهور رقم 1 بدون منافسة</p>
+      <ul class="feature-list">
+        <li>صدارة كاملة: إعلانك في أول نتيجة دائماً</li>
+        <li>أقصى ظهور: أعلى معدل مشاهدة داخل التطبيق</li>
+        <li>استحواذ العملاء: أول اختيار لأي عميل يبحث</li>
+      </ul>
+      <div class="price-tag">{{ vipPrices[0] }} جم / 10 أيام</div>
+      <button type="button" class="cta-btn" (click)="sendVipRequest(1)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        طلب توثيق VIP مستوى أول
       </button>
-      <button class="red-button" (click)="closeModal()">
-        إلغاء
+    </div>
+
+    <!-- ─── Level 2 ─── -->
+    <div class="level-card level-2">
+      <div class="level-header">
+        <span class="level-label">المستوى الثاني</span>
+        <span class="level-name">المنافس الأقوى</span>
+        <img src="assets/subscrip/vip.jpg" class="vip-badge" alt="VIP" />
+      </div>
+      <p class="level-subtitle">حضور قوي خلف القمة مباشرة</p>
+      <ul class="feature-list">
+        <li>ظهور متقدم: في الصف الأول دائماً</li>
+        <li>فرصة عالية للنقر والتواصل</li>
+        <li>تفوق واضح على باقي الإعلانات</li>
+      </ul>
+      <div class="price-tag">{{ vipPrices[1] }} جم / 10 أيام</div>
+      <button type="button" class="cta-btn" (click)="sendVipRequest(2)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        طلب توثيق VIP مستوى ثاني
       </button>
+    </div>
+
+    <!-- ─── Level 3 ─── -->
+    <div class="level-card level-3">
+      <div class="level-header">
+        <span class="level-label">المستوى الثالث</span>
+        <span class="level-name">انتشار ذكي</span>
+        <img src="assets/subscrip/vip.jpg" class="vip-badge" alt="VIP" />
+      </div>
+      <p class="level-subtitle">توازن مثالي بين السعر والنتيجة</p>
+      <ul class="feature-list">
+        <li>ظهور قوي داخل النتائج الأولى</li>
+        <li>وصول أسرع للعملاء</li>
+        <li>زيادة فرص الطلبات بشكل ملحوظ</li>
+      </ul>
+      <div class="price-tag">{{ vipPrices[2] }} جم / 10 أيام</div>
+      <button type="button" class="cta-btn" (click)="sendVipRequest(3)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        طلب توثيق VIP مستوى ثالث
+      </button>
+    </div>
+
+    <!-- ─── Level 4 ─── -->
+    <div class="level-card level-4">
+      <div class="level-header">
+        <span class="level-label">المستوى الرابع</span>
+        <span class="level-name">دفعة إضافية</span>
+        <img src="assets/subscrip/vip.jpg" class="vip-badge" alt="VIP" />
+      </div>
+      <p class="level-subtitle">تحسين ظهورك عن الإعلانات العادية</p>
+      <ul class="feature-list">
+        <li>تقدم ملحوظ في الترتيب</li>
+        <li>جذب انتباه أعلى من العادي</li>
+        <li>فرصة أفضل للظهور المستمر</li>
+      </ul>
+      <div class="price-tag">{{ vipPrices[3] }} جم / 10 أيام</div>
+      <button type="button" class="cta-btn" (click)="sendVipRequest(4)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        طلب توثيق VIP مستوى رابع
+      </button>
+    </div>
+
+    <!-- ─── Level 5 ─── -->
+    <div class="level-card level-5">
+      <div class="level-header">
+        <span class="level-label">المستوى الخامس</span>
+        <span class="level-name">بداية التميز</span>
+        <img src="assets/subscrip/vip.jpg" class="vip-badge" alt="VIP" />
+      </div>
+      <p class="level-subtitle">أول خطوة للظهور الاحترافي</p>
+      <ul class="feature-list">
+        <li>تحسين ترتيب إعلانك</li>
+        <li>زيادة فرص الظهور</li>
+        <li>بداية جذب العملاء بشكل أفضل</li>
+      </ul>
+      <div class="price-tag">{{ vipPrices[4] }} جم / 10 أيام</div>
+      <button type="button" class="cta-btn" (click)="sendVipRequest(5)">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        طلب توثيق VIP مستوى خامس
+      </button>
+    </div>
+
+    <!-- ─── Why VIP section ─── -->
+    <div class="why-vip">
+      <h3 class="why-title">لماذا VIP؟</h3>
+      <div class="why-item">لأن أول النتائج = أعلى مبيعات</div>
+      <div class="why-item">لأن العميل نادراً ما ينزل لأسفل</div>
+      <div class="why-item">لأن الظهور = ثقة + تواصل + طلبات أكثر</div>
+    </div>
+
+    <!-- ─── Footer CTA ─── -->
+    <div class="footer-cta">
+      <p class="cta-headline">احجز مكانك الآن 🚀</p>
+      <p class="cta-scarcity">⚠️ عدد الأماكن محدود — يتم الحجز حسب الأسبقية</p>
     </div>
   </div>
 </ion-content>

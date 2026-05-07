@@ -1,0 +1,263 @@
+<app-mota7-header
+  title="إدارة الاشتراكات"
+  [showBackButton]="true"
+  (backClick)="goBack()"
+></app-mota7-header>
+
+<ion-content class="subs-admin-page">
+  <div class="subs-admin-inner">
+    <section class="subs-admin-hero">
+      <div class="subs-admin-hero__icon">
+        <ion-icon name="layers-outline"></ion-icon>
+      </div>
+      <h2>تحكم كامل بباقات التطبيق</h2>
+      <p>فعّل العرض، عدّل الأسطر، ثم احفظ — يظهر التحديث للمستخدمين فوراً.</p>
+    </section>
+
+    <ion-card class="subs-admin-card">
+      <ion-card-header>
+        <ion-card-title>إعدادات عامة</ion-card-title>
+        <ion-card-subtitle>التشغيل والرسالة البديلة وأسعار الخدمات</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item lines="none" class="subs-admin-toggle-row">
+          <ion-label>
+            <strong>تفعيل عرض الباقات للمستخدمين</strong>
+            <p>عند الإيقاف يُعرض الوضع الفارغ أو القديم حسب الإعدادات.</p>
+          </ion-label>
+          <ion-toggle slot="end" [(ngModel)]="config.active"></ion-toggle>
+        </ion-item>
+
+        <ion-item lines="none" class="subs-admin-toggle-row">
+          <ion-label>
+            <strong>إظهار رسالة «لا توجد اشتراكات»</strong>
+            <p>عند عدم وجود باقات ظاهرة أو عند إيقاف النظام.</p>
+          </ion-label>
+          <ion-toggle slot="end" [(ngModel)]="config.show_empty_message"></ion-toggle>
+        </ion-item>
+
+        <ion-item lines="full" class="subs-admin-field">
+          <ion-label position="stacked">نص الرسالة البديلة (اختياري)</ion-label>
+          <ion-input
+            [(ngModel)]="config.empty_message"
+            placeholder="لا توجد اشتراكات حالياً بالتطبيق"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item lines="full" class="subs-admin-field">
+          <ion-label position="stacked">واتساب طلبات الاشتراك — رقم الشركة المستقبلة</ion-label>
+          <ion-input
+            [(ngModel)]="config.subscription_orders_whatsapp"
+            placeholder="مثال: 201234567890 (بدون +)"
+            inputmode="tel"
+          ></ion-input>
+          <ion-note slot="helper">
+            يُرسَل للعميل رسالة فيها اسمه وسعر الباقة؛ هذا الرقم يستقبل الطلب وليس رقم الدعم فقط.
+          </ion-note>
+        </ion-item>
+
+        <div class="subs-admin-vip-grid">
+          <h4 class="subs-admin-subheading">أسعار تثبيت VIP (جنيه — مستويات 1–5)</h4>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">مستوى 1</ion-label>
+            <ion-input type="number" [(ngModel)]="config.vip_pin_price_level_1"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">مستوى 2</ion-label>
+            <ion-input type="number" [(ngModel)]="config.vip_pin_price_level_2"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">مستوى 3</ion-label>
+            <ion-input type="number" [(ngModel)]="config.vip_pin_price_level_3"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">مستوى 4</ion-label>
+            <ion-input type="number" [(ngModel)]="config.vip_pin_price_level_4"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">مستوى 5</ion-label>
+            <ion-input type="number" [(ngModel)]="config.vip_pin_price_level_5"></ion-input>
+          </ion-item>
+        </div>
+
+        <div class="subs-admin-vip-grid">
+          <h4 class="subs-admin-subheading">أسعار البانر الإعلاني</h4>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">عرض بانر (جم / شهر)</ion-label>
+            <ion-input type="number" [(ngModel)]="config.banner_display_price" placeholder="50"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="subs-admin-field subs-admin-field--inline">
+            <ion-label position="stacked">تصميم بانر (جم / مرة)</ion-label>
+            <ion-input type="number" [(ngModel)]="config.banner_design_price" placeholder="50"></ion-input>
+          </ion-item>
+        </div>
+
+        <ion-button expand="block" mode="ios" class="subs-admin-save-main" (click)="saveGlobals()">
+          <ion-icon slot="start" name="save-outline"></ion-icon>
+          حفظ الإعدادات العامة
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <div class="subs-admin-toolbar">
+      <h3>الباقات</h3>
+      <ion-button size="small" mode="ios" (click)="addPlan()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        إضافة باقة
+      </ion-button>
+    </div>
+
+    <p class="subs-admin-hint">
+      اسحب للترتيب · الباقات المخفية لا تظهر في التطبيق · القسم «swiper» يعرض أفقيًا
+    </p>
+
+    <ion-list class="subs-admin-plan-list">
+      <ion-reorder-group [disabled]="false" (ionItemReorder)="onReorder($event)">
+        <ion-item
+          *ngFor="let p of sortedPlans"
+          lines="full"
+          class="subs-admin-plan-item"
+        >
+          <ion-label>
+            <div class="plan-row-top">
+              <span class="plan-name">{{ p.name || '(بدون اسم)' }}</span>
+              <span class="plan-price-chip">{{ p.priceLabel }}</span>
+            </div>
+            <div class="plan-meta">
+              <span class="pill" [class.off]="!p.visible">{{ p.visible ? 'ظاهرة' : 'مخفية' }}</span>
+              <span class="pill">{{ p.section === 'swiper' ? 'شريط أفقي' : 'قائمة رئيسية' }}</span>
+              <span class="pill">ترتيب {{ p.order }}</span>
+              <span class="pill" *ngIf="p.max_allowed_ads != null && p.max_allowed_ads >= 0">حد إعلانات {{ p.max_allowed_ads }}</span>
+              <span class="pill accent" *ngIf="p.highlight">تمييز</span>
+              <span class="pill tier" *ngIf="p.tier">{{ p.tier }}</span>
+            </div>
+          </ion-label>
+          <ion-button fill="clear" size="small" (click)="togglePlanVisible(p)" [attr.aria-label]="p.visible ? 'إخفاء' : 'إظهار'">
+            <ion-icon slot="icon-only" [name]="p.visible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="editPlan(p)">
+            <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" size="small" color="danger" (click)="confirmDelete(p)">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+          <ion-reorder slot="end"></ion-reorder>
+        </ion-item>
+      </ion-reorder-group>
+    </ion-list>
+
+    <ion-modal [isOpen]="editOpen" (didDismiss)="closeEdit()">
+      <ng-template>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>{{ draft?.name ? 'تعديل الباقة' : 'باقة جديدة' }}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button fill="clear" (click)="closeEdit()">إغلاق</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding subs-admin-modal-scroll" *ngIf="draft">
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">اسم الباقة</ion-label>
+            <ion-input [(ngModel)]="draft.name" placeholder="مثال: باقة فضي"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">سعر العرض (سطر للمستخدم)</ion-label>
+            <ion-input [(ngModel)]="draft.priceLabel" placeholder="70 جم / شهر"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">السعر كرقم (مرجعي)</ion-label>
+            <ion-input type="number" [(ngModel)]="draft.price"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">الحد الأقصى لعدد الإعلانات (للمستخدم المرتبط بهذه الباقة)</ion-label>
+            <ion-input
+              type="number"
+              inputmode="numeric"
+              min="0"
+              [(ngModel)]="draft.max_allowed_ads"
+              placeholder="مثال: 10 — اترك فارغاً لعدم تطبيق سقف من الباقة"
+            ></ion-input>
+            <ion-note slot="helper">
+              عند ربط المستخدم بهذه الباقة (حقل subscription_plan_id)، يُستخدم أصغر قيمة بين هذا الحد وحد التوثيق على الحساب.
+            </ion-note>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">عنوان فرعي</ion-label>
+            <ion-input [(ngModel)]="draft.subtitle" placeholder="مناسبة للنشاط…"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">شعار تحفيزي</ion-label>
+            <ion-input [(ngModel)]="draft.tagline" placeholder="زوّد انتشارك…"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">مزايا متضمّنة (سطر لكل سطر)</ion-label>
+            <ion-textarea [(ngModel)]="includedText" rows="6" placeholder="سطر لكل ميزة مع ✔ إن رغبت"></ion-textarea>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">مزايا غير متضمّنة (سطر لكل سطر)</ion-label>
+            <ion-textarea [(ngModel)]="excludedText" rows="4" placeholder="سطر لكل بند مع ❌ إن رغبت"></ion-textarea>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">ملاحظة سفلية</ion-label>
+            <ion-input [(ngModel)]="draft.footerNote" placeholder="*يمكنك الترقية أو إلغاء الاشتراك…"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">تلميح مدة / انتهاء</ion-label>
+            <ion-input [(ngModel)]="draft.expiryHint" placeholder="تنتهي خلال 7 أيام"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">شارة (اختياري)</ion-label>
+            <ion-input [(ngModel)]="draft.badge" placeholder="الأكثر اختياراً"></ion-input>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">المظهر (tier)</ion-label>
+            <ion-select [(ngModel)]="draft.tier" interface="action-sheet" placeholder="اختر">
+              <ion-select-option *ngFor="let t of tierOptions" [value]="t.v">{{ t.l }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">القسم</ion-label>
+            <ion-select [(ngModel)]="draft.section" interface="action-sheet">
+              <ion-select-option value="main">رئيسي — عمودي</ion-select-option>
+              <ion-select-option value="swiper">أفقي — شريط</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">ترتيب العرض</ion-label>
+            <ion-input type="number" [(ngModel)]="draft.order"></ion-input>
+          </ion-item>
+
+          <ion-item lines="none" class="subs-admin-toggle-row">
+            <ion-label>ظاهرة للمستخدم</ion-label>
+            <ion-toggle slot="end" [(ngModel)]="draft.visible"></ion-toggle>
+          </ion-item>
+
+          <ion-item lines="none" class="subs-admin-toggle-row">
+            <ion-label>تمييز البطاقة</ion-label>
+            <ion-toggle slot="end" [(ngModel)]="draft.highlight"></ion-toggle>
+          </ion-item>
+
+          <ion-button expand="block" mode="ios" class="subs-admin-save-main" (click)="saveDraftPlan()">
+            <ion-icon slot="start" name="save-outline"></ion-icon>
+            حفظ الباقة
+          </ion-button>
+          <div class="modal-spacer"></div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+  </div>
+</ion-content>

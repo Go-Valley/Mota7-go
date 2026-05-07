@@ -55,13 +55,26 @@
             <ion-select-option value="fullName">الاسم (أبجدياً)</ion-select-option>
             <ion-select-option value="city">المدينة</ion-select-option>
           </ion-select>
-        </ion-item>
+          </ion-item>
+        </div>
       </div>
-    </div>
 
-    <div class="user-card-luxury" 
+      <ion-button
+        *ngIf="!selectionMode"
+        expand="block"
+        fill="outline"
+        mode="ios"
+        class="migrate-free-btn"
+        (click)="confirmMigrateLegacyFreeDefaults()"
+      >
+        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+        تهيئة توثيق مجاني للحسابات القديمة (none/free)
+      </ion-button>
+
+    <div class="user-card-luxury"
          *ngFor="let user of filteredUsers" 
          [class.is-selected]="selectedUserIds.has(user.id)"
+         [class.is-verification-draft-card]="verificationDraftUserId === user.id"
          (click)="onUserClick(user)"
          (mousedown)="onPointerDown(user)"
          (mouseup)="onPointerUp()"
@@ -72,8 +85,20 @@
         <ion-checkbox [checked]="selectedUserIds.has(user.id)" mode="ios"></ion-checkbox>
       </div>
 
-      <div class="user-avatar" *ngIf="!selectionMode">
-        <ion-icon name="person-outline"></ion-icon>
+      <div
+        class="user-avatar-wrap"
+        *ngIf="!selectionMode"
+        [class.is-draft-badge]="verificationDraftUserId === user.id"
+      >
+        <div class="user-avatar">
+          <ion-icon name="person-outline"></ion-icon>
+        </div>
+        <div
+          class="verification-badge-slot"
+          *ngIf="verificationBadgeSrc(user) as badgeSrc"
+        >
+          <img [src]="badgeSrc" alt="" loading="lazy" />
+        </div>
       </div>
 
       <div class="user-info">
@@ -90,9 +115,12 @@
           <ion-badge [color]="user.isActive ? 'success' : 'danger'">
             {{ user.isActive ? 'حساب نشط' : 'حساب معطل' }}
           </ion-badge>
-          
-          <ion-badge color="primary" *ngIf="user.verifiedStatus === 'blue'">توثيق أزرق</ion-badge>
-          <ion-badge color="warning" *ngIf="user.verifiedStatus === 'gold'">توثيق ذهبي</ion-badge>
+          <ion-badge
+            class="verification-tier-pill"
+            [color]="verificationDraftUserId === user.id ? 'warning' : 'tertiary'"
+          >
+            {{ tierCaptionForCard(user) }}
+          </ion-badge>
         </div>
       </div>
 

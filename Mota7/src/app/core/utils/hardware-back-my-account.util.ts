@@ -17,6 +17,14 @@ export const HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY = 50;
 export const HARDWARE_BACK_CART_CHECKOUT_PRIORITY = 55;
 
 /**
+ * مودال «باقات الاشتراكات» من صفحة حسابي — أعلى من:
+ * `OVERLAY_BACK_BUTTON_PRIORITY` (100)، وقائمة Ionic (99)، وصفحات التبويب المحفوظة
+ * التي لا تُدمَّر (مثل إدارة إعلاناتي) التي تستخدم الأولوية 50.
+ * Ionic ينفّذ معالجاً واحداً فقط لكل ضغطة (الأعلى أولوية).
+ */
+export const HARDWARE_BACK_SUBSCRIPTIONS_PACKAGES_MODAL_PRIORITY = 9999;
+
+/**
  * زر الرجوع بالجهاز (أندرويد):
  * - طبقات Ionic (قوائم اختيار، تنبيهات، أعلى مودال) تُغلق أولاً تلقائياً لأن أولويتها أعلى.
  * - إن وُجد `modalCtrl` ولم تبقَ طبقة، يُغلق أعلى مودال (مثل نموذج الإعلان).

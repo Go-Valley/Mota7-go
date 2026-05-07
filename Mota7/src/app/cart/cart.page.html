@@ -50,22 +50,26 @@
             @for (it of o.items; track it.adId + '-' + $index) {
               <div class="product-detail-card" role="group">
                 <p class="pdc-desc">{{ productLineDescription(it) }}</p>
-                <div class="pdc-grid">
-                  <div class="pdc-cell">
-                    <span class="pdc-k">البائع</span>
-                    <span class="pdc-v">{{ it.sellerName || '—' }}</span>
+                <div class="pdc-cart-meta">
+                  <div class="pdc-cart-col">
+                    <div class="pdc-cell">
+                      <span class="pdc-k">البائع</span>
+                      <span class="pdc-v">{{ it.sellerName || '—' }}</span>
+                    </div>
+                    <div class="pdc-cell">
+                      <span class="pdc-k">مدينة البائع</span>
+                      <span class="pdc-v pdc-city" dir="auto">{{ it.locationLabel || '—' }}</span>
+                    </div>
                   </div>
-                  <div class="pdc-cell">
-                    <span class="pdc-k">السعر</span>
-                    <span class="pdc-v pdc-price">{{ it.unitPrice | number : '1.0-2' }} ج.م</span>
-                  </div>
-                  <div class="pdc-cell">
-                    <span class="pdc-k">مدينة البائع</span>
-                    <span class="pdc-v pdc-city" dir="auto">{{ it.locationLabel || '—' }}</span>
-                  </div>
-                  <div class="pdc-cell">
-                    <span class="pdc-k">حالة المنتج</span>
-                    <span class="pdc-v">{{ it.condition }}</span>
+                  <div class="pdc-cart-col">
+                    <div class="pdc-cell">
+                      <span class="pdc-k">السعر</span>
+                      <span class="pdc-v pdc-price">{{ it.unitPrice | number : '1.0-2' }} ج.م</span>
+                    </div>
+                    <div class="pdc-cell">
+                      <span class="pdc-k">حالة المنتج</span>
+                      <span class="pdc-v">{{ it.condition }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -143,22 +147,26 @@
               <ion-label class="cart-line-label-only">
                 <div class="product-detail-card cart-product-card">
                   <p class="pdc-desc">{{ productLineDescription(row) }}</p>
-                  <div class="pdc-grid">
-                    <div class="pdc-cell">
-                      <span class="pdc-k">البائع</span>
-                      <span class="pdc-v">{{ row.sellerName || '—' }}</span>
+                  <div class="pdc-cart-meta">
+                    <div class="pdc-cart-col">
+                      <div class="pdc-cell">
+                        <span class="pdc-k">البائع</span>
+                        <span class="pdc-v">{{ row.sellerName || '—' }}</span>
+                      </div>
+                      <div class="pdc-cell">
+                        <span class="pdc-k">مدينة البائع</span>
+                        <span class="pdc-v pdc-city" dir="auto">{{ row.locationLabel || '—' }}</span>
+                      </div>
                     </div>
-                    <div class="pdc-cell">
-                      <span class="pdc-k">السعر</span>
-                      <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
-                    </div>
-                    <div class="pdc-cell">
-                      <span class="pdc-k">مدينة البائع</span>
-                      <span class="pdc-v pdc-city" dir="auto">{{ row.locationLabel || '—' }}</span>
-                    </div>
-                    <div class="pdc-cell">
-                      <span class="pdc-k">حالة المنتج</span>
-                      <span class="pdc-v">{{ row.condition }}</span>
+                    <div class="pdc-cart-col">
+                      <div class="pdc-cell">
+                        <span class="pdc-k">السعر</span>
+                        <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
+                      </div>
+                      <div class="pdc-cell">
+                        <span class="pdc-k">حالة المنتج</span>
+                        <span class="pdc-v">{{ row.condition }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

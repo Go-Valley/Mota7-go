@@ -26,13 +26,14 @@ import { DeliveryFormComponent } from './delivery-form.component';
 import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 
 @Component({
   selector: 'app-delivery-card',
   templateUrl: './delivery-card.component.html',
   styleUrls: ['./delivery-card.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent],
+  imports: [IonicModule, CommonModule, AdCardEngagementRowComponent, VerificationBadgeComponent],
 })
 export class DeliveryCardComponent implements OnInit, OnChanges {
 
@@ -210,8 +211,7 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
         adType: 'delivery'
       },
       cssClass: 'verification-modal',
-      breakpoints: [0, 1.1],
-      initialBreakpoint: 1.1
+      backdropDismiss: true,
     });
 
     await modal.present();

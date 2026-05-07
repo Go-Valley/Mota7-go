@@ -11,7 +11,15 @@ import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
+import {
+  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
+  checkOwnerAdQuota,
+  presentOwnerAdQuotaExceeded,
+  tierFromUserDoc,
+} from 'src/app/core/utils/user-ad-quota.util';
+import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
+import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 
@@ -51,6 +59,7 @@ export class EducationFormComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -100,6 +109,9 @@ export class EducationFormComponent implements OnInit {
       lng: ad.location?.lng || 0,
       city: ad.city || ''
     };
+    this.userVerificationStatus = canonicalTierForFirestore(
+      ad.verification_level ?? ad.is_verified
+    );
     this.onCategoryChange();
   }
 
@@ -125,6 +137,7 @@ export class EducationFormComponent implements OnInit {
         this.eduData.city = data['city'] || 'الخارجة';
         this.eduData.contactPhone = data['phone'] || '';
         this.eduData.whatsappPhone = data['phone'] || '';
+        this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
       }
     }
   }
@@ -185,10 +198,43 @@ export class EducationFormComponent implements OnInit {
         }
       }
 
+      if (!this.isEditMode) {
+        const userKey = user.email!.split('@')[0];
+        const quota = await checkOwnerAdQuota(
+          this.firestore,
+          this.injector,
+          this.eduData.contactPhone,
+          userKey,
+          user.uid
+        );
+        if (!quota.ok) {
+          await loader.dismiss();
+          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            onOpenSubscriptionPlans: async () => {
+              await this.modalCtrl.dismiss(
+                undefined,
+                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+              );
+              await this.navCtrl.navigateRoot('/tabs/my-account');
+              this.subsModalBridge.requestOpen();
+            },
+            quotaAdminContact: {
+              firestore: this.firestore,
+              injector: this.injector,
+              userDocId: userKey,
+              contactPhoneFallback: this.eduData.contactPhone,
+            },
+          });
+          return;
+        }
+      }
+
       await runInInjectionContext(this.injector, async (): Promise<void> => {
         const adId = this.isEditMode ? this.currentAdId! : `${this.eduData.contactPhone}_${Date.now()}`;
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
+
+        const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
 
         const adPayload: any = {
           ad_id: adId,
@@ -198,7 +244,8 @@ export class EducationFormComponent implements OnInit {
           category_id: this.eduData.category_id,
           ad_type: 'education',
           education_match_key: educationMatchKey,
-          verification_level: this.userVerificationStatus,
+          verification_level: verifyTier,
+          is_verified: verifyTier,
           sort_order: 999,
           details: {
             teacher_name: this.eduData.teacherName,

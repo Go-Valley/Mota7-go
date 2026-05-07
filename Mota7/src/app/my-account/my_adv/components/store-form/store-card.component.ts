@@ -19,6 +19,7 @@ import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { cloudinaryListThumbnailUrl } from '../../../../core/utils/cloudinary-list-image.util';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
+import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 import { 
   logoWhatsapp, call, checkmarkCircle, ribbon, 
   createOutline, trashOutline, alertCircleOutline, shieldCheckmark, shieldCheckmarkOutline 
@@ -29,7 +30,7 @@ import {
   templateUrl: './store-card.component.html',
   styleUrls: ['./store-card.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule, AdCardEngagementRowComponent],
+  imports: [CommonModule, IonicModule, AdCardEngagementRowComponent, VerificationBadgeComponent],
 })
 
 export class StoreCardComponent implements OnInit, OnChanges {
@@ -173,8 +174,7 @@ export class StoreCardComponent implements OnInit, OnChanges {
         adType: 'store'
       },
       cssClass: 'verification-modal',
-      breakpoints: [0, 1.1],
-      initialBreakpoint: 1.1
+      backdropDismiss: true,
     });
     await modal.present();
   }

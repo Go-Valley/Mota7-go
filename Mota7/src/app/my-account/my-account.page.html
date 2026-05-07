@@ -70,29 +70,13 @@
         <div class="user-info-text">
           <div class="user-name-row">
             <h2 class="user-name__heading">{{ userName }}</h2>
-            <!-- نفس هيكل كروت الإعلانات (delivery-card): verification-badge + verify-img -->
-            <div
-              class="verification-badge"
-              *ngIf="verificationLevel === 'blue' || verificationLevel === 'gold'"
-              [ngClass]="verificationLevel"
-            >
-              <!-- AVIF + WebP: WebView أندرويد غالباً لا يعرض AVIF؛ gold.webp احتياط بنفس الشكل -->
-              <picture *ngIf="verificationLevel === 'gold'">
-                <source [srcset]="assetUrl('assets/gold.avif')" type="image/avif" />
-                <img
-                  [src]="assetUrl('assets/gold.webp')"
-                  class="verify-img"
-                  alt="شارة التحقق الذهبية"
-                  title="متجر موثَّق - ذهبية"
-                />
-              </picture>
-              <img
-                *ngIf="verificationLevel === 'blue'"
-                [src]="assetUrl('assets/blue.webp')"
-                class="verify-img"
-                alt="شارة التحقق الزرقاء"
-                title="متجر موثَّق - زرقاء"
-              />
+            <div class="verification-badge profile-verification-badge">
+              <app-verification-badge
+                [tier]="profileBadgeTier"
+                [verified]="profileBadgeVerified"
+                [validFrom]="profileBadgeValidFrom"
+                [validUntil]="profileBadgeValidUntil"
+              ></app-verification-badge>
             </div>
           </div>
           <p class="user-phone">{{ userPhone }}</p>
@@ -199,12 +183,13 @@
       [backdropDismiss]="true"
       [keepContentsMounted]="false"
       class="subscriptions-packages-modal"
+      mode="ios"
       (didDismiss)="setOpenSubscriptions(false)"
     >
       <ng-template>
         <ion-header class="ion-no-border subs-modal-header">
           <ion-toolbar>
-            <ion-title>باقات الاشتراكات الشهرية</ion-title>
+            <ion-title>خطط الاشتراك</ion-title>
             <ion-buttons slot="end">
               <ion-button fill="clear" (click)="closeSubscriptionsModal()">إغلاق</ion-button>
             </ion-buttons>
@@ -212,6 +197,107 @@
         </ion-header>
 
         <ion-content class="ion-padding subscriptions-modal-content" scrollY="true">
+          <div *ngIf="subscriptionsModalView === 'plans'" class="subs-plans-root">
+            <!-- Hero -->
+            <section class="subs-plans-hero">
+              <p class="subs-plans-kicker">اشتراكات مُتاح</p>
+              <h2 class="subs-plans-title">اختَر الخطة التي تناسب نشاطك</h2>
+              <p class="subs-plans-lead">
+                شفافية كاملة في المزايا، مرونة في الترقية أو الإيقاف في أي وقت.
+              </p>
+            </section>
+
+            <!-- Horizontal plans gallery -->
+            <div class="subs-gallery" *ngIf="subsPlansMain.length" dir="rtl">
+              <article
+                *ngFor="let p of subsPlansMain; let i = index"
+                class="subs-gcard"
+                [ngClass]="tierGalleryClass(p)"
+              >
+                <!-- Decorative top accent -->
+                <div class="subs-gcard__accent"></div>
+
+                <!-- Badge -->
+                <div class="subs-gcard__badge" *ngIf="p.badge">{{ p.badge }}</div>
+
+                <!-- Plan header -->
+                <div class="subs-gcard__head">
+                  <h3 class="subs-gcard__name">{{ p.name }}</h3>
+                  <div class="subs-gcard__price">{{ p.priceLabel }}</div>
+                  <p class="subs-gcard__subtitle" *ngIf="p.subtitle">{{ p.subtitle }}</p>
+                  <p class="subs-gcard__tagline" *ngIf="p.tagline">{{ p.tagline }}</p>
+                </div>
+
+                <!-- Expiry pill -->
+                <div class="subs-gcard__expiry" *ngIf="p.expiryHint" role="note">
+                  <span class="subs-gcard__expiry-inner">
+                    <span class="subs-gcard__expiry-dot" aria-hidden="true"></span>
+                    <span class="subs-gcard__expiry-text">{{ p.expiryHint }}</span>
+                  </span>
+                </div>
+
+                <!-- Features included -->
+                <ul class="subs-gcard__feats" *ngIf="p.includedFeatures.length">
+                  <li *ngFor="let line of p.includedFeatures">
+                    <span class="subs-gcard__feat-icon subs-gcard__feat-icon--yes"></span>
+                    {{ line }}
+                  </li>
+                </ul>
+
+                <!-- Features excluded -->
+                <ul class="subs-gcard__feats subs-gcard__feats--excluded" *ngIf="p.excludedFeatures.length">
+                  <li *ngFor="let line of p.excludedFeatures">
+                    <span class="subs-gcard__feat-icon subs-gcard__feat-icon--no"></span>
+                    <span class="subs-gcard__feat-text--struck">{{ line }}</span>
+                  </li>
+                </ul>
+
+                <!-- Footer note -->
+                <p class="subs-gcard__footer" *ngIf="p.footerNote">{{ p.footerNote }}</p>
+
+                <!-- CTA button -->
+                <button
+                  type="button"
+                  class="subs-gcard__cta"
+                  (click)="subscribePlanNow(p, $event)"
+                >
+                  اشترك الآن
+                </button>
+              </article>
+            </div>
+
+            <!-- Swiper section (horizontal compact) -->
+            <section class="subs-swiper-zone" *ngIf="subsPlansSwiper.length">
+              <h3 class="subs-section-heading">
+                <span class="subs-section-heading__decor"></span>
+                عروض مختارة
+              </h3>
+              <div class="subs-gallery subs-gallery--compact" dir="rtl">
+                <article
+                  *ngFor="let p of subsPlansSwiper"
+                  class="subs-gcard subs-gcard--sm"
+                  [ngClass]="tierGalleryClass(p)"
+                >
+                  <div class="subs-gcard__accent"></div>
+                  <div class="subs-gcard__badge subs-gcard__badge--sm" *ngIf="p.badge">{{ p.badge }}</div>
+                  <h3 class="subs-gcard__name">{{ p.name }}</h3>
+                  <div class="subs-gcard__price">{{ p.priceLabel }}</div>
+                  <p class="subs-gcard__subtitle" *ngIf="p.subtitle">{{ p.subtitle }}</p>
+                  <ul class="subs-gcard__feats subs-gcard__feats--dense" *ngIf="p.includedFeatures.length">
+                    <li *ngFor="let line of p.includedFeatures.slice(0, 5)">
+                      <span class="subs-gcard__feat-icon subs-gcard__feat-icon--yes"></span>
+                      {{ line }}
+                    </li>
+                  </ul>
+                  <p class="subs-gcard__footer" *ngIf="p.footerNote">{{ p.footerNote }}</p>
+                  <button type="button" class="subs-gcard__cta subs-gcard__cta--sm" (click)="subscribePlanNow(p, $event)">
+                    اشترك الآن
+                  </button>
+                </article>
+              </div>
+            </section>
+          </div>
+
           <div *ngIf="subscriptionsModalView === 'empty'" class="subs-empty-state">
             {{ subscriptionsEmptyMessage }}
           </div>
@@ -222,7 +308,14 @@
 
           <div *ngIf="subscriptionsModalView === 'none'" class="subs-none-state">
             <p>لم يُفعَّل عرض الباقات من الإدارة.</p>
-            <p class="subs-none-hint">فعِّل <strong>current_status</strong> أو <strong>empty_status</strong> بقيمة <code>active</code> في مستند Firestore <code>subscriptions/page</code>.</p>
+            <p class="subs-none-hint">
+              يمكن التفعيل من لوحة الأدمن عبر مستند
+              <code>subscriptions/config</code>
+              أو النظام السابق
+              <code>subscriptions/page</code>
+              (<strong>current_status</strong> /
+              <strong>empty_status</strong>).
+            </p>
           </div>
         </ion-content>
 

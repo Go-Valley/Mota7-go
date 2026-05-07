@@ -3,9 +3,7 @@
   <ion-button fill="clear" color="dark" class="admin-action-btn" (click)="onManage($event)">
     <ion-icon slot="icon-only" name="ellipsis-vertical-outline"></ion-icon>
   </ion-button>
-  <div class="sort-badge" [ngClass]="{ 'gold': ad.is_verified === 'gold', 'blue': ad.is_verified === 'blue', 'gray': !ad.is_verified || ad.is_verified === 'none' }">
-    #{{ ad.sort_order || 999 }}
-  </div>
+  <div class="manual-sort-level-pill" *ngIf="manualSortLevel1to5(ad) as lvl">{{ lvl }}</div>
 
   <div class="admin-top-info">
     <div class="ad-date">{{ ad.created_at?.toDate() | date:'yyyy-MM-dd' }}</div>
@@ -27,9 +25,13 @@
         <ion-icon [name]="getCategoryIcon(ad.category_id)"></ion-icon>
       </div>
       
-      <div class="verification-badge" *ngIf="ad.is_verified && ad.is_verified !== 'none'">
-        <img src="assets/gold.avif" *ngIf="ad.is_verified === 'gold'" class="verify-img" alt="ذهبي">
-        <img src="assets/blue.webp" *ngIf="ad.is_verified === 'blue'" class="verify-img" alt="أزرق">
+      <div class="verification-badge">
+        <app-verification-badge
+          [tier]="ad.verification_level"
+          [verified]="ad.is_verified"
+          [validFrom]="ad.verification_valid_from"
+          [validUntil]="ad.verification_valid_until"
+        ></app-verification-badge>
       </div>
     </div>
 

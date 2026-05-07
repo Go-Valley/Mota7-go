@@ -82,14 +82,14 @@
   }
 }
 
-.store-circle .verification-badge {
+.store-circle .verification-badge-wrap {
   position: absolute;
   z-index: 2;
   bottom: 6px;
-  inset-inline-end: 70px; /* إزاحة نحو «اليمين» المنطقي دون أن تختفي خلف اللوجو */
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
+  inset-inline-end: 70px;
+  width: auto;
+  max-width: 80px;
+  min-height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,26 +97,6 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
   pointer-events: none;
-
-  .verify-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 50%;
-  }
-}
-
-.store-circle .verification-badge ion-icon {
-  font-size: 16px;
-  color: #ffffff;
-}
-
-.store-circle .verification-badge.blue {
-  background: linear-gradient(135deg, rgb(1 44 119 / 0%), rgb(30 64 175 / 0%));
-}
-
-.store-circle .verification-badge.gold {
-  background: linear-gradient(135deg, #fceabb, #b68601);
 }
 
 .store-heading {

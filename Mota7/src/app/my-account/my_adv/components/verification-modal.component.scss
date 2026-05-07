@@ -1,156 +1,312 @@
-.verification-content {
-  --background: #ffffff;
-  --padding: 20px;
-  direction: rtl;
-  text-align: right;
+/* ═══════════════════════════════════════════════════════
+   VIP Verification Modal — Premium Arabic RTL Design
+   تمرير واحد عبر ion-content فقط (بدون div داخلي بـ overflow)
+   ═══════════════════════════════════════════════════════ */
 
-  .modal-header {
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+$gold: #d4a017;
+$gold-dark: #b8860b;
+$bg-dark: #0d0d14;
+$bg-card: #16161f;
+$accent-border: rgba(212, 160, 23, 0.25);
+$text-primary: #f5f5f7;
+$text-secondary: #a1a1aa;
+$whatsapp: #25d366;
+$whatsapp-dark: #1da851;
+
+/* رأس ثابت — بدون backdrop-filter لتخفيف تَعَثُّر التمرير على أندرويد */
+.vip-modal-header {
+  .vip-modal-toolbar {
+    --background: #{$bg-dark};
+    --border-color: #{$accent-border};
+    direction: rtl;
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Tajawal', sans-serif;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  ion-title.header-title {
+    text-align: center;
+    padding-inline: 8px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: $gold;
+    letter-spacing: 0.015em;
+  }
+
+  .close-btn {
+    width: 34px;
+    height: 34px;
+    margin: 0;
+    border-radius: 50%;
+    border: none;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid #e2e8f0;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-secondary;
+    font-size: 22px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 
-    .header-title {
-      font-weight: 900;
-      color: #000000;
-      font-size: 1.3rem;
-      margin: 0;
-      
-      &.center-text {
-        text-align: center;
-        flex: 1;
-        margin-right: -15px; // تعويض مساحة زر الإغلاق
-      }
+    &:active {
+      transform: scale(0.88);
+      background: rgba(255, 255, 255, 0.15);
     }
+  }
+}
 
-    .close-button {
-      order: -1; /* نقل الزر ليكون أول عنصر (على اليمين في RTL) */
-      background: #fee2e2;
-      color: #ef4444;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      z-index: 10;
-  
-      &:active {
-        transform: scale(0.85);
-        background: #fecaca;
-      }
-      }
+.vip-modal-content {
+  --background: #{$bg-dark};
+  /* لا نستخدم padding-bottom الخاص بشريط التبويب في global.scss */
+  --padding-top: 0;
+  --padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  --padding-start: 0;
+  --padding-end: 0;
+  direction: rtl;
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Tajawal', sans-serif;
+  /* تمرير لمس طبيعي داخل WebView */
+  touch-action: pan-y;
+}
+
+.body-inner {
+  padding: 0 16px 8px;
+}
+
+/* ── Tagline ── */
+.tagline {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.8;
+  color: $text-secondary;
+  margin: 20px 0 24px;
+  padding: 0 8px;
+}
+
+/* ════════════════════════════════════
+   Level Cards
+   ════════════════════════════════════ */
+.level-card {
+  position: relative;
+  margin-bottom: 20px;
+  padding: 20px 18px 18px;
+  border-radius: 20px;
+  background: $bg-card;
+  border: 1px solid $accent-border;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0.06;
   }
 
-  .content-wrapper {
-    padding: 10px;
-    max-height: 100vh;
-    overflow-y: auto;
+  .level-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
 
-    .main-title {
+  .level-label {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .level-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: $text-primary;
+  }
+
+  .vip-badge {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    border-radius: 4px;
+    margin-inline-start: auto;
+  }
+
+  .level-subtitle {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: $text-secondary;
+    margin: 0 0 14px;
+    line-height: 1.6;
+  }
+
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+
+    li {
+      position: relative;
+      padding: 5px 18px 5px 0;
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: $text-secondary;
+      line-height: 1.7;
+
+      &::before {
+        content: '✦';
+        position: absolute;
+        right: 0;
+        color: $gold;
+        font-size: 0.7rem;
+        top: 8px;
+      }
+    }
+  }
+
+  .price-tag {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 800;
+    color: $gold;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  .cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, $whatsapp, $whatsapp-dark);
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 6px 24px rgba($whatsapp, 0.3);
+
+    ion-icon {
       font-size: 1.2rem;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+}
+
+/* ── Level accent colors ── */
+.level-1 {
+  border-color: rgba($gold, 0.35);
+  &::before { background: linear-gradient(160deg, $gold, transparent); }
+  .level-label { background: linear-gradient(135deg, $gold, $gold-dark); }
+}
+
+.level-2 {
+  $c: #c0c0c0;
+  border-color: rgba($c, 0.25);
+  &::before { background: linear-gradient(160deg, $c, transparent); }
+  .level-label { background: linear-gradient(135deg, #a8a8a8, #6b6b6b); }
+}
+
+.level-3 {
+  $c: #6366f1;
+  border-color: rgba($c, 0.25);
+  &::before { background: linear-gradient(160deg, $c, transparent); }
+  .level-label { background: linear-gradient(135deg, #818cf8, #4f46e5); }
+}
+
+.level-4 {
+  $c: #f59e0b;
+  border-color: rgba($c, 0.2);
+  &::before { background: linear-gradient(160deg, $c, transparent); }
+  .level-label { background: linear-gradient(135deg, #fbbf24, #d97706); }
+}
+
+.level-5 {
+  $c: #10b981;
+  border-color: rgba($c, 0.2);
+  &::before { background: linear-gradient(160deg, $c, transparent); }
+  .level-label { background: linear-gradient(135deg, #34d399, #059669); }
+}
+
+/* ════════════════════════════════════
+   Why VIP Section
+   ════════════════════════════════════ */
+.why-vip {
+  margin: 28px 0 20px;
+  padding: 20px 18px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba($gold, 0.08), rgba($gold, 0.02));
+  border: 1px solid $accent-border;
+
+  .why-title {
+    margin: 0 0 14px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: $gold;
+  }
+
+  .why-item {
+    position: relative;
+    padding: 6px 22px 6px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.8;
+
+    &::before {
+      content: '•';
+      position: absolute;
+      right: 4px;
+      color: $gold;
       font-weight: 900;
-      text-align: center;
-      color: #ff0000;
-      margin: 20px 0;
-      line-height: 1.4;
-    }
-
-    .section {
-      margin: 24px 0;
-
-      .gold-title {
-        font-size: 1.5rem;
-        font-weight: 900;
-        text-align: center;
-        color: #bca000;
-        margin: 16px 0 8px 0;
-        line-height: 1.4;
-      }
-
-      .blue-title {
-        font-size: 1.5rem;
-        font-weight: 900;
-        text-align: center;
-        color: #007bff;
-        margin: 16px 0 8px 0;
-        line-height: 1.4;
-      }
-
-      .red-title {
-        font-size: 1.1rem;
-        font-weight: 900;
-        text-align: center;
-        color: #ff0000;
-        margin: 16px 0 8px 0;
-        line-height: 1.4;
-      }
-
-      .description {
-        font-weight: 800;
-        color: #000000;
-        text-align: center;
-        margin: 8px 0 12px 0;
-        line-height: 1.4;
-      }
-
-      .feature {
-        color: #333333;
-        font-weight: 500;
-        margin: 6px 0;
-        line-height: 1.5;
-        padding: 0 8px;
-      }
-    }
-
-    .buttons-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 32px;
-
-      button {
-        border: none;
-        border-radius: 12px;
-        padding: 16px;
-        font-weight: 900;
-        font-size: 1rem;
-        text-align: center;
-
-        &.gold-button {
-          background: linear-gradient(135deg, #bca000, #ffb700);
-          color: #000000;
-        }
-
-        &.blue-button {
-          background: linear-gradient(135deg, #007bff, #0056b3);
-          color: #ffffff;
-        }
-
-        &.red-button {
-          background: #ff0000;
-          color: #ffffff;
-        }
-
-        &:active {
-          transform: scale(0.98);
-        }
-      }
+      font-size: 1.1rem;
     }
   }
+}
 
-  // تنسيق الشريط
-  &::-webkit-scrollbar {
-    width: 4px;
+/* ════════════════════════════════════
+   Footer CTA
+   ════════════════════════════════════ */
+.footer-cta {
+  text-align: center;
+  padding: 16px 0 8px;
+
+  .cta-headline {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: $text-primary;
+    margin: 0 0 6px;
   }
 
-  &::-webkit-scrollbar-thumb {
-    background: #ffd700;
-    border-radius: 2px;
+  .cta-scarcity {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ef4444;
+    margin: 0;
+    line-height: 1.7;
   }
 }

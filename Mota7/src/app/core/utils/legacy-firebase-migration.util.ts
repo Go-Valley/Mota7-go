@@ -1,6 +1,7 @@
 import { getApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { orderPhoneToEnglishDigits } from './egyptian-phone-order.util';
+import { defaultMaxAdsForTier } from './verification-tiers.util';
 
 /** Firestore للمشروع المسمى `legacy` */
 export function getLegacyFirestore(): Firestore | null {
@@ -46,6 +47,7 @@ export interface MigratedUserFirestorePayload {
   isActive: boolean;
   verification_level: string;
   verifiedStatus: string;
+  max_active_ads: number;
 }
 
 /** بناء مستند users/{phone} الجديد من بروفايل Firestore القديم (مفتاح المستند هناك: uid) */
@@ -76,7 +78,8 @@ export function buildMigratedUserFirestoreDoc(
     createdAt,
     role: 'user',
     isActive: true,
-    verification_level: 'none',
-    verifiedStatus: 'none',
+    verification_level: 'free',
+    verifiedStatus: 'free',
+    max_active_ads: defaultMaxAdsForTier('free'),
   };
 }

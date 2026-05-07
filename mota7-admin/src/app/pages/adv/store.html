@@ -3,9 +3,7 @@
   <ion-button fill="clear" color="dark" class="admin-action-btn" (click)="onManage($event)">
     <ion-icon slot="icon-only" name="ellipsis-vertical-outline"></ion-icon>
   </ion-button>
-  <div class="sort-badge" [ngClass]="{ 'gold': ad.verification_level === 'gold', 'blue': ad.verification_level === 'blue', 'gray': !ad.verification_level || ad.verification_level === 'none' }">
-    #{{ ad.sort_order || 999 }}
-  </div>
+  <div class="manual-sort-level-pill" *ngIf="manualSortLevel1to5(ad) as lvl">{{ lvl }}</div>
 
   <div class="admin-top-info">
     <div class="ad-date">
@@ -20,9 +18,13 @@
     <div class="store-circle">
       <img [src]="ad.logo || 'assets/mota7.png'" (error)="$any($event.target).src = 'assets/mota7.png'" alt="لوجو">
       
-      <div class="verification-badge" *ngIf="ad.verification_level && ad.verification_level !== 'none'">
-        <img src="assets/gold.avif" *ngIf="ad.verification_level === 'gold'" class="verify-img" alt="ذهبي" title="موثق ذهبي">
-        <img src="assets/blue.webp" *ngIf="ad.verification_level === 'blue'" class="verify-img" alt="أزرق" title="موثق أزرق">
+      <div class="verification-badge">
+        <app-verification-badge
+          [tier]="ad.verification_level"
+          [verified]="ad.is_verified"
+          [validFrom]="ad.verification_valid_from"
+          [validUntil]="ad.verification_valid_until"
+        ></app-verification-badge>
       </div>
     </div>
 

@@ -1,0 +1,230 @@
+.subs-admin-page {
+  --background: linear-gradient(165deg, #0f172a 0%, #1e293b 35%, #f8fafc 35%);
+}
+
+.subs-admin-inner {
+  padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.subs-admin-hero {
+  text-align: center;
+  color: #f8fafc;
+  padding: 8px 12px 28px;
+
+  h2 {
+    margin: 12px 0 8px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.88;
+    line-height: 1.55;
+  }
+}
+
+.subs-admin-hero__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.35);
+
+  ion-icon {
+    font-size: 28px;
+    color: #fff;
+  }
+}
+
+.subs-admin-card {
+  margin: 0 0 20px;
+  border-radius: 20px;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+
+  ion-card-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  ion-card-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 4px;
+  }
+}
+
+.subs-admin-toggle-row {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 12px;
+
+  ion-label p {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: normal;
+  }
+}
+
+.subs-admin-vip-grid {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+.subs-admin-subheading {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.subs-admin-field.subs-admin-field--inline {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 10px;
+}
+
+.subs-admin-field {
+  --padding-start: 0;
+  margin-bottom: 8px;
+
+  ion-label {
+    font-weight: 700 !important;
+    color: #334155 !important;
+  }
+}
+
+.addons-field ion-textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+}
+
+.subs-admin-save-main {
+  --background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  --border-radius: 14px;
+  font-weight: 800;
+  margin-top: 16px;
+  min-height: 48px;
+}
+
+.subs-admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 4px;
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+}
+
+.subs-admin-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.subs-admin-plan-list {
+  background: transparent;
+  padding: 0;
+}
+
+.subs-admin-plan-item {
+  --background: #fff;
+  --border-radius: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+
+  ion-label {
+    margin: 10px 0;
+  }
+}
+
+.plan-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.plan-name {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.plan-price-chip {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+
+  &.off {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  &.accent {
+    background: #ecfccb;
+    color: #3f6212;
+  }
+
+  &.tier {
+    background: #ede9fe;
+    color: #5b21b6;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.subs-admin-modal-scroll {
+  --padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.modal-spacer {
+  height: 32px;
+}
+
+ion-modal ion-toolbar {
+  --background: #fff;
+  --border-width: 0 0 1px 0;
+  --border-color: #e2e8f0;
+}

@@ -1,13 +1,41 @@
-import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
+import {
+  Component,
+  EnvironmentInjector,
+  inject,
+  Input,
+  OnDestroy,
+  OnInit,
+  runInInjectionContext,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule, ModalController, Platform } from '@ionic/angular';
+import {
+  IonicModule,
+  ModalController,
+  Platform,
+  ToastController,
+} from '@ionic/angular';
 import { Subscription } from 'rxjs';
-import { Capacitor } from '@capacitor/core';
-import { AppLauncher } from '@capacitor/app-launcher';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { addIcons } from 'ionicons';
+import { closeOutline, logoWhatsapp } from 'ionicons/icons';
 import { HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY } from '../../../core/utils/hardware-back-my-account.util';
+import { openWhatsappNative } from '../../../core/utils/whatsapp-open.util';
+import { normalizeSubscriptionsConfig } from '../../../core/models/subscriptions-config.model';
 
-/** أعلى من subscribeHardwareBackToMyAccount حتى زر الرجوع يغلق المودال ولا يحرّك الصفحة خلفه */
-const VERIFICATION_MODAL_BACK_PRIORITY = HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY + 100;
+/**
+ * أعلى من معالج الطبقات (100) والتنقل إلى «حسابي» على صفحات التبويب (50)،
+ * ليُغلق توثيق VIP فقط دون رجوع الصفحة.
+ */
+const VERIFICATION_MODAL_BACK_PRIORITY =
+  HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY + 200;
+
+const LEVEL_NAMES: Record<number, string> = {
+  1: 'أول',
+  2: 'ثاني',
+  3: 'ثالث',
+  4: 'رابع',
+  5: 'خامس',
+};
 
 @Component({
   selector: 'app-verification-modal',
@@ -17,19 +45,42 @@ const VERIFICATION_MODAL_BACK_PRIORITY = HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY + 
   imports: [IonicModule, CommonModule],
 })
 export class VerificationModalComponent implements OnInit, OnDestroy {
-  private modalCtrl = inject(ModalController);
-  private platform = inject(Platform);
+  private readonly modalCtrl = inject(ModalController);
+  private readonly platform = inject(Platform);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
 
-  @Input() ad: any;
-  @Input() adType: string = '';
+  @Input() ad: unknown;
+  @Input() adType = '';
+
+  businessWhatsapp = '';
+  vipPrices: number[] = [50, 45, 40, 35, 30];
 
   private backButtonSub?: Subscription;
 
   ngOnInit(): void {
+    addIcons({ 'close-outline': closeOutline, 'logo-whatsapp': logoWhatsapp });
+    void this.loadSubsConfig();
     this.backButtonSub = this.platform.backButton.subscribeWithPriority(
       VERIFICATION_MODAL_BACK_PRIORITY,
       () => {
-        void this.modalCtrl.dismiss();
+        void (async () => {
+          try {
+            const top = await this.modalCtrl.getTop();
+            if (top) {
+              await top.dismiss();
+              return;
+            }
+            await this.modalCtrl.dismiss();
+          } catch {
+            try {
+              await this.modalCtrl.dismiss();
+            } catch {
+              /* ignore */
+            }
+          }
+        })();
       }
     );
   }
@@ -39,67 +90,100 @@ export class VerificationModalComponent implements OnInit, OnDestroy {
     this.backButtonSub = undefined;
   }
 
-  /**
-   * نفس منطق app.component: رقم دولي لـ WhatsApp (مصر 20…).
-   * على الأصلي: AppLauncher مباشرة — يفتح تطبيق واتساب ولا يمرّر WebView إلى api.whatsapp.com.
-   */
-  async requestVerification(verificationType: 'gold' | 'blue'): Promise<void> {
-    const adminPhone = '01220883999';
-
-    const adTitle = this.getAdTitle();
-    const ownerPhone = this.ad?.owner_phone || 'رقم غير متوفر';
-    const verificationName = verificationType === 'gold' ? 'توثيق ذهبي' : 'توثيق أزرق';
-
-    const message = `السلام عليكم .. محتاج اوثق اعلاني "${verificationName}" (${adTitle}) - لرقم (${ownerPhone})`;
-    const waPhone = this.normalizeWhatsappPhone(adminPhone);
-    const textParam = encodeURIComponent(message);
-    const waUrl = `whatsapp://send?phone=${waPhone}&text=${textParam}`;
-
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await AppLauncher.openUrl({ url: waUrl });
-      } catch {
-        /* لا نفتح صفحة ويب داخل WebView — المستخدم يثبت/يصلح واتساب */
-      }
-    } else {
-      window.open(waUrl, '_system');
+  private async loadSubsConfig(): Promise<void> {
+    try {
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'subscriptions', 'config'))
+      );
+      if (!snap.exists()) return;
+      const cfg = normalizeSubscriptionsConfig(
+        snap.data() as Record<string, unknown>
+      );
+      this.businessWhatsapp = (
+        cfg.subscription_orders_whatsapp ?? ''
+      ).trim();
+      this.vipPrices = [
+        cfg.vip_pin_price_level_1 ?? 50,
+        cfg.vip_pin_price_level_2 ?? 45,
+        cfg.vip_pin_price_level_3 ?? 40,
+        cfg.vip_pin_price_level_4 ?? 35,
+        cfg.vip_pin_price_level_5 ?? 30,
+      ];
+    } catch (e) {
+      console.error('verification-modal subs config', e);
     }
-
-    setTimeout(() => this.closeModal(), 500);
   }
 
-  private normalizeWhatsappPhone(phone: string): string {
-    const digits = (phone || '').replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('00')) return digits.slice(2);
-    if (digits.startsWith('20')) return digits;
-    if (digits.startsWith('2') && digits.length === 12) return digits;
-    if (digits.startsWith('0') && digits.length >= 10) return `20${digits.slice(1)}`;
-    if (digits.startsWith('1') && digits.length === 10) return `20${digits}`;
-    return digits;
+  private adRecord(): Record<string, unknown> {
+    return (this.ad ?? {}) as Record<string, unknown>;
   }
 
-  private getAdTitle(): string {
-    if (!this.ad) return 'إعلان غير معروف';
+  private ownerPhone(): string {
+    const o = this.adRecord()['owner_phone'];
+    return String(o ?? '').trim() || 'غير متوفر';
+  }
 
+  /**
+   * Sends a WhatsApp message for a specific VIP level (1–5).
+   * Format: السلام عليكم .. عايز اوثق اعلاني «عنوان» - توثيق VIP مستوى أول
+   *         - لرقم «هاتف» - لمدة 10 أيام - بمبلغ «سعر»
+   */
+  async sendVipRequest(level: number): Promise<void> {
+    const biz = this.businessWhatsapp.trim() || '01220883999';
+    const title = this.getAdTitle();
+    const phone = this.ownerPhone();
+    const price = this.vipPrices[level - 1] ?? 0;
+    const levelName = LEVEL_NAMES[level] ?? String(level);
+
+    const msg =
+      `السلام عليكم .. عايز اوثق اعلاني "${title}"` +
+      ` - توثيق VIP مستوى ${levelName}` +
+      ` - لرقم "${phone}"` +
+      ` - لمدة 10 أيام` +
+      ` - بمبلغ "${price} جم"`;
+
+    openWhatsappNative(biz, msg);
+    setTimeout(() => this.closeModal(), 450);
+  }
+
+  getAdTitle(): string {
+    const a = this.adRecord();
     switch (this.adType) {
       case 'delivery':
-        return this.ad.delivery_match_key || this.ad.details?.vehicle_name || this.ad.category_id || 'خدمة توصيل';
-
+        return String(
+          a['delivery_match_key'] ??
+            (a['details'] as Record<string, unknown>)?.['vehicle_name'] ??
+            a['category_id'] ??
+            'خدمة توصيل'
+        );
       case 'education':
-        return this.ad.education_match_key || this.ad.details?.subject || this.ad.category_id || 'خدمة تعليمية';
-
+        return String(
+          a['education_match_key'] ??
+            (a['details'] as Record<string, unknown>)?.['subject'] ??
+            a['category_id'] ??
+            'خدمة تعليمية'
+        );
       case 'product':
-        return this.ad.short_desc || this.ad.details?.short_desc || this.ad.details?.title || 'منتج';
-
+        return String(
+          (a['details'] as Record<string, unknown>)?.['short_desc'] ??
+            (a['details'] as Record<string, unknown>)?.['title'] ??
+            'منتج'
+        );
       case 'store':
-        return this.ad.store_name || this.ad.details?.store_name || 'متجر';
-
+        return String(
+          a['store_name'] ??
+            (a['details'] as Record<string, unknown>)?.['store_name'] ??
+            'متجر'
+        );
       case 'other':
-        return this.ad.other_match_key || this.ad.details?.service_name || this.ad.category_id || 'خدمة أخرى';
-
+        return String(
+          a['other_match_key'] ??
+            (a['details'] as Record<string, unknown>)?.['service_name'] ??
+            a['category_id'] ??
+            'خدمة'
+        );
       default:
-        return this.ad.owner_name || 'إعلان';
+        return String(a['owner_name'] ?? 'إعلان');
     }
   }
 

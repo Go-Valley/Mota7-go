@@ -21,6 +21,14 @@ import {
   readIonTextInputValueFromEvent,
 } from '../../../../core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from '../../../../core/utils/egyptian-phone-order.util';
+import {
+  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
+  checkOwnerAdQuota,
+  presentOwnerAdQuotaExceeded,
+  tierFromUserDoc,
+} from '../../../../core/utils/user-ad-quota.util';
+import { canonicalTierForFirestore } from '../../../../core/utils/verification-tiers.util';
+import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 
 @Component({
   selector: 'app-product-form',
@@ -75,6 +83,7 @@ export class ProductFormComponent implements OnInit {
   private actionSheetCtrl = inject(ActionSheetController);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private cdr = inject(ChangeDetectorRef);
   private taxonomy = inject(AppTaxonomyService);
@@ -114,7 +123,10 @@ export class ProductFormComponent implements OnInit {
   fillFormForEdit() {
     const d = this.editAdData;
     // استرجاع الاسم المخزن سابقاً في حالة التعديل
-    this.fetchedOwnerName = d.owner_name || ''; 
+    this.fetchedOwnerName = d.owner_name || '';
+    this.userVerificationStatus = canonicalTierForFirestore(
+      d.verification_level ?? d.is_verified
+    );
     const rawPrice = d.details?.price;
     let priceNum: number | null = null;
     let priceStr = '';
@@ -164,7 +176,7 @@ export class ProductFormComponent implements OnInit {
           this.productData.contactPhone = data['phone'] || '';
           this.productData.whatsappPhone = data['phone'] || '';
           this.productData.city = data['city'] || 'الخارجة';
-          this.userVerificationStatus = data['verification_status'] || 'none';
+          this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -480,6 +492,8 @@ async saveProduct(isStoreProduct: boolean = false) {
     const adId = this.isEditMode ? (this.editAdData.id || this.editAdData.ad_id) : `${this.productData.contactPhone}_${this.productData.main_cat_id}-${Date.now()}`;
     let ntfySnapshot: Record<string, unknown> | null = null;
 
+    const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
+
     await runInInjectionContext(this.injector, async () => {
       const adPayload: any = {
         ad_id: adId,
@@ -489,7 +503,8 @@ async saveProduct(isStoreProduct: boolean = false) {
         category_id: this.productData.main_cat_id,
         sub_category_name: this.productData.sub_cat_name,
         ad_type: 'product',
-        verification_level: this.userVerificationStatus,
+        verification_level: verifyTier,
+        is_verified: verifyTier,
         sort_order: 999,
         city: this.productData.city,
         location: { lat: this.productData.lat, lng: this.productData.lng },
@@ -535,6 +550,34 @@ async saveProduct(isStoreProduct: boolean = false) {
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
         await enqueueSparkAdFcmSavedJob(this.firestore, adId);
       } else {
+        const userKey = user.email!.split('@')[0];
+        const quota = await checkOwnerAdQuota(
+          this.firestore,
+          this.injector,
+          this.productData.contactPhone,
+          userKey,
+          user.uid
+        );
+        if (!quota.ok) {
+          await loader.dismiss();
+          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            onOpenSubscriptionPlans: async () => {
+              await this.modalCtrl.dismiss(
+                undefined,
+                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
+              );
+              await this.navCtrl.navigateRoot('/tabs/my-account');
+              this.subsModalBridge.requestOpen();
+            },
+            quotaAdminContact: {
+              firestore: this.firestore,
+              injector: this.injector,
+              userDocId: userKey,
+              contactPhoneFallback: this.productData.contactPhone,
+            },
+          });
+          return;
+        }
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
         adPayload.status = 'pending';

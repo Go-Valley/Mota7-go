@@ -89,12 +89,26 @@
     direction: rtl;
   }
 
-  .pdc-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 14px;
+  .pdc-cart-meta {
+    display: flex;
+    flex-direction: row;
     direction: rtl;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: clamp(16px, 5vw, 28px);
     text-align: start;
+  }
+
+  .pdc-cart-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 3.5vw, 16px);
+  }
+
+  .pdc-cart-meta .pdc-cell {
+    gap: 5px;
   }
 
   .pdc-cell {

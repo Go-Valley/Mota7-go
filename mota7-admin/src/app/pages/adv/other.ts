@@ -17,18 +17,22 @@ import {
   resolveOtherCategoryIcon,
   resolveOtherCategoryNameAr,
 } from '@mota7-app/core/utils/other-category-display.util';
+import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
 
 @Component({
   selector: 'app-other-card',
   templateUrl: './other.html',
   styleUrls: ['./other.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule]
+  imports: [IonicModule, CommonModule, VerificationBadgeComponent]
 })
 export class OtherCard implements OnInit {
   @Input() ad: any;
   @Input() selectionMode = false;
   @Output() manage = new EventEmitter<any>();
+
+  readonly manualSortLevel1to5 = manualSortLevel1to5;
 
   // حقن الخدمات اللازمة للتعامل مع التاريخ وقاعدة البيانات
   private alertCtrl = inject(AlertController);

@@ -1,15 +1,17 @@
+/* ══════════════════════════════════════════════════
+   Banners Swiper
+   ══════════════════════════════════════════════════ */
 .banners-wrapper {
-    margin: 5px 15px;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 4px -4px 10px 3px #595959, -4px 4px 10px 3px #595959;
-    aspect-ratio: 1 / 1;
-    width: calc(100% - 30px);
-    max-height: 100vh;
-    background: #f8f9fa;
-    position: relative;
-    border: 3px solid #ff9800;
-
+  margin: 5px 15px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 4px -4px 10px 3px #595959, -4px 4px 10px 3px #595959;
+  aspect-ratio: 1 / 1;
+  width: calc(100% - 30px);
+  max-height: 100vh;
+  background: #f8f9fa;
+  position: relative;
+  border: 3px solid #ff9800;
 
   swiper-container {
     width: 100%;
@@ -24,7 +26,7 @@
     cursor: pointer;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
     touch-action: manipulation;
-    
+
     img {
       width: 100%;
       height: 100%;
@@ -55,13 +57,13 @@
         z-index: 2;
         padding: 40px;
         text-align: center;
-        -webkit-backdrop-filter: blur(5px); 
+        -webkit-backdrop-filter: blur(5px);
         backdrop-filter: blur(5px);
 
         .icon-badge {
           width: 85px;
           height: 85px;
-          background: rgb(238 238 238);
+          background: rgb(238, 238, 238);
           border: 1px solid #000;
           border-radius: 0px;
           display: flex;
@@ -69,7 +71,7 @@
           justify-content: center;
           margin: 0 auto 20px;
           box-shadow: 0px 0px 13px 8px rgb(255, 117, 0);
-          
+
           .mota7-logo-icon {
             width: 90%;
             height: 90%;
@@ -77,22 +79,22 @@
           }
         }
 
-        h3 { 
+        h3 {
           font-size: 1.6rem;
-          font-weight: 800; 
+          font-weight: 800;
           color: white;
           margin-bottom: 10px;
           letter-spacing: -0.5px;
         }
 
-        p { 
-          font-size: 0.95rem; 
-          opacity: 0.7; 
+        p {
+          font-size: 0.95rem;
+          opacity: 0.7;
           color: #eee;
           margin-bottom: 30px;
         }
 
-        .start-now-btn { 
+        .start-now-btn {
           --background: #f16c14;
           --color: white;
           --border-radius: 16px;
@@ -101,7 +103,7 @@
           width: 190px;
           --box-shadow: 0 2px 20px rgb(166 169 175 / 99%);
           transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          
+
           &:active { transform: scale(0.95); }
         }
       }
@@ -112,4 +114,188 @@
 @keyframes rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════
+   Banner Request Modal — Premium Design
+   ══════════════════════════════════════════════════ */
+$modal-bg: #0e0e16;
+$accent: #f16c14;
+$accent-soft: rgba(241, 108, 20, 0.12);
+$card-bg: #1a1a26;
+$card-border: rgba(255, 255, 255, 0.06);
+$whatsapp: #25d366;
+$text-main: #f5f5f7;
+$text-dim: #9ca3af;
+
+.banner-modal-content {
+  --background: #{$modal-bg};
+  direction: rtl;
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Tajawal', sans-serif;
+}
+
+.bm-body {
+  padding: 8px 20px 36px;
+}
+
+/* ── Hero / header ── */
+.bm-hero {
+  text-align: center;
+  margin-bottom: 28px;
+
+  .bm-logo-ring {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: $accent-soft;
+    border: 2px solid rgba($accent, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 28px rgba($accent, 0.2);
+
+    img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+  }
+
+  .bm-title {
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: $text-main;
+    margin: 0 0 6px;
+    line-height: 1.5;
+  }
+
+  .bm-subtitle {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: $text-dim;
+    margin: 0;
+    line-height: 1.6;
+  }
+}
+
+/* ── Option cards ── */
+.bm-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 16px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  border: 1px solid $card-border;
+  background: $card-bg;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s;
+  text-align: right;
+  direction: rtl;
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &--display {
+    border-color: rgba($accent, 0.25);
+    box-shadow: 0 6px 28px rgba($accent, 0.08);
+  }
+
+  &--design {
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 6px 28px rgba(99, 102, 241, 0.06);
+  }
+}
+
+.bm-option__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+
+  .bm-option--display & {
+    background: $accent-soft;
+    color: $accent;
+  }
+
+  .bm-option--design & {
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+  }
+}
+
+.bm-option__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bm-option__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: $text-main;
+  line-height: 1.5;
+}
+
+.bm-option__price {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: $accent;
+  line-height: 1.4;
+
+  .bm-option--design & {
+    color: #818cf8;
+  }
+}
+
+.bm-option__unit {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: $text-dim;
+}
+
+.bm-option__wa {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $whatsapp, darken($whatsapp, 12%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 4px 16px rgba($whatsapp, 0.3);
+}
+
+/* ── Footer hint ── */
+.bm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+
+  ion-icon {
+    color: $accent;
+    font-size: 18px;
+  }
+
+  span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $text-dim;
+    line-height: 1.6;
+  }
 }

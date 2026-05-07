@@ -381,25 +381,16 @@
       }
     }
 
-    .store-circle .verification-badge {
+    .store-circle .verification-badge-wrap {
       position: absolute;
       z-index: 2;
       bottom: 4px;
       inset-inline-end: 4px;
-      width: 24px;
-      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       pointer-events: none;
-
-      .verify-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: 50%;
-        filter: drop-shadow(0 2px 5px rgba(12, 18, 34, 0.25));
-      }
+      line-height: 0;
     }
 
     .store-name-premium {
