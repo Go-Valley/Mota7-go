@@ -7,6 +7,11 @@ export const environment = {
   /** رابط صفحة التطبيق على Google Play (للتحديث الإجباري) */
   playStoreUrl: 'https://play.google.com/store/apps/details?id=com.mota7.app',
   /**
+   * بعد نشر iOS، ضع الرابط الكامل لصفحة App Store (مثلاً https://apps.apple.com/app/id123456789).
+   * يُستخدم مع التحديث الإجباري واختبارات TestFlight عند الحاجة.
+   */
+  appStoreUrl: '',
+  /**
    * ntfy: غيّر `topic` إلى سلسلة طويلة عشوائية سرية؛ أي من يعرفها يمكنه الإرسال/الاستقبال.
    * عطّل `enabled` إن لم تستخدم الإشعارات العامة.
    */
@@ -31,6 +36,27 @@ export const environment = {
   messagingSenderId: "1078959492808",
   appId: "1:1078959492808:web:1c0013dfeec7ca53551ffd",
   measurementId: "G-G8V3F6XHNT"
+  },
+  /** نفس الحقول مع appId الأندرويد — يُستخدم على الجهاز الأصلي Android فقط */
+  firebaseConfigAndroid: {
+    apiKey: "AIzaSyDdr8tdhseQ8HYxMAJbzZpBX9lm8zaZOv4",
+    authDomain: "mota7-go.firebaseapp.com",
+    projectId: "mota7-go",
+    storageBucket: "mota7-go.firebasestorage.app",
+    messagingSenderId: "1078959492808",
+    appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
+  },
+  /**
+   * أضِف تطبيق iOS في Firebase Console ثم انسَخ appId وملف GoogleService-Info.plist.
+   * استبدِل appId بالقيمة الحقيقية — القيمة أدناه مجرد نقطة تهيئة.
+   */
+  firebaseConfigIos: {
+    apiKey: "AIzaSyDdr8tdhseQ8HYxMAJbzZpBX9lm8zaZOv4",
+    authDomain: "mota7-go.firebaseapp.com",
+    projectId: "mota7-go",
+    storageBucket: "mota7-go.firebasestorage.app",
+    messagingSenderId: "1078959492808",
+    appId: "1:1078959492808:ios:REPLACE_WITH_FIREBASE_IOS_APP_ID"
   },
   /** مشروع mota7-app — راجع `firebase-legacy-mota7-app.config.ts` وألصق apiKey */
   legacyFirebaseConfig: LEGACY_MOTA7_APP_FIREBASE_CONFIG,

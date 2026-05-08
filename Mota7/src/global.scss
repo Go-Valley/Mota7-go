@@ -75,6 +75,11 @@ html.plt-capacitor {
   }
 }
 
+/* iOS / آمن للمنطقة الآمنة أسفل المحتوى القابل للتمرير مع لوحة المفاتيح */
+html.plt-ios.plt-capacitor ion-content.scroll-y {
+  scroll-padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Android WebView backdrop-filter fallback */
 @supports not (backdrop-filter: blur(1px)) {
   ion-tab-bar {

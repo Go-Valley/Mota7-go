@@ -19,6 +19,7 @@ import { MandatoryUpdateService } from './core/services/mandatory-update.service
 import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
 import { OfflineBannerComponent } from './shared/offline-banner/offline-banner.component';
 import { ShoppingFirestoreSeedService } from './core/services/shopping-firestore-seed.service';
+import { environment } from '../environments/environment';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
 const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
@@ -244,12 +245,16 @@ export class AppComponent implements OnInit {
     runInInjectionContext(this.injector, () =>
       onAuthStateChanged(this.auth, async (user) => {
       if (user) {
-        console.log('المستخدم مسجل دخول:', user.uid);
+        if (!environment.production) {
+          console.log('المستخدم مسجل دخول:', user.uid);
+        }
         if (Capacitor.isNativePlatform()) {
           void this.deviceFcmMota7.registerIfEligible(user);
         }
       } else {
-        console.log('لا يوجد مستخدم مسجل');
+        if (!environment.production) {
+          console.log('لا يوجد مستخدم مسجل');
+        }
       }
       })
     );

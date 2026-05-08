@@ -22,6 +22,7 @@ import {
   tierFromUserDoc,
 } from 'src/app/core/utils/user-ad-quota.util';
 import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
+import { environment } from 'src/environments/environment';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
 import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
@@ -144,7 +145,9 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         if (coords) {
           this.deliveryData.lat = coords.lat;
           this.deliveryData.lng = coords.lng;
-          console.log('Location Updated:', coords);
+          if (!environment.production) {
+            console.log('Location Updated:', coords);
+          }
           return;
         }
       } else {

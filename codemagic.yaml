@@ -1,0 +1,79 @@
+# Codemagic — بناء iOS (Mota7) لـ TestFlight / App Store
+# المسار: جذر المستودع يحتوي مجلد Mota7 (تطبيق Ionic).
+# اربط Apple Developer و App Store Connect من لوحة Codemagic (Integrations).
+
+workflows:
+  mota7-ios-release:
+    name: Mota7 iOS (Release / TestFlight)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mota7.app
+      vars:
+        XCODE_SCHEME: App
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: تثبيت الحزم
+        script: |
+          set -e
+          cd Mota7
+          npm ci
+      - name: أيقونات وشاشات إقلاع iOS
+        script: |
+          set -e
+          cd Mota7
+          npx --yes @capacitor/assets generate --ios
+      - name: بناء الويب + مزامنة Capacitor
+        script: |
+          set -e
+          cd Mota7
+          npm run build:ios:prod
+      - name: حزم Swift (SPM) ثم IPA
+        script: |
+          set -e
+          cd Mota7/ios/App
+          xcode-project build-ipa \
+            --project "App.xcodeproj" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - Mota7/ios/App/build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  mota7-ios-manual:
+    name: Mota7 iOS (IPA فقط — بدون رفع)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mota7.app
+      vars:
+        XCODE_SCHEME: App
+    scripts:
+      - name: تثبيت وبناء
+        script: |
+          set -e
+          cd Mota7
+          npm ci
+          npx --yes @capacitor/assets generate --ios
+          npm run build:ios:prod
+      - name: IPA
+        script: |
+          set -e
+          cd Mota7/ios/App
+          xcode-project build-ipa --project "App.xcodeproj" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - Mota7/ios/App/build/ios/ipa/*.ipa

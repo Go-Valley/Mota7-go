@@ -2,11 +2,14 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.mota7.app',
-  appName: 'Mota7',
+  /** اسم العرض على iOS / App Store (عربي) */
+  appName: 'مُتاح',
   webDir: 'www', // خليها 'www' زي ما هي لأن ده المجلد اللي الأنجولار بيبني فيه
   server: {
-    // مهم للـ Live Reload على أندرويد عبر الشبكة المحلية
+    // Live Reload على أندرويد عبر الشبكة المحلية
     androidScheme: 'http',
+    // iOS: مخطّط افتراضي آمن لتقليل تحذيرات ATS
+    iosScheme: 'ionic',
     cleartext: true,
     allowNavigation: ['*']
   },
@@ -29,16 +32,33 @@ const config: CapacitorConfig = {
       backgroundColor: "#000000",
       overlaysWebView: false
     },
+    Keyboard: {
+      resizeOnFullScreen: true,
+      resize: 'ionic',
+      style: 'DARK',
+    },
   },
   android: {
     allowMixedContent: true,
     captureInput: true,
     backgroundColor: "#ffe1c0",
-    // إضافة هذا السطر لضمان أن Capacitor لا يخطئ في المسارات
     buildOptions: {
       releaseType: 'APK'
     }
-  }
+  },
+  ios: {
+    contentInset: 'automatic',
+    scrollEnabled: true,
+    preferredContentMode: 'mobile',
+    allowsLinkPreview: false,
+    limitsNavigationsToAppBoundDomains: false,
+    backgroundColor: '#ffe1c0',
+    handleApplicationNotifications: false,
+    /**
+     * CFBundleShortVersionString من package.json؛ رقم البناء CURRENT_PROJECT_VERSION في Xcode / Codemagic
+     * وزامنه مع Android versionCode عند كل إصدار (حالياً 26 على أندرويد).
+     */
+  },
 };
 
 export default config;

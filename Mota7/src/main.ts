@@ -34,8 +34,9 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 
 import { Capacitor } from '@capacitor/core';
+import { resolvePrimaryFirebaseConfig } from './environments/firebase-app-options.util';
 
-// Analytics يعمل فقط في المتصفح الحقيقي (ليس Native WebView) لتجنب فشل التهيئة على Android
+// Analytics يعمل فقط في المتصفح الحقيقي (ليس Native WebView) لتجنب فشل التهيئة على الأجهزة الأصلية
 const isWebBrowser = Capacitor.getPlatform() === 'web' && !Capacitor.isNativePlatform();
 
 // تسجيل الأيقونات الأساسية (قبل bootstrapApplication)
@@ -80,7 +81,7 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withHashLocation(), withPreloading(PreloadAllModules)),
 
     // Firebase
-    provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
+    provideFirebaseApp(() => initializeApp(resolvePrimaryFirebaseConfig(environment))),
     provideRemoteConfig(() => {
       const rc = getRemoteConfig(getApp());
       rc.settings.minimumFetchIntervalMillis = environment.production ? 12 * 60 * 60 * 1000 : 0;

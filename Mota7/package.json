@@ -1,6 +1,6 @@
 {
-  "name": "ionic-app-base",
-  "version": "0.0.0",
+  "name": "mota7",
+  "version": "2.2",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
@@ -9,6 +9,9 @@
     "build": "ng build",
     "build:android": "ng build --configuration android && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync android",
     "build:android:prod": "ng build --configuration production && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync android",
+    "build:ios": "ng build --configuration ios && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync ios",
+    "build:ios:prod": "ng build --configuration production && node scripts/copy-splash.js && node scripts/copy-notification-sound.js && npx cap sync ios",
+    "assets:generate": "npx --yes @capacitor/assets generate --ios",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"
@@ -31,6 +34,7 @@
     "@capacitor/core": "8.2.0",
     "@capacitor/geolocation": "^8.1.0",
     "@capacitor/haptics": "8.0.1",
+    "@capacitor/ios": "^8.2.0",
     "@capacitor/keyboard": "8.0.1",
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/network": "^8.0.1",

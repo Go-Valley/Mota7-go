@@ -14,8 +14,21 @@ import { environment } from '../../../environments/environment';
 import { MANDATORY_UPDATE_RC_KEYS } from '../constants/remote-config-keys';
 
 const DEFAULT_TITLE_AR = 'تحديث مطلوب';
-const DEFAULT_MESSAGE_AR =
+const DEFAULT_MESSAGE_ANDROID_AR =
   'يجب تحديث التطبيق إلى أحدث إصدار من Google Play لمتابعة الاستخدام والاستفادة من التحسينات والأمان.';
+const DEFAULT_MESSAGE_IOS_AR =
+  'يجب تحديث التطبيق إلى أحدث إصدار من App Store لمتابعة الاستخدام والاستفادة من التحسينات والأمان.';
+
+function defaultNativeStoreUrl(): string {
+  if (Capacitor.getPlatform() === 'ios') {
+    const u = environment.appStoreUrl?.trim();
+    return u && u.length > 0 ? u : 'https://apps.apple.com/';
+  }
+  return (
+    environment.playStoreUrl ||
+    `https://play.google.com/store/apps/details?id=${environment.androidApplicationId}`
+  );
+}
 
 @Injectable({ providedIn: 'root' })
 export class MandatoryUpdateService {
@@ -28,11 +41,12 @@ export class MandatoryUpdateService {
   /** يمنع استخدام التطبيق حتى التحديث */
   readonly blocked = signal(false);
   readonly titleAr = signal(DEFAULT_TITLE_AR);
-  readonly messageAr = signal(DEFAULT_MESSAGE_AR);
-  readonly storeUrl = signal(
-    environment.playStoreUrl ||
-      `https://play.google.com/store/apps/details?id=${environment.androidApplicationId}`
+  readonly messageAr = signal(
+    Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+      ? DEFAULT_MESSAGE_IOS_AR
+      : DEFAULT_MESSAGE_ANDROID_AR
   );
+  readonly storeUrl = signal(defaultNativeStoreUrl());
 
   async runInitialCheck(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
@@ -52,13 +66,16 @@ export class MandatoryUpdateService {
     await this.evaluateAndApplyState();
   }
 
-  /** زر «تحديث من Play» */
+  /** فتح رابط المتجر (Play أو App Store حسب المنصّة) */
   async openPlayStore(): Promise<void> {
+    const platform = Capacitor.getPlatform();
     const pkg = environment.androidApplicationId;
     const httpsUrl =
       this.storeUrl() ||
-      `https://play.google.com/store/apps/details?id=${encodeURIComponent(pkg)}`;
-    if (Capacitor.getPlatform() === 'android' && pkg) {
+      (platform === 'ios'
+        ? defaultNativeStoreUrl()
+        : `https://play.google.com/store/apps/details?id=${encodeURIComponent(pkg)}`);
+    if (platform === 'android' && pkg) {
       const market = `market://details?id=${encodeURIComponent(pkg)}`;
       try {
         const can = await AppLauncher.canOpenUrl({ url: market });
@@ -90,10 +107,9 @@ export class MandatoryUpdateService {
     let minVersion = 0;
     let mandatoryEnabled = true;
     let titleAr = DEFAULT_TITLE_AR;
-    let messageAr = DEFAULT_MESSAGE_AR;
-    let storeUrl =
-      environment.playStoreUrl ||
-      `https://play.google.com/store/apps/details?id=${encodeURIComponent(environment.androidApplicationId)}`;
+    let messageAr =
+      Capacitor.getPlatform() === 'ios' ? DEFAULT_MESSAGE_IOS_AR : DEFAULT_MESSAGE_ANDROID_AR;
+    let storeUrl = defaultNativeStoreUrl();
 
     const rc = this.remoteConfig;
     let usedRemoteConfig = false;
