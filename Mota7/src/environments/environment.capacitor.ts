@@ -40,12 +40,12 @@ export const environment = {
     appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
   },
   firebaseConfigIos: {
-    apiKey: "AIzaSyDdr8tdhseQ8HYxMAJbzZpBX9lm8zaZOv4",
+    apiKey: "AIzaSyC3WPEzRRfFp3sl3jBK1_Oo5thDNN3Vq_g",
     authDomain: "mota7-go.firebaseapp.com",
     projectId: "mota7-go",
     storageBucket: "mota7-go.firebasestorage.app",
     messagingSenderId: "1078959492808",
-    appId: "1:1078959492808:ios:REPLACE_WITH_FIREBASE_IOS_APP_ID"
+    appId: "1:1078959492808:ios:763364b8ccb51000551ffd"
   },
   legacyFirebaseConfig: LEGACY_MOTA7_APP_FIREBASE_CONFIG,
 };

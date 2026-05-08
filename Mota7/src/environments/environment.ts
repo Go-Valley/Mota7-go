@@ -46,17 +46,14 @@ export const environment = {
     messagingSenderId: "1078959492808",
     appId: "1:1078959492808:android:ab1d62cc15ee9da3551ffd"
   },
-  /**
-   * أضِف تطبيق iOS في Firebase Console ثم انسَخ appId وملف GoogleService-Info.plist.
-   * استبدِل appId بالقيمة الحقيقية — القيمة أدناه مجرد نقطة تهيئة.
-   */
+  /** تطبيق Firebase iOS — يطابق `ios/App/App/GoogleService-Info.plist` (GOOGLE_APP_ID، API_KEY). */
   firebaseConfigIos: {
-    apiKey: "AIzaSyDdr8tdhseQ8HYxMAJbzZpBX9lm8zaZOv4",
+    apiKey: "AIzaSyC3WPEzRRfFp3sl3jBK1_Oo5thDNN3Vq_g",
     authDomain: "mota7-go.firebaseapp.com",
     projectId: "mota7-go",
     storageBucket: "mota7-go.firebasestorage.app",
     messagingSenderId: "1078959492808",
-    appId: "1:1078959492808:ios:REPLACE_WITH_FIREBASE_IOS_APP_ID"
+    appId: "1:1078959492808:ios:763364b8ccb51000551ffd"
   },
   /** مشروع mota7-app — راجع `firebase-legacy-mota7-app.config.ts` وألصق apiKey */
   legacyFirebaseConfig: LEGACY_MOTA7_APP_FIREBASE_CONFIG,
