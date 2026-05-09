@@ -301,6 +301,7 @@ export class StoreFormComponent implements OnInit {
         if (!quota.ok) {
           await loader.dismiss();
           await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            isEmptyTier: quota.isEmptyTier,
             onOpenSubscriptionPlans: async () => {
               await this.modalCtrl.dismiss(
                 undefined,

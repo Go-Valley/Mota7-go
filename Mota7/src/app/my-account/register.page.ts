@@ -338,9 +338,10 @@ export class RegisterPage implements OnInit, OnDestroy {
           createdAt: new Date().toISOString(),
           role: 'user',
           isActive: true,
-          verification_level: 'free',
-          verifiedStatus: 'free',
-          max_active_ads: 1,
+          verification_level: 'empty',
+          verifiedStatus: 'empty',
+          max_active_ads: 0,
+          free_trial_used: false,
         })
       );
 

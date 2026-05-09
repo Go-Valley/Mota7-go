@@ -40,6 +40,10 @@
         <span class="label">إلى:</span>
         <span class="value">{{ order.toLocation }}</span>
       </div>
+      <div class="detail-item detail-item--full" *ngIf="order.shortNote">
+        <span class="label">ملاحظات:</span>
+        <span class="value">{{ order.shortNote }}</span>
+      </div>
     </div>
 
     <div class="bottom-tags-row">

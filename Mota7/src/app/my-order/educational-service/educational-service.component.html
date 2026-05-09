@@ -13,7 +13,13 @@
   <div class="mota7-wrapper" dir="rtl">
     <div class="form-card-container">
 
-      <div class="input-group">
+      <div class="input-group hub-quick-hint" *ngIf="hubQuickEntry">
+        <p class="hub-quick-hint__text">
+          طلب <strong>دروس خصوصية</strong> — يمكنك إكمال بياناتك أدناه وإرسال الطلب مباشرة دون اختيار مرحلة أو مادة هنا.
+        </p>
+      </div>
+
+      <div class="input-group" *ngIf="!hubQuickEntry">
         <label class="main-label">المرحلة التعليمية : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.stage" 
                     (ionChange)="onStageChange()" 
@@ -27,7 +33,7 @@
         </ion-select>
       </div>
 
-      <div class="input-group" *ngIf="orderData.stage">
+      <div class="input-group" *ngIf="!hubQuickEntry && orderData.stage">
         <label class="main-label">المادة التعليمية : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.subject" 
                     interface="action-sheet" 
@@ -47,7 +53,7 @@
           [(ngModel)]="orderData.shortNote"
           (ionInput)="onEducationShortNoteInput($event)"
           maxlength="50"
-          placeholder="اكتب ملاحظاتك باختصار (مثلاً: طالب في الصف الثالث)"
+          placeholder="لو عندك ملاحظات او تفاصيل أكتر عن الطلب (أكتبها هنا 👇)"
           rows="3"
           class="mota7-textarea">
         </ion-textarea>

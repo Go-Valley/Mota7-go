@@ -38,6 +38,9 @@ import {
 })
 export class EducationalServiceComponent implements OnInit {
 
+  /** فتح من مودال الطلب: دروس خصوصية دون فرض مرحلة/مادة في النموذج */
+  hubQuickEntry = false;
+
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
@@ -192,6 +195,10 @@ export class EducationalServiceComponent implements OnInit {
   }
 
   async submitOrder() {
+    if (this.hubQuickEntry) {
+      await this.submitHubQuickEducationOrder();
+      return;
+    }
     await this.syncFreeTextFieldsFromNativeInputs();
     this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
     const phoneSt = applyOrderPhoneInputState(this.orderData.customerPhone);
@@ -354,7 +361,7 @@ export class EducationalServiceComponent implements OnInit {
 
     } catch {
       await loader.dismiss();
-      this.showAlert('خطأ', 'حدثت مشكلة أثناء إرسال الطلب، حاول مرة أخرى.');
+      await this.showAlert('خطأ', 'حدثت مشكلة أثناء إرسال الطلب، حاول مرة أخرى.');
     }
   }
 
@@ -363,5 +370,139 @@ export class EducationalServiceComponent implements OnInit {
       header, message, buttons: ['موافق'], mode: 'ios'
     });
     await alert.present();
+  }
+
+  /** طلب «دروس خصوصية» من الشبكة السريعة: نفس بيانات الطلب دون اشتراط مرحلة/مادة */
+  private async submitHubQuickEducationOrder(): Promise<void> {
+    await this.syncFreeTextFieldsFromNativeInputs();
+    this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
+    const phoneSt = applyOrderPhoneInputState(this.orderData.customerPhone);
+    this.orderData.customerPhone = phoneSt.cleaned;
+    this.phoneLiveWarning = phoneSt.warning;
+    this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
+    this.orderData.city = (this.orderData.city || '').trim();
+
+    const customerName = this.orderData.customerName;
+    const { customerPhone, shortNote } = this.orderData;
+
+    const cityMatch = findMatchingStringInList(
+      this.orderCityOptions as readonly string[],
+      this.orderData.city
+    );
+    const cityValid = !!cityMatch;
+    const canonicalCity = cityMatch ?? '';
+
+    const missingParts: string[] = [];
+    if (!customerName) {
+      missingParts.push('الاسم');
+    }
+    if (!customerPhone) {
+      missingParts.push('رقم الهاتف');
+    }
+    if (!cityValid) {
+      missingParts.push('المدينة');
+    }
+
+    if (missingParts.length > 0) {
+      await this.showAlert('بيانات ناقصة', `يرجى تعبئة: ${missingParts.join('، ')}`);
+      return;
+    }
+
+    if (!isOrderPhoneValid(customerPhone)) {
+      await this.showAlert('رقم الهاتف غير صحيح', ORDER_PHONE_INVALID_MSG);
+      return;
+    }
+
+    const stage = 'دروس خصوصية';
+    const stageId = 'hub-general';
+    const subject = 'غير محدد';
+    const city = canonicalCity;
+    const education_match_key = `${stage}+${subject}+${city}`;
+    const customDocId = `${customerPhone}_${education_match_key}`;
+    const now = Date.now();
+
+    const loader = await this.loadingCtrl.create({
+      message: 'جاري معالجة طلبك...',
+      mode: 'ios',
+    });
+    await loader.present();
+
+    try {
+      const blockedSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'blocked_users', customerPhone))
+      );
+
+      if (blockedSnap.exists()) {
+        await loader.dismiss();
+        const alert = await this.alertCtrl.create({
+          header: 'تنبيه الحظر',
+          message:
+            'نأسف، تم حظر هذا الرقم ولا يمكن إجراء طلبات في الوقت الحالي. يرجى التواصل مع الإدارة لحل المشكلة.',
+          mode: 'ios',
+          buttons: [
+            { text: 'إلغاء', role: 'cancel' },
+            {
+              text: 'تواصل مع الإدارة',
+              handler: () => {
+                const msg = encodeURIComponent('السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح');
+                window.open(`whatsapp://send?phone=201002288812&text=${msg}`, '_system');
+              },
+            },
+          ],
+        });
+        await alert.present();
+        return;
+      }
+
+      const orderSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(doc(this.firestore, 'orders', customDocId))
+      );
+      if (orderSnap.exists()) {
+        const existingData = orderSnap.data();
+        const hold =
+          existingData['pendingHoldExpiresAt']?.toMillis?.() ||
+          existingData['expiresAt']?.toMillis?.() ||
+          0;
+
+        if (existingData['status'] === 'pending' && hold > now) {
+          await loader.dismiss();
+          await this.showAlert(
+            'طلب مكرر',
+            `لديك طلب نشط بالفعل لهذه الخدمة. يمكنك متابعته من صفحة "طلباتي".`
+          );
+          return;
+        }
+      }
+
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + 1);
+
+      let finalOrder: Record<string, unknown>;
+      await runInInjectionContext(this.injector, () => {
+        finalOrder = {
+          customerName,
+          customerPhone,
+          stageName: stage,
+          stageId: stageId,
+          subjectName: subject,
+          shortNote: shortNote || '',
+          city: city,
+          education_match_key: education_match_key,
+          serviceType: 'education',
+          status: 'pending',
+          createdAt: Timestamp.now(),
+          pendingHoldExpiresAt: Timestamp.fromDate(expiryDate),
+        };
+        return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
+      });
+      writeGuestOrderContact(customerName, customerPhone);
+      void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
+
+      await loader.dismiss();
+      this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+    } catch {
+      await loader.dismiss();
+      await this.showAlert('خطأ', 'حدثت مشكلة أثناء إرسال الطلب، حاول مرة أخرى.');
+    }
   }
 }

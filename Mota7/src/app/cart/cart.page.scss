@@ -248,6 +248,62 @@
       font-variant-numeric: tabular-nums;
     }
   }
+
+  .cart-inline-stepper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 2px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    overflow: hidden;
+    align-self: center;
+
+    .cis-qty {
+      min-width: 2rem;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+      color: #0f172a;
+      padding: 0 6px;
+    }
+
+    .cis-btn {
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: #f8fafc;
+      color: #475569;
+      width: 36px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+
+      ion-icon {
+        font-size: 1.15rem;
+      }
+
+      &:active {
+        background: #e2e8f0;
+      }
+
+      &.cis-btn--plus {
+        background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+        color: #ea580c;
+
+        &:active {
+          background: #ffedd5;
+        }
+      }
+    }
+  }
 }
 
 .order-card__totals {

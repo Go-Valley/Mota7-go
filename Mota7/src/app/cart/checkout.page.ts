@@ -32,7 +32,7 @@ import {
   updateDoc,
 } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../top_header/header';
-import { CartService } from '../core/services/cart.service';
+import { CartService, cartLineQty, type CartLine } from '../core/services/cart.service';
 import { MyShoppingOrdersService } from '../core/services/my-shopping-orders.service';
 import { NewOrderNtfyService } from '../core/services/new-order-ntfy.service';
 import {
@@ -298,6 +298,14 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     const s = (row.shortNote || '').trim();
     const t = (row.title || '').trim();
     return s || t || '—';
+  }
+
+  cartRowQty(row: CartLine): number {
+    return cartLineQty(row);
+  }
+
+  cartRowLineTotal(row: CartLine): number {
+    return row.unitPrice * cartLineQty(row);
   }
 
   private enqueueBuyerContextReload(): void {
@@ -700,16 +708,33 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       return;
     }
 
-    const itemsPayload = this.lines().map((l) => ({
-      adId: l.adId,
-      title: l.title,
-      shortNote: l.shortNote,
-      unitPrice: l.unitPrice,
-      sellerName: l.sellerName,
-      sellerPhone: l.sellerPhone,
-      locationLabel: l.locationLabel,
-      condition: l.condition,
-    }));
+    const itemsPayload: Array<{
+      adId: string;
+      title: string;
+      shortNote: string;
+      unitPrice: number;
+      sellerName: string;
+      sellerPhone: string;
+      locationLabel: string;
+      condition: string;
+    }> = [];
+
+    for (const l of this.lines()) {
+      const q = cartLineQty(l);
+      const row = {
+        adId: l.adId,
+        title: l.title,
+        shortNote: l.shortNote,
+        unitPrice: l.unitPrice,
+        sellerName: l.sellerName,
+        sellerPhone: l.sellerPhone,
+        locationLabel: l.locationLabel,
+        condition: l.condition,
+      };
+      for (let i = 0; i < q; i++) {
+        itemsPayload.push({ ...row });
+      }
+    }
 
     const basePayload = {
       buyerName: this.name.trim(),

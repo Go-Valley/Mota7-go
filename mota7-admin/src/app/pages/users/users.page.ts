@@ -32,6 +32,7 @@ import {
   effectiveTierFromUserFields,
   normalizeVerificationTier,
   verificationBadgeAssetPath,
+  VERIFICATION_TIER_SORT_WEIGHT,
   yyyyMmDdStringToUtcTimestamp,
   type CanonicalVerificationTier,
 } from '../../core/utils/verification-tiers.util';
@@ -48,6 +49,7 @@ import {
   chevronDownOutline,
   calendarOutline,
   refreshOutline,
+  albumsOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -96,8 +98,14 @@ export class UsersPage implements OnInit {
       'chevron-down-outline': chevronDownOutline,
       'calendar-outline': calendarOutline,
       'refresh-outline': refreshOutline,
+      'albums-outline': albumsOutline,
     });
   }
+
+  /** حالة كل إعلان (لحساب النشطة / المراجعة) */
+  private adStatusById = new Map<string, string>();
+  /** مفاتيح ph:رقم أو uid:… → معرّفات الإعلانات المرتبطة */
+  private adIdsByLinkKey = new Map<string, Set<string>>();
 
   // --- منطق التحديد والضغط المطول ---
   onPointerDown(user: any) {
@@ -155,9 +163,9 @@ export class UsersPage implements OnInit {
   private async executeBulkDelete() {
     const idsToDelete = Array.from(this.selectedUserIds);
     try {
-      await runInInjectionContext(this.injector, async () => {
+      await runInInjectionContext(this.injector, () => {
         const batch = writeBatch(this.firestore);
-        idsToDelete.forEach(id => {
+        idsToDelete.forEach((id) => {
           batch.delete(doc(this.firestore, 'users', id));
         });
         return batch.commit();
@@ -177,6 +185,7 @@ export class UsersPage implements OnInit {
 
   ngOnInit() {
     this.fetchUsers();
+    this.subscribeAdsIndex();
   }
 
   doRefresh(event: any) {
@@ -190,10 +199,145 @@ export class UsersPage implements OnInit {
     runInInjectionContext(this.injector, () => {
       const usersRef = collection(this.firestore, 'users');
       onSnapshot(usersRef, (snapshot) => {
-        this.usersList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        this.filterAndSortUsers();
+        runInInjectionContext(this.injector, () => {
+          this.usersList = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }));
+          this.filterAndSortUsers();
+        });
       });
     });
+  }
+
+  private subscribeAdsIndex(): void {
+    runInInjectionContext(this.injector, () => {
+      const adsRef = collection(this.firestore, 'ads');
+      onSnapshot(adsRef, (snapshot) => {
+        runInInjectionContext(this.injector, () => {
+          this.rebuildAdsIndex(snapshot.docs);
+          this.filterAndSortUsers();
+        });
+      });
+    });
+  }
+
+  private rebuildAdsIndex(
+    docs: Array<{ id: string; data: () => Record<string, unknown> }>
+  ): void {
+    this.adStatusById.clear();
+    this.adIdsByLinkKey.clear();
+    const addLink = (key: string, adId: string) => {
+      let set = this.adIdsByLinkKey.get(key);
+      if (!set) {
+        set = new Set<string>();
+        this.adIdsByLinkKey.set(key, set);
+      }
+      set.add(adId);
+    };
+    for (const d of docs) {
+      const data = d.data();
+      const st = String(data['status'] ?? '');
+      if (st !== 'active' && st !== 'pending') {
+        continue;
+      }
+      this.adStatusById.set(d.id, st);
+      const phone = String(data['owner_phone'] ?? '').trim();
+      const uid = String(data['userId'] ?? '').trim();
+      if (phone) {
+        addLink(`ph:${phone}`, d.id);
+      }
+      if (uid) {
+        addLink(`uid:${uid}`, d.id);
+      }
+    }
+  }
+
+  /** معرّفات إعلانات المستخدم (دمج هاتف + معرّف المستند + uid) بدون تكرار */
+  private mergedAdIdsForUser(user: Record<string, unknown>): Set<string> {
+    const out = new Set<string>();
+    const mergeKey = (key: string) => {
+      const set = this.adIdsByLinkKey.get(key);
+      if (set) {
+        for (const id of set) {
+          out.add(id);
+        }
+      }
+    };
+    const ph = String(user['phone'] ?? '').trim();
+    const docId = String(user['id'] ?? '').trim();
+    const uid = String(user['uid'] ?? '').trim();
+    if (ph) {
+      mergeKey(`ph:${ph}`);
+    }
+    if (docId && docId !== ph) {
+      mergeKey(`ph:${docId}`);
+    }
+    if (uid) {
+      mergeKey(`uid:${uid}`);
+    }
+    return out;
+  }
+
+  /** إعلانات مقبولة (نشطة على التطبيق) */
+  userActiveAdsCount(user: any): number {
+    let n = 0;
+    for (const adId of this.mergedAdIdsForUser(user)) {
+      if (this.adStatusById.get(adId) === 'active') {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  /** إعلانات قيد المراجعة */
+  userPendingAdsCount(user: any): number {
+    let n = 0;
+    for (const adId of this.mergedAdIdsForUser(user)) {
+      if (this.adStatusById.get(adId) === 'pending') {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  /** عرض تاريخ حقول التوثيق للكارت */
+  formatCardDate(v: unknown): string {
+    if (v == null || v === '') {
+      return '—';
+    }
+    let ms: number | null = null;
+    if (
+      typeof v === 'object' &&
+      v &&
+      typeof (v as { toMillis?: () => number }).toMillis === 'function'
+    ) {
+      ms = (v as { toMillis: () => number }).toMillis();
+    } else if (
+      typeof v === 'object' &&
+      v &&
+      typeof (v as { seconds?: number }).seconds === 'number'
+    ) {
+      const sec = (v as { seconds: number }).seconds;
+      const nano =
+        typeof (v as { nanoseconds?: number }).nanoseconds === 'number'
+          ? (v as { nanoseconds: number }).nanoseconds
+          : 0;
+      ms = sec * 1000 + Math.floor(nano / 1e6);
+    }
+    if (ms == null || !Number.isFinite(ms)) {
+      return '—';
+    }
+    return new Date(ms).toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  }
+
+  private tierSortWeight(user: any): number {
+    const t = effectiveTierFromUserFields(user as Record<string, unknown>);
+    return VERIFICATION_TIER_SORT_WEIGHT[t] ?? 0;
   }
 
   // دالة الفلترة والفرز
@@ -243,6 +387,16 @@ export class UsersPage implements OnInit {
           const cityB = (b.city || '').trim().toLowerCase();
           return cityA.localeCompare(cityB, 'ar');
         }
+        case 'verification': {
+          const wA = this.tierSortWeight(a);
+          const wB = this.tierSortWeight(b);
+          if (wB !== wA) {
+            return wB - wA;
+          }
+          const nameA = (a.fullName || '').trim().toLowerCase();
+          const nameB = (b.fullName || '').trim().toLowerCase();
+          return nameA.localeCompare(nameB, 'ar');
+        }
         default:
           return 0;
       }
@@ -274,7 +428,12 @@ export class UsersPage implements OnInit {
           handler: () => this.toggleStatus(user) 
         },
         {
-          text: 'توثيق مجاني',
+          text: 'بدون اشتراك (empty)',
+          icon: 'person-outline',
+          handler: () => void this.promptAssignVerification(user, 'empty'),
+        },
+        {
+          text: 'توثيق تجريبي (free)',
           icon: 'person-outline',
           handler: () => void this.promptAssignVerification(user, 'free'),
         },
@@ -304,7 +463,12 @@ export class UsersPage implements OnInit {
           handler: () => void this.promptAssignVerification(user, 'vip'),
         },
         {
-          text: 'إعادة للمجاني (إلغاء التوثيق)',
+          text: 'إعادة تعيين الباقة التجريبية (free_trial_used)',
+          icon: 'refresh-outline',
+          handler: () => void this.promptResetFreeTrial(user),
+        },
+        {
+          text: 'إعادة لبدون اشتراك (إلغاء التوثيق)',
           icon: 'close-circle-outline',
           handler: () => void this.promptClearVerification(user),
         },
@@ -348,8 +512,10 @@ export class UsersPage implements OnInit {
 
   private tierArabicLabel(tier: Exclude<CanonicalVerificationTier, 'none'>): string {
     switch (tier) {
+      case 'empty':
+        return 'بدون اشتراك';
       case 'free':
-        return 'توثيق مجاني';
+        return 'توثيق تجريبي';
       case 'bronze':
         return 'توثيق برونزي';
       case 'silver':
@@ -507,7 +673,7 @@ export class UsersPage implements OnInit {
     const alert = await this.alertCtrl.create({
       header: 'إلغاء التوثيق',
       message:
-        'إعادة الحساب إلى التوثيق المجاني (free)، حد إعلان واحد، وحذف تواريخ صلاحية التوثيق من الحساب. تُحدَّث جميع إعلانات المستخدم المرتبطة باستثناء الإعلانات الموثَّقة VIP (تبقى كما هي).',
+        'إعادة الحساب إلى توثيق empty (بدون اشتراك)، حد إعلانات 0، وحذف تواريخ صلاحية التوثيق من الحساب. تُحدَّث جميع إعلانات المستخدم المرتبطة باستثناء الإعلانات الموثَّقة VIP (تبقى كما هي).',
       mode: 'ios',
       buttons: [
         { text: 'رجوع', role: 'cancel' },
@@ -553,14 +719,50 @@ export class UsersPage implements OnInit {
     }
   }
 
+  async promptResetFreeTrial(user: any): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'إعادة تعيين الباقة التجريبية',
+      message:
+        'هل تريد السماح لهذا المستخدم بالاشتراك في الباقة التجريبية مرة أخرى؟',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'إعادة التعيين',
+          handler: () => {
+            void this.executeResetFreeTrial(user);
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async executeResetFreeTrial(user: any): Promise<void> {
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'users', user.id), {
+          free_trial_used: false,
+          free_trial_started_at: deleteField(),
+          free_trial_expires_at: deleteField(),
+        })
+      );
+      this.showToast('تم إعادة تعيين الباقة التجريبية');
+    } catch (e) {
+      console.error('executeResetFreeTrial', e);
+      this.showToast('خطأ — تحقق من الصلاحيات');
+    }
+  }
+
   private async persistUserVerificationClear(user: any): Promise<void> {
-    const tierStored = canonicalTierForFirestore('free');
+    const tierStored = canonicalTierForFirestore('empty');
     try {
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'users', user.id), {
           verifiedStatus: tierStored,
           verification_level: tierStored,
-          max_active_ads: defaultMaxAdsForTier('free'),
+          max_active_ads: defaultMaxAdsForTier('empty'),
           verification_valid_from: deleteField(),
           verification_valid_until: deleteField(),
         })
@@ -617,11 +819,13 @@ export class UsersPage implements OnInit {
     }
     const chunk = 400;
     for (let i = 0; i < ids.length; i += chunk) {
-      await runInInjectionContext(this.injector, async () => {
-        const slice = ids.slice(i, i + chunk);
-        const snaps = await Promise.all(
+      const slice = ids.slice(i, i + chunk);
+      const snaps = await runInInjectionContext(this.injector, () =>
+        Promise.all(
           slice.map((id) => getDoc(doc(this.firestore, 'ads', id)))
-        );
+        )
+      );
+      await runInInjectionContext(this.injector, () => {
         const batch = writeBatch(this.firestore);
         for (let j = 0; j < slice.length; j++) {
           const snap = snaps[j];
@@ -642,7 +846,7 @@ export class UsersPage implements OnInit {
             updated_at: serverTimestamp(),
           });
         }
-        await batch.commit();
+        return batch.commit();
       });
     }
   }
@@ -803,50 +1007,53 @@ export class UsersPage implements OnInit {
   }
 
   private async runMigrateLegacyFreeDefaults(): Promise<void> {
-    const tierStored = canonicalTierForFirestore('free');
-    const maxAds = defaultMaxAdsForTier('free');
+    const tierStored = canonicalTierForFirestore('empty');
+    const maxAds = defaultMaxAdsForTier('empty');
     try {
       let updated = 0;
-      await runInInjectionContext(this.injector, async () => {
-        const snap = await getDocs(collection(this.firestore, 'users'));
-        let batch = writeBatch(this.firestore);
-        let ops = 0;
-        for (const d of snap.docs) {
-          const data = d.data() as Record<string, unknown>;
-          const nt = normalizeVerificationTier(
-            data['verification_level'] ?? data['verifiedStatus'] ?? 'none'
-          );
-          if (nt !== 'none' && nt !== 'free') {
-            continue;
-          }
-          const lv = String(data['verification_level'] ?? '').trim().toLowerCase();
-          const sv = String(data['verifiedStatus'] ?? '').trim().toLowerCase();
-          const mx = data['max_active_ads'];
-          if (
-            (lv === 'free' || lv === '') &&
-            (sv === 'free' || sv === '') &&
-            typeof mx === 'number' &&
-            mx === maxAds
-          ) {
-            continue;
-          }
-          batch.update(doc(this.firestore, 'users', d.id), {
-            verification_level: tierStored,
-            verifiedStatus: tierStored,
-            max_active_ads: maxAds,
-          });
-          ops++;
-          updated++;
-          if (ops >= 400) {
-            await batch.commit();
-            batch = writeBatch(this.firestore);
-            ops = 0;
-          }
+      const snap = await runInInjectionContext(this.injector, () =>
+        getDocs(collection(this.firestore, 'users'))
+      );
+
+      const idsToMigrate: string[] = [];
+      for (const d of snap.docs) {
+        const data = d.data() as Record<string, unknown>;
+        const nt = normalizeVerificationTier(
+          data['verification_level'] ?? data['verifiedStatus'] ?? 'none'
+        );
+        if (nt !== 'none' && nt !== 'free' && nt !== 'empty') {
+          continue;
         }
-        if (ops > 0) {
-          await batch.commit();
+        const lv = String(data['verification_level'] ?? '').trim().toLowerCase();
+        const sv = String(data['verifiedStatus'] ?? '').trim().toLowerCase();
+        const mx = data['max_active_ads'];
+        if (
+          lv === 'empty' &&
+          sv === 'empty' &&
+          typeof mx === 'number' &&
+          mx === maxAds
+        ) {
+          continue;
         }
-      });
+        idsToMigrate.push(d.id);
+      }
+
+      const chunk = 400;
+      for (let i = 0; i < idsToMigrate.length; i += chunk) {
+        const slice = idsToMigrate.slice(i, i + chunk);
+        await runInInjectionContext(this.injector, () => {
+          const batch = writeBatch(this.firestore);
+          for (const userId of slice) {
+            batch.update(doc(this.firestore, 'users', userId), {
+              verification_level: tierStored,
+              verifiedStatus: tierStored,
+              max_active_ads: maxAds,
+            });
+          }
+          return batch.commit();
+        });
+      }
+      updated = idsToMigrate.length;
       await this.showToast(
         updated
           ? `تم تحديث ${updated} مستخدماً`

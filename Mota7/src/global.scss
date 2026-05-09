@@ -47,7 +47,7 @@ html, body {
 /* خلفية التطبيق - بدون !important حتى لا يتغلب على خلفيات الصفحات */
 ion-content {
   --background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 50%, #e8eaef 100%);
-  --padding-bottom: calc(95px + env(safe-area-inset-bottom, 0px));
+  --padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
 }
 
 /* حماية من أي عنصر مودال أو أوفرلاي مغلق يحجب الأحداث */
@@ -66,8 +66,8 @@ ion-router-outlet {
    ============================================ */
 html.plt-capacitor {
   ion-tab-bar {
-    -webkit-backdrop-filter : blur(15px) !important; 
-    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+    backdrop-filter: blur(28px) saturate(200%) !important;
   }
 
   ion-content {
@@ -89,39 +89,43 @@ html.plt-ios.plt-capacitor ion-content.scroll-y {
 }
 
 /* ============================================
-   ion-tab-bar: البار العائم
+   ion-tab-bar: البار العائم — 3 أزرار فقط
    ============================================ */
 
 ion-tab-bar {
-  --background: rgba(255, 255, 255, 0.98) !important;
+  --background: rgba(255, 255, 255, 0.97) !important;
   --border: none;
   position: fixed !important;
   bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
   left: 0 !important;
   right: 0 !important;
-  width: calc(100% - 40px) !important;
-  max-width: 450px !important;
-  height: 70px !important;
-  min-height: 70px !important;
+  width: calc(100% - 32px) !important;
+  max-width: 400px !important;
+  min-height: 64px !important;
+  height: auto !important;
+  padding: 8px 8px 12px !important;
   z-index: 99999 !important;
   margin: 0 auto !important;
-  padding: 0 10px !important;
   box-sizing: border-box !important;
-  -webkit-backdrop-filter: blur(15px);
-  backdrop-filter: blur(15px);
-  border-radius: 25px !important;
-  border: 2px solid rgba(255, 255, 255, 0.98) !important;
-  box-shadow: 0 10px 25px rgba(255, 107, 0, 0.15) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  backdrop-filter: blur(28px) saturate(200%);
+  border-radius: 22px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px rgba(0, 0, 0, 0.03) !important;
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-end !important;
   justify-content: space-around !important;
   overflow: visible !important;
   pointer-events: auto !important;
   touch-action: auto !important;
 }
 
-ion-tab-bar ion-tab-button {
-  --color: #3880ff !important;
+/* ─── Side Tab Buttons (الرئيسية / حسابي) ─── */
+ion-tab-bar ion-tab-button.tab-side {
+  --color: #94a3b8 !important;
   --color-selected: #ff6b00 !important;
   background: transparent !important;
   height: 100% !important;
@@ -130,85 +134,75 @@ ion-tab-bar ion-tab-button {
   pointer-events: auto !important;
   touch-action: manipulation !important;
   cursor: pointer !important;
+  flex: 1;
 
   ion-icon {
-    font-size: 1.6rem !important;
+    font-size: 1.5rem !important;
     margin-bottom: 2px !important;
-    color: #3880ff !important; 
+    color: #94a3b8 !important;
     opacity: 1 !important;
-    transition: all 0.3s ease !important;
+    transition: color 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     pointer-events: none !important;
   }
 
   ion-label {
     font-weight: 700 !important;
-    font-size: 0.75rem !important;
+    font-size: 0.73rem !important;
     display: block !important;
-    color: #3880ff !important; 
+    color: #94a3b8 !important;
     opacity: 1 !important;
     pointer-events: none !important;
+    transition: color 0.3s ease !important;
   }
 
   &.tab-selected {
-    ion-icon, ion-label { color: #ff6b00 !important; }
-    ion-icon { transform: translateY(-5px) !important; }
+    ion-icon {
+      color: #ff6b00 !important;
+      transform: scale(1.12) translateY(-1px) !important;
+    }
+    ion-label {
+      color: #ff6b00 !important;
+      font-weight: 800 !important;
+    }
     &::after {
       content: '' !important;
       position: absolute !important;
-      bottom: 5px !important;
-      width: 5px !important;
-      height: 5px !important;
-      border-radius: 50% !important;
+      bottom: 7px !important;
+      width: 22px !important;
+      height: 3px !important;
+      border-radius: 999px !important;
       background: #ff6b00 !important;
+      box-shadow: 0 0 8px rgba(255, 107, 0, 0.4) !important;
     }
   }
 }
 
-/* ============================================
-   تنسيق زر "طلب خدمة" - التحكم الكامل هنا
-   ============================================ */
-.tab-order {
+/* ─── Center «طلب»: عمود + نص — لا ion-label (يُقصّ أحياناً داخل shadow) ─── */
+ion-tab-bar ion-tab-button.tab-order {
+  --color: transparent !important;
+  --color-selected: transparent !important;
+  background: transparent !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+  flex: 0 0 auto;
+  padding: 0 !important;
+  margin: 0 8px;
+}
 
-  /* 1. التحكم في الدائرة (الأيقونة الخلفية) */
-  .icon-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* تحريك الدائرة والزائد معاً للأعلى أو الأسفل */
-    transform: translateY(2px) !important; 
-  }
+ion-tab-bar ion-tab-button.tab-order::part(native) {
+  overflow: visible !important;
+  background: transparent !important;
+}
 
-  ion-icon {
-    /* تصغير أو تكبير الدائرة من هنا */
-    font-size: 1.8rem !important; 
-    color: #0808f0 !important;
-    opacity: 1 !important;
-  }
-
-  /* 2. التحكم في علامة الزائد (+) */
-  .tiny-plus {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    /* تحريك الـ + داخل الدائرة (القيمة الثانية تحركها فوق وتحت) */
-    transform: translate(-50%, -50%) !important; 
-    /* تصغير أو تكبير الـ + من هنا */
-    font-size: 1rem !important; 
-    font-weight: 900 !important;
-    color: #ffffff !important;
-    z-index: 10 !important;
-    pointer-events: none !important;
-  }
-
-  /* 3. التحكم في كلمة "طلب خدمة" */
-  ion-label {
-    color: #3880ff !important;
-    opacity: 1 !important;
-    /* تحريك الكلمة للأعلى (استخدم قيمة سالبة) أو الأسفل */
-    margin-top: 0px !important; 
-    font-weight: 700 !important;
-  }
+ion-tab-bar ion-tab-button.tab-order .tab-order-caption {
+  color: #c62828 !important;
+  font-weight: 800 !important;
+  font-size: 0.73rem !important;
 }
 
 /* تنسيق متاح العالمي للمودال المنبثق */

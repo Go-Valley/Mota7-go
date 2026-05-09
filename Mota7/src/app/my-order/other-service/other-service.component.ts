@@ -40,6 +40,11 @@ import {
 })
 export class OtherServiceComponent implements OnInit {
 
+  /** يُمرَّر من مودال التبويب عند اختيار فرع خدمة من الشبكة السريعة */
+  initialSubServiceNameAr?: string;
+  /** عند true: قبول الطلب دون اختيار فرع (زر «المزيد» ضمن خدمات أخرى) */
+  allowUnspecifiedService = false;
+
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
@@ -84,6 +89,12 @@ export class OtherServiceComponent implements OnInit {
         const items = (b?.otherItems ?? []).filter((i: any) => i?.id && i?.nameAr);
         if (items.length > 0) {
           this.otherItems = items as Array<{ id: string; nameAr: string; nameEn?: string }>;
+          if (this.initialSubServiceNameAr) {
+            const m = findMatchingNameArItem(this.otherItems, this.initialSubServiceNameAr);
+            if (m) {
+              this.orderData.subService = m.nameAr;
+            }
+          }
         }
       });
 
@@ -95,6 +106,11 @@ export class OtherServiceComponent implements OnInit {
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+
+    if (this.initialSubServiceNameAr) {
+      const m = findMatchingNameArItem(this.otherItems, this.initialSubServiceNameAr);
+      this.orderData.subService = m?.nameAr ?? '';
+    }
   }
 
   onCustomerPhoneKeyDown(ev: KeyboardEvent): void {
@@ -218,8 +234,8 @@ export class OtherServiceComponent implements OnInit {
     const canonicalCity = cityMatch ?? '';
 
     const subMatch = findMatchingNameArItem(this.otherItems, this.orderData.subService);
-    const subOk = !!subMatch;
-    const canonicalSub = subMatch?.nameAr ?? '';
+    const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedService ? 'غير محدد' : '');
+    const subOk = !!subMatch || this.allowUnspecifiedService;
 
     const missingParts: string[] = [];
     if (!customerName) {
@@ -233,9 +249,6 @@ export class OtherServiceComponent implements OnInit {
     }
     if (!subOk) {
       missingParts.push('الخدمة المطلوبة');
-    }
-    if (!shortNote) {
-      missingParts.push('ملاحظات إضافية');
     }
 
     if (missingParts.length > 0) {

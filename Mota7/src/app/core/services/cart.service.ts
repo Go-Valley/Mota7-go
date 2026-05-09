@@ -23,6 +23,8 @@ export interface CartLine {
   readonly locationLabel: string;
   /** حالة السلعة كما في إعلان المنتج */
   readonly condition: string;
+  /** عدد الوحدات لنفس `adId` (إن لم يُحفظ سابقاً: يُعامل كـ 1) */
+  readonly quantity?: number;
 }
 
 function newLineId(): string {
@@ -31,6 +33,32 @@ function newLineId(): string {
   } catch {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
+}
+
+/** كمية الصف الواحدة في العربة — عدد صحيح ≥ 1 */
+export function cartLineQty(row: Pick<CartLine, 'quantity'>): number {
+  const q = row.quantity;
+  if (typeof q === 'number' && Number.isFinite(q) && q >= 1) {
+    return Math.min(9999, Math.floor(q));
+  }
+  return 1;
+}
+
+function mergeLinesByAdId(lines: CartLine[]): CartLine[] {
+  const map = new Map<string, CartLine>();
+  for (const l of lines) {
+    const qty = cartLineQty(l);
+    const prev = map.get(l.adId);
+    if (!prev) {
+      map.set(l.adId, { ...l, quantity: qty });
+    } else {
+      map.set(l.adId, {
+        ...prev,
+        quantity: cartLineQty(prev) + qty,
+      });
+    }
+  }
+  return Array.from(map.values());
 }
 
 function resolveSeller(ad: Record<string, unknown>): string {
@@ -49,13 +77,15 @@ function resolveSeller(ad: Record<string, unknown>): string {
 export class CartService {
   private readonly lines = signal<CartLine[]>(this.restore());
 
-  /** عدد المواد النشطة (يُستخدم لشارة التبويب). */
-  readonly itemCount = computed(() => this.lines().length);
+  /** إجمالي عدد القطع في العربة (مجموع الكميات) — للشارة وعدد السلع */
+  readonly itemCount = computed(() =>
+    this.lines().reduce((sum, row) => sum + cartLineQty(row), 0)
+  );
 
   readonly linesRo: Signal<readonly CartLine[]> = this.lines.asReadonly();
 
   readonly itemsTotalAmount = computed(() =>
-    this.lines().reduce((sum, row) => sum + row.unitPrice, 0)
+    this.lines().reduce((sum, row) => sum + row.unitPrice * cartLineQty(row), 0)
   );
 
   addProductAd(ad: unknown): boolean {
@@ -126,11 +156,74 @@ export class CartService {
       sellerPhone,
       locationLabel,
       condition,
+      quantity: 1,
     };
 
-    this.lines.update((xs) => [...xs, line]);
+    this.lines.update((xs) => {
+      const i = xs.findIndex((l) => l.adId === adId);
+      if (i >= 0) {
+        const next = [...xs];
+        const ex = next[i];
+        next[i] = { ...ex, quantity: cartLineQty(ex) + 1 };
+        return next;
+      }
+      return [...xs, line];
+    });
     this.persist();
     return true;
+  }
+
+  /** زيادة كمية سطر موجود مسبقاً فقط (للمزامنة مع الكارت دون إعادة التحقق من الإعلان) */
+  incrementQtyByAdId(adId: string): boolean {
+    if (!adId) {
+      return false;
+    }
+    let changed = false;
+    this.lines.update((xs) => {
+      const i = xs.findIndex((l) => l.adId === adId);
+      if (i < 0) {
+        return xs;
+      }
+      changed = true;
+      const next = [...xs];
+      const ex = next[i];
+      next[i] = { ...ex, quantity: cartLineQty(ex) + 1 };
+      return next;
+    });
+    if (changed) {
+      this.persist();
+    }
+    return changed;
+  }
+
+  decrementQtyByAdId(adId: string): void {
+    if (!adId) {
+      return;
+    }
+    this.lines.update((xs) => {
+      const i = xs.findIndex((l) => l.adId === adId);
+      if (i < 0) {
+        return xs;
+      }
+      const ex = xs[i];
+      const q = cartLineQty(ex);
+      if (q <= 1) {
+        return xs.filter((_, j) => j !== i);
+      }
+      const next = [...xs];
+      next[i] = { ...ex, quantity: q - 1 };
+      return next;
+    });
+    this.persist();
+  }
+
+  /** إزالة كل كميات نفس المنتج من العربة */
+  removeAllByAdId(adId: string): void {
+    if (!adId) {
+      return;
+    }
+    this.lines.update((xs) => xs.filter((l) => l.adId !== adId));
+    this.persist();
   }
 
   removeLine(lineId: string): void {
@@ -176,9 +269,10 @@ export class CartService {
           typeof it.condition === 'string' && it.condition.trim()
             ? it.condition.trim()
             : 'غير محدد',
+        quantity: 1,
       });
     }
-    this.lines.set(next);
+    this.lines.set(mergeLinesByAdId(next));
     this.persist();
   }
 
@@ -206,6 +300,11 @@ export class CartService {
         if (!lineId || !adId || !title.trim() || !(unitPrice > 0)) {
           continue;
         }
+        const qRaw = r['quantity'];
+        const quantity =
+          typeof qRaw === 'number' && Number.isFinite(qRaw) && qRaw >= 1
+            ? Math.min(9999, Math.floor(qRaw))
+            : 1;
         out.push({
           lineId,
           adId,
@@ -224,9 +323,10 @@ export class CartService {
             typeof r['condition'] === 'string' && String(r['condition']).trim()
               ? String(r['condition']).trim()
               : 'غير محدد',
+          quantity,
         });
       }
-      return out;
+      return mergeLinesByAdId(out);
     } catch {
       return [];
     }

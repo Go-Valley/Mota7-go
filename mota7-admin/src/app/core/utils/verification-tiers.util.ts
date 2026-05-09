@@ -6,6 +6,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export type CanonicalVerificationTier =
   | 'none'
+  | 'empty'
   | 'free'
   | 'bronze'
   | 'silver'
@@ -20,11 +21,13 @@ export const VERIFICATION_TIER_SORT_WEIGHT: Record<string, number> = {
   silver: 30,
   bronze: 20,
   free: 10,
+  empty: 1,
   none: 0,
 };
 
 const BADGE_FILE: Record<CanonicalVerificationTier, string | null> = {
   none: null,
+  empty: null,
   free: 'free.jpg',
   bronze: 'bronze.jpg',
   silver: 'silver.jpg',
@@ -35,6 +38,8 @@ const BADGE_FILE: Record<CanonicalVerificationTier, string | null> = {
 
 export function defaultMaxAdsForTier(tier: CanonicalVerificationTier): number {
   switch (tier) {
+    case 'empty':
+      return 0;
     case 'free':
       return 1;
     case 'bronze':
@@ -68,6 +73,7 @@ export function normalizeVerificationTier(raw: unknown): CanonicalVerificationTi
     return 'Diamonds';
   }
   const ok: CanonicalVerificationTier[] = [
+    'empty',
     'free',
     'bronze',
     'silver',
@@ -101,7 +107,7 @@ export function canonicalTierForFirestore(raw: unknown): Exclude<
   'none'
 > {
   const t = normalizeVerificationTier(raw);
-  return (t === 'none' ? 'free' : t) as Exclude<
+  return (t === 'none' ? 'empty' : t) as Exclude<
     CanonicalVerificationTier,
     'none'
   >;
@@ -170,7 +176,7 @@ export function effectiveTierFromUserFields(
   data: Record<string, unknown> | undefined
 ): Exclude<CanonicalVerificationTier, 'none'> {
   if (!data) {
-    return 'free';
+    return 'empty';
   }
   const raw =
     data['verification_level'] ??
@@ -182,7 +188,7 @@ export function effectiveTierFromUserFields(
     data['verification_valid_until']
   );
   if (!windowOk) {
-    return 'free';
+    return 'empty';
   }
   return canonicalTierForFirestore(raw);
 }
@@ -196,7 +202,7 @@ export function effectiveTierForAdFields(
   const raw = tierRaw ?? verifiedRaw;
   const windowOk = isVerificationDateWindowActive(validFrom, validUntil);
   if (!windowOk) {
-    return 'free';
+    return 'empty';
   }
   return canonicalTierForFirestore(raw);
 }

@@ -158,16 +158,42 @@
                         <span class="pdc-v pdc-city" dir="auto">{{ row.locationLabel || '—' }}</span>
                       </div>
                     </div>
-                    <div class="pdc-cart-col">
-                      <div class="pdc-cell">
-                        <span class="pdc-k">السعر</span>
-                        <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
+                      <div class="pdc-cart-col">
+                        <div class="pdc-cell">
+                          <span class="pdc-k">السعر</span>
+                          <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
+                        </div>
+                        <div class="pdc-cell">
+                          <span class="pdc-k">الكمية</span>
+                          <div class="cart-inline-stepper" (click)="$event.stopPropagation()">
+                            <button
+                              type="button"
+                              class="cis-btn"
+                              aria-label="نقص"
+                              (click)="decrementCartRow(row, $event)"
+                            >
+                              <ion-icon name="remove-outline" aria-hidden="true"></ion-icon>
+                            </button>
+                            <span class="cis-qty">{{ cartRowQty(row) }}</span>
+                            <button
+                              type="button"
+                              class="cis-btn cis-btn--plus"
+                              aria-label="زيادة"
+                              (click)="incrementCartRow(row, $event)"
+                            >
+                              <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="pdc-cell">
+                          <span class="pdc-k">المجموع</span>
+                          <span class="pdc-v pdc-price">{{ cartRowLineTotal(row) | number : '1.0-2' }} ج.م</span>
+                        </div>
+                        <div class="pdc-cell">
+                          <span class="pdc-k">حالة المنتج</span>
+                          <span class="pdc-v">{{ row.condition }}</span>
+                        </div>
                       </div>
-                      <div class="pdc-cell">
-                        <span class="pdc-k">حالة المنتج</span>
-                        <span class="pdc-v">{{ row.condition }}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </ion-label>

@@ -1,11 +1,11 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, EnvironmentInjector, runInInjectionContext, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { addIcons } from 'ionicons';
 import {
   locationOutline, checkmarkCircle, call, logoWhatsapp, cashOutline,
-  shieldCheckmarkOutline, shieldCheckmark
+  shieldCheckmarkOutline, shieldCheckmark, addOutline, removeOutline, trashOutline,
 } from 'ionicons/icons';
 import { ProductDetailsComponent } from 'src/app/my-account/my_adv/components/product-form/product-details.component';
 import { Analytics } from '@angular/fire/analytics';
@@ -43,6 +43,22 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
   private injector = inject(EnvironmentInjector);
   private cdr = inject(ChangeDetectorRef);
   private cart = inject(CartService);
+  private readonly adIdSig = signal<string>('');
+
+  /** كمية هذا المنتج في العربة (0 إن لم يُضف) */
+  readonly cartQty = computed(() => {
+    const id = this.adIdSig();
+    if (!id) {
+      return 0;
+    }
+    const line = this.cart.linesRo().find((l) => l.adId === id);
+    if (!line) {
+      return 0;
+    }
+    const q = line.quantity;
+    return typeof q === 'number' && q >= 1 ? Math.min(9999, Math.floor(q)) : 1;
+  });
+
   displayName: string = 'جاري التحميل...';
   /** قيم محسوبة مرّة واحدة لتفادي إعادة الحساب في كل دورة كشف تغيّرات */
   thumbSrc: string = 'assets/mota7.png';
@@ -54,19 +70,29 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
       call, 
       logoWhatsapp, 
       cashOutline, 
-      shieldCheckmarkOutline, 
-      shieldCheckmark 
+      shieldCheckmarkOutline,
+      shieldCheckmark,
+      addOutline,
+      removeOutline,
+      trashOutline,
     });
   }
 
   ngOnInit() {
+    this.syncAdId();
     this.computeDerived();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['ad']) {
+      this.syncAdId();
       this.computeDerived();
     }
+  }
+
+  private syncAdId(): void {
+    const raw = this.ad?.id ?? this.ad?.ad_id;
+    this.adIdSig.set(typeof raw === 'string' ? raw : '');
   }
 
   private computeDerived(): void {
@@ -135,6 +161,42 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
     if (ok) {
       this.cdr.markForCheck();
     }
+  }
+
+  incrementCartQty(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.canPurchase || !this.cartEnabledOnCard) {
+      return;
+    }
+    const id = this.adIdSig();
+    if (!id) {
+      return;
+    }
+    this.cart.incrementQtyByAdId(id);
+    this.cdr.markForCheck();
+  }
+
+  decrementCartQty(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const id = this.adIdSig();
+    if (!id || this.cartQty() <= 0) {
+      return;
+    }
+    this.cart.decrementQtyByAdId(id);
+    this.cdr.markForCheck();
+  }
+
+  removeProductFromCart(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const id = this.adIdSig();
+    if (!id) {
+      return;
+    }
+    this.cart.removeAllByAdId(id);
+    this.cdr.markForCheck();
   }
 
   async openProductDetails() {

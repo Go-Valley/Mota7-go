@@ -1,75 +1,100 @@
-# Codemagic — بناء iOS (Mota7) لـ TestFlight / App Store
-# المسار: جذر المستودع يحتوي مجلد Mota7 (تطبيق Ionic).
-# اربط Apple Developer و App Store Connect من لوحة Codemagic (Integrations).
+# Codemagic — Mota7 (Ionic + Capacitor): ويب + أندرويد + تجهيز آي أو إس
+# المشروع تحت المجلد `Mota7/`.
+#
+# ملاحظات:
+# - `ionic build` يُنفَّذ عبر `npx @ionic/cli` لأن CLI غير مثبت في package.json.
+# - بعد البناء تُنفَّذ سكربتات الأصول نفسها كما في السكربتات المحلية (سبلاش + صوت الإشعار).
+# - `npx cap sync` بدون منصّة يزامن أندرويد وآي أو إس معًا.
+# - بناء أندرويد هنا: `assembleDebug` (APK غير موقّع للمتجر). الإصدار الموقّع `assembleRelease` /
+#   `bundleRelease` يحتاج تهيئة Codemagic Android code signing ومسار keystore في Gradle
+#   (لا يعمل مسار D:\... الحالي على السحابة).
+# - تجهيز آي أو إس: حل حزم Swift (SPM) بعد المزامنة — أرشفة IPA عبر سير العمل `mota7-ios-release`.
 
 workflows:
-  mota7-ios-release:
-    name: Mota7 iOS (Release / TestFlight)
+  mota7-install-build-sync-android-ios:
+    name: Mota7 — npm install + ionic build + cap sync + Android + تجهيز iOS
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
+      java: 17
       xcode: latest
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.mota7.app
-      vars:
-        XCODE_SCHEME: App
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
+      node: 20
     scripts:
-      - name: تثبيت الحزم
+      - name: npm install
         script: |
           set -e
           cd Mota7
-          npm ci
-      - name: أيقونات وشاشات إقلاع iOS
+          npm install
+      - name: ionic build
         script: |
           set -e
           cd Mota7
-          npx --yes @capacitor/assets generate --ios
-      - name: بناء الويب + مزامنة Capacitor
+          npx --yes @ionic/cli@latest build --configuration=production --no-interactive
+      - name: نسخ أصول سبلاش والصوت (كما في البناء المحلي)
         script: |
           set -e
           cd Mota7
-          npm run build:ios:prod
-      - name: حزم Swift (SPM) ثم IPA
+          node scripts/copy-splash.js
+          node scripts/copy-notification-sound.js
+      - name: npx cap sync (كل المنصات)
+        script: |
+          set -e
+          cd Mota7
+          npx cap sync
+      - name: Build Android (Debug APK)
+        script: |
+          set -e
+          cd Mota7/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: Prepare iOS (حل حزم SPM + تحقق Xcode)
         script: |
           set -e
           cd Mota7/ios/App
-          xcode-project build-ipa \
-            --project "App.xcodeproj" \
-            --scheme "$XCODE_SCHEME"
+          xcodebuild -project App.xcodeproj -scheme App \
+            -resolvePackageDependencies \
+            -destination 'generic/platform=iOS' \
+            -quiet || true
     artifacts:
-      - Mota7/ios/App/build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
+      - Mota7/android/app/build/outputs/**/*.apk
+      - Mota7/android/app/build/outputs/**/*.aab
 
-  mota7-ios-manual:
-    name: Mota7 iOS (IPA فقط — بدون رفع)
+  mota7-ios-release:
+    name: Mota7 iOS — IPA + TestFlight
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
+      node: 20
       xcode: latest
+      java: 17
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mota7.app
       vars:
         XCODE_SCHEME: App
     scripts:
-      - name: تثبيت وبناء
+      - name: npm install
         script: |
           set -e
           cd Mota7
-          npm ci
-          npx --yes @capacitor/assets generate --ios
-          npm run build:ios:prod
+          npm install
+      - name: ionic build + أصول
+        script: |
+          set -e
+          cd Mota7
+          npx --yes @ionic/cli@latest build --configuration=production --no-interactive
+          node scripts/copy-splash.js
+          node scripts/copy-notification-sound.js
+      - name: npx cap sync
+        script: |
+          set -e
+          cd Mota7
+          npx cap sync
+      - name: أصول iOS اختيارية
+        script: |
+          set -e
+          cd Mota7
+          npx --yes @capacitor/assets generate --ios || true
       - name: IPA
         script: |
           set -e
@@ -77,3 +102,7 @@ workflows:
           xcode-project build-ipa --project "App.xcodeproj" --scheme "$XCODE_SCHEME"
     artifacts:
       - Mota7/ios/App/build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

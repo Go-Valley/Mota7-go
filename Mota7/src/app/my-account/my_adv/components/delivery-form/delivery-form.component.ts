@@ -340,6 +340,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         if (!quota.ok) {
           await loader.dismiss();
           await presentOwnerAdQuotaExceeded(this.alertCtrl, {
+            isEmptyTier: quota.isEmptyTier,
             onOpenSubscriptionPlans: async () => {
               await this.modalCtrl.dismiss(
                 undefined,

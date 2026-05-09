@@ -32,6 +32,7 @@ import { VerificationBadgeComponent } from '../../shared/verification-badge/veri
     VerificationBadgeComponent,
   ],
 })
+/** بطاقة المتجر في الرئيسية؛ المنتجات داخل صفحة المتجر تستخدم `app-product-home-card`. */
 export class StoreHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   /** عند الضغط على شارة المدينة: تصفية قائمة المتاجر في الصفحة الرئيسية حسب هذه المدينة */

@@ -27,17 +27,17 @@
       </div>
 
       <div class="input-group">
-        <label class="main-label">ملاحظات إضافية : <span>*</span></label>
+        <label class="main-label">ملاحظات إضافية :</label>
         <ion-textarea
           #textareaShortNote
           [ngModel]="orderData.shortNote"
           (ionInput)="onOtherFreeTextInput($event, 'shortNote')"
-          maxlength="50"
-          placeholder="اشرح ما تحتاجه باختصار"
+          maxlength="200"
+          placeholder="لو عندك ملاحظات او تفاصيل أكتر عن الطلب (أكتبها هنا 👇)"
           rows="4"
           class="mota7-textarea">
         </ion-textarea>
-        <div class="char-counter">{{ (orderData.shortNote || '').length }}/50</div>
+        <div class="char-counter">{{ (orderData.shortNote || '').length }}/200</div>
       </div>
 
       <div class="input-group">

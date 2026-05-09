@@ -60,6 +60,7 @@ export class SubscriptionsAdminPage implements OnInit {
   draft: SubscriptionPlan | null = null;
   includedText = '';
   excludedText = '';
+  promoText = '';
 
   tierOptions: { v: SubscriptionPlanTier; l: string }[] = [
     { v: 'trial', l: 'تجربة (Trial)' },
@@ -152,6 +153,7 @@ export class SubscriptionsAdminPage implements OnInit {
     this.draft = draft;
     this.includedText = '';
     this.excludedText = '';
+    this.promoText = '';
     this.editOpen = true;
     this.cdr.markForCheck();
   }
@@ -166,6 +168,7 @@ export class SubscriptionsAdminPage implements OnInit {
     };
     this.includedText = p.includedFeatures.join('\n');
     this.excludedText = p.excludedFeatures.join('\n');
+    this.promoText = p.promo_text ?? '';
     this.editOpen = true;
   }
 
@@ -198,6 +201,7 @@ export class SubscriptionsAdminPage implements OnInit {
         .split('\n')
         .map((s) => s.trim())
         .filter(Boolean);
+      d.promo_text = this.promoText.trim() || undefined;
       if (!d.name.trim()) {
         await this.toast('أدخل اسم الباقة');
         await loader.dismiss();

@@ -69,16 +69,57 @@
       role="presentation"
       (click)="$event.stopPropagation()"
     >
-      <ion-button
-        expand="block"
-        size="small"
-        class="btn-add-cart"
-        [disabled]="addToCartDisabled"
-        [title]="addToCartTooltip"
-        (click)="addProductToCart($event)"
-      >
-        إضافة للعربة
-      </ion-button>
+      @if (addToCartDisabled) {
+        <ion-button
+          expand="block"
+          size="small"
+          class="btn-add-cart"
+          [disabled]="true"
+          [title]="addToCartTooltip"
+        >
+          إضافة للعربة
+        </ion-button>
+      } @else if (cartQty() === 0) {
+        <ion-button
+          expand="block"
+          size="small"
+          class="btn-add-cart"
+          (click)="addProductToCart($event)"
+        >
+          <ion-icon name="add-outline" slot="start" aria-hidden="true"></ion-icon>
+          إضافة للعربة
+        </ion-button>
+      } @else {
+        <div class="product-cart-rail" dir="rtl">
+          <div class="pcr-stepper">
+            <button
+              type="button"
+              class="pcr-icon-btn pcr-minus"
+              aria-label="تقليل الكمية"
+              (click)="decrementCartQty($event)"
+            >
+              <ion-icon name="remove-outline" aria-hidden="true"></ion-icon>
+            </button>
+            <span class="pcr-qty" aria-live="polite">{{ cartQty() }}</span>
+            <button
+              type="button"
+              class="pcr-icon-btn pcr-plus"
+              aria-label="زيادة الكمية"
+              (click)="incrementCartQty($event)"
+            >
+              <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
+          <button
+            type="button"
+            class="pcr-trash"
+            aria-label="حذف من العربة"
+            (click)="removeProductFromCart($event)"
+          >
+            <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+      }
     </div>
   </div>
 </div>

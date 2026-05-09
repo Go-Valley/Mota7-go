@@ -130,6 +130,7 @@
               <span class="pill" *ngIf="p.max_allowed_ads != null && p.max_allowed_ads >= 0">حد إعلانات {{ p.max_allowed_ads }}</span>
               <span class="pill accent" *ngIf="p.highlight">تمييز</span>
               <span class="pill tier" *ngIf="p.tier">{{ p.tier }}</span>
+              <span class="pill accent" *ngIf="p.promo_text">عرض ترويجي</span>
             </div>
           </ion-label>
           <ion-button fill="clear" size="small" (click)="togglePlanVisible(p)" [attr.aria-label]="p.visible ? 'إخفاء' : 'إظهار'">
@@ -204,6 +205,14 @@
           <ion-item class="subs-admin-field">
             <ion-label position="stacked">مزايا غير متضمّنة (سطر لكل سطر)</ion-label>
             <ion-textarea [(ngModel)]="excludedText" rows="4" placeholder="سطر لكل بند مع ❌ إن رغبت"></ion-textarea>
+          </ion-item>
+
+          <ion-item class="subs-admin-field">
+            <ion-label position="stacked">نص العرض الترويجي — promo_text (سطر لكل سطر)</ion-label>
+            <ion-textarea [(ngModel)]="promoText" rows="4" placeholder="يظهر كمربع «عروض مُتاح» بالبطاقة — اترك فارغاً لإخفائه"></ion-textarea>
+            <ion-note slot="helper">
+              يظهر هذا المربع فوق زر «اشترك الآن» فقط إذا كان النص غير فارغ.
+            </ion-note>
           </ion-item>
 
           <ion-item class="subs-admin-field">

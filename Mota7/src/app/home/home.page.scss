@@ -17,15 +17,94 @@
 
 // Mota7 Home — Premium layout (يستخدم الخلفية الموحدة من global.scss)
 
-/* --- تنسيقات زر اختيار المدينة --- */
+/* --- شريط المدينة + زر العربة (منتجات / متاجر) ---
+   الموقع: يسار الشاشة تحت الـ safe area (ليس وسط الهيدر).
+   التحكم بالإزاحة: غيّر `hubActionsOffsetX` و `hubActionsOffsetY` في home.page.ts
+   — offsetX: موجب = يمين، سالب = يسار | offsetY: موجب = أسفل، سالب = أعلى
+*/
 .city-widget {
+  --hub-offset-x: 0px;
+  --hub-offset-y: 0px;
   position: fixed;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  left: 10px;
+  top: calc(8px + env(safe-area-inset-top, 0px) + var(--hub-offset-y));
+  left: calc(12px + env(safe-area-inset-left, 0px) + var(--hub-offset-x));
+  right: auto;
+  width: auto;
+  max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
   z-index: 100000;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  pointer-events: none;
+
+  .city-widget-top-row,
+  .city-popover {
+    pointer-events: auto;
+  }
+}
+
+.city-widget-top-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  direction: ltr;
+  flex-wrap: nowrap;
+}
+
+.hub-cart-btn {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  backdrop-filter: saturate(180%) blur(16px);
+  border: 1px solid rgba(241, 99, 5, 0.55);
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(109 51 10 / 0.35);
+  cursor: pointer;
+  outline: none;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease;
+
+  ion-icon {
+    font-size: 1.28rem;
+    color: #ea580c !important;
+  }
+
+  &:active {
+    transform: scale(0.94);
+    box-shadow: 0 1px 8px rgb(0 0 0 / 0.2);
+  }
+}
+
+.hub-cart-badge {
+  position: absolute;
+  top: -3px;
+  inset-inline-end: -2px;
+  min-width: 17px;
+  height: 17px;
+  line-height: 17px;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgb(220 38 38 / 0.45);
 }
 
 .city-capsule-btn {
@@ -125,38 +204,114 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- تصميم شريط البحث المطور (من ملف الطلبات المقبولة) --- */
+/* --- Search Section + Cart Button --- */
 .search-section {
   margin-bottom: 5px;
   padding: 0 5px;
 
-  .search-bar-wrapper {
-    background: #fafafa;
-    border-radius: 15px;
-    padding: 10px 18px;
+  .search-row {
     display: flex;
     align-items: center;
-    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3), inset 0px 0px 0px 2px #f16c14;    
-    border: 1px solid #dba600;
+    gap: 10px;
+    direction: rtl;
+  }
 
-    ion-icon { 
-      color: #ad0202; 
-      margin-left: 10px; 
-      font-size: 20px; 
+  .search-bar-wrapper {
+    flex: 1;
+    min-width: 0;
+    background: #fafafa;
+    border-radius: 14px;
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 0 0 1.5px rgba(241, 108, 20, 0.35);
+    border: 1px solid rgba(219, 166, 0, 0.3);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+
+    &:focus-within {
+      box-shadow:
+        0 2px 12px rgba(255, 107, 0, 0.15),
+        inset 0 0 0 2px #ff6b00;
+      border-color: #ff6b00;
     }
 
-    input { 
-      border: none; 
-      outline: none; 
-      width: 100%; 
-      font-weight: 700; 
-      color: #000000; 
-      font-size: 0.95rem; 
+    ion-icon {
+      color: #ff6b00;
+      margin-left: 8px;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+
+    input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-weight: 700;
+      color: #000000;
+      font-size: 0.88rem;
       background: transparent;
       &::placeholder {
-        color: #888;
+        color: #94a3b8;
         font-weight: 600;
+        font-size: 0.82rem;
       }
+    }
+
+    .search-clear-icon {
+      color: #94a3b8 !important;
+      font-size: 18px !important;
+      margin-left: 0 !important;
+      cursor: pointer;
+    }
+  }
+
+  .cart-header-btn {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(145deg, #ff8c22, #ff6b00);
+    box-shadow:
+      0 4px 14px rgba(255, 107, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+
+    &:active {
+      transform: scale(0.9);
+      box-shadow: 0 2px 8px rgba(255, 107, 0, 0.25);
+    }
+
+    ion-icon {
+      color: #ffffff;
+      font-size: 22px;
+    }
+
+    .cart-header-badge {
+      position: absolute;
+      top: -4px;
+      inset-inline-end: -4px;
+      min-width: 18px;
+      height: 18px;
+      line-height: 18px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      background: #ef4444;
+      border-radius: 999px;
+      padding: 0 5px;
+      text-align: center;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+      pointer-events: none;
+      z-index: 2;
     }
   }
 
@@ -168,9 +323,9 @@
     color: #1a1a2e;
     font-weight: 700;
     font-size: 0.9rem;
-    
-    ion-icon { 
-      color: #1a1a2e; 
+
+    ion-icon {
+      color: #1a1a2e;
       font-size: 20px;
     }
   }

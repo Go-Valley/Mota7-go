@@ -42,9 +42,13 @@ npm run build:ios:prod
 
 ## 4) الإصدارات (مواءمة أندرويد)
 
-- **Android** (`android/app/build.gradle`): `versionName` / `versionCode`.
-- **iOS** (`ios/App/App.xcodeproj`): `MARKETING_VERSION` ≈ اسم الإصدار، `CURRENT_PROJECT_VERSION` ≈ رقم البناء (يُقرأ في التطبيق عبر `App.getInfo().build` للتحديث الإجباري).
-- حاليًا في المشروع: **2.2** و **26** على هدف iOS — زامِنها مع كل إصدار أندرويد جديد.
+| أندرويد (`android/app/build.gradle`) | آي أو إس (`ios/App/App.xcodeproj` — هدف App) | `package.json` |
+|-------------------------------------|---------------------------------------------|----------------|
+| `versionName` `"2.2"` ← | `MARKETING_VERSION` = `2.2` | حقل `"version": "2.2"` |
+| `versionCode` `26` ← | `CURRENT_PROJECT_VERSION` = `26` | (لا يوجد؛ يبقى فقط على المنصّتين) |
+
+- رقم البناء الذي يقرأه Capacitor (`App.getInfo().build`) يجب أن يبقى **متطابقًا** بين المنصّتين حتى يعمل التحديث الإجباري بشكل منطقي.
+- عند كل إصدار جديد على Play: عدِّل **`versionCode` و`versionName`** ثم عدِّل **`MARKETING_VERSION` و`CURRENT_PROJECT_VERSION`** وأيضًا **`version` في `package.json`** لتطابق `versionName`.
 
 ## 5) Codemagic — أول تشغيل
 

@@ -103,6 +103,10 @@ export class SubscriptionService {
     ) {
       row['max_allowed_ads'] = Math.floor(p.max_allowed_ads);
     }
+    const pt = String(p.promo_text ?? '').trim();
+    if (pt) {
+      row['promo_text'] = pt;
+    }
     return row;
   }
 

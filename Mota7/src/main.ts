@@ -22,12 +22,13 @@ import {
 // استيرادات الفيربيز
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
-import { provideFirestore, getFirestore } from '@angular/fire/firestore';
+import { provideFirestore } from '@angular/fire/firestore';
 import { provideAnalytics, getAnalytics } from '@angular/fire/analytics';
 import { provideRemoteConfig } from '@angular/fire/remote-config';
 
 import { environment } from './environments/environment';
 import { getApp, getApps, initializeApp as initializeSecondaryFirebaseApp } from 'firebase/app';
+import { initializeFirestore } from 'firebase/firestore';
 import { getRemoteConfig } from 'firebase/remote-config';
 
 import { routes } from './app/app.routes';
@@ -88,7 +89,15 @@ bootstrapApplication(AppComponent, {
       return rc;
     }),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
+    /**
+     * تجنّب أخطاء net::ERR_QUIC_PROTOCOL_ERROR / WebChannel على Chrome وبعض الشبكات
+     * (تظهر أحياناً في الكونسول عند Listen/Write رغم إعادة اتصال الـ SDK).
+     */
+    provideFirestore(() =>
+      initializeFirestore(getApp(), {
+        experimentalForceLongPolling: true,
+      })
+    ),
 
     // Analytics يعمل فقط على الويب لتجنب Crash في Android
     ...(isWebBrowser ? [provideAnalytics(() => getAnalytics())] : [])

@@ -255,13 +255,33 @@
                 <!-- Footer note -->
                 <p class="subs-gcard__footer" *ngIf="p.footerNote">{{ p.footerNote }}</p>
 
+                <!-- Subscription dates -->
+                <div class="subs-gcard__dates" *ngIf="isPlanCurrentlyActive(p) && hasActiveDateRange">
+                  <div class="subs-gcard__date-row">
+                    <span class="subs-gcard__date-label">بداية الاشتراك</span>
+                    <span class="subs-gcard__date-value">{{ userSubStartDate }}</span>
+                  </div>
+                  <div class="subs-gcard__date-row">
+                    <span class="subs-gcard__date-label">نهاية الاشتراك</span>
+                    <span class="subs-gcard__date-value">{{ userSubEndDate }}</span>
+                  </div>
+                </div>
+
+                <!-- Promo box (admin-controlled) -->
+                <div class="subs-gcard__promo" *ngIf="p.promo_text">
+                  <span class="subs-gcard__promo-title">عروض مُتاح</span>
+                  <span class="subs-gcard__promo-body">{{ p.promo_text }}</span>
+                </div>
+
                 <!-- CTA button -->
                 <button
                   type="button"
                   class="subs-gcard__cta"
+                  [class.subs-gcard__cta--disabled]="isPlanCtaDisabled(p)"
+                  [disabled]="isPlanCtaDisabled(p)"
                   (click)="subscribePlanNow(p, $event)"
                 >
-                  اشترك الآن
+                  {{ planCtaLabel(p) }}
                 </button>
               </article>
             </div>
@@ -290,8 +310,26 @@
                     </li>
                   </ul>
                   <p class="subs-gcard__footer" *ngIf="p.footerNote">{{ p.footerNote }}</p>
-                  <button type="button" class="subs-gcard__cta subs-gcard__cta--sm" (click)="subscribePlanNow(p, $event)">
-                    اشترك الآن
+                  <div class="subs-gcard__dates subs-gcard__dates--sm" *ngIf="isPlanCurrentlyActive(p) && hasActiveDateRange">
+                    <div class="subs-gcard__date-row">
+                      <span class="subs-gcard__date-label">من</span>
+                      <span class="subs-gcard__date-value">{{ userSubStartDate }}</span>
+                    </div>
+                    <div class="subs-gcard__date-row">
+                      <span class="subs-gcard__date-label">إلى</span>
+                      <span class="subs-gcard__date-value">{{ userSubEndDate }}</span>
+                    </div>
+                  </div>
+                  <div class="subs-gcard__promo subs-gcard__promo--sm" *ngIf="p.promo_text">
+                    <span class="subs-gcard__promo-title">عروض مُتاح</span>
+                    <span class="subs-gcard__promo-body">{{ p.promo_text }}</span>
+                  </div>
+                  <button type="button"
+                    class="subs-gcard__cta subs-gcard__cta--sm"
+                    [class.subs-gcard__cta--disabled]="isPlanCtaDisabled(p)"
+                    [disabled]="isPlanCtaDisabled(p)"
+                    (click)="subscribePlanNow(p, $event)">
+                    {{ planCtaLabel(p) }}
                   </button>
                 </article>
               </div>

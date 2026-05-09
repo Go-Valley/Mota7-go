@@ -54,6 +54,7 @@
             <ion-select-option value="isActive">حالة الحساب (نشط)</ion-select-option>
             <ion-select-option value="fullName">الاسم (أبجدياً)</ion-select-option>
             <ion-select-option value="city">المدينة</ion-select-option>
+            <ion-select-option value="verification">حسب التوثيق (الأعلى أولاً)</ion-select-option>
           </ion-select>
           </ion-item>
         </div>
@@ -68,7 +69,7 @@
         (click)="confirmMigrateLegacyFreeDefaults()"
       >
         <ion-icon slot="start" name="refresh-outline"></ion-icon>
-        تهيئة توثيق مجاني للحسابات القديمة (none/free)
+        تهيئة الحسابات القديمة إلى empty (بدون اشتراك)
       </ion-button>
 
     <div class="user-card-luxury"
@@ -109,8 +110,8 @@
             <span>{{ (user.createdAt || user.created_at)?.toDate ? (user.createdAt || user.created_at).toDate() : (user.createdAt || user.created_at) | date:'yyyy-MM-dd' }}</span>
           </div>
         </div>
-        <p>{{ user.phone }}</p>
-        
+        <p class="user-phone-line">{{ user.phone }}</p>
+
         <div class="badges-row">
           <ion-badge [color]="user.isActive ? 'success' : 'danger'">
             {{ user.isActive ? 'حساب نشط' : 'حساب معطل' }}
@@ -121,6 +122,30 @@
           >
             {{ tierCaptionForCard(user) }}
           </ion-badge>
+        </div>
+
+        <div class="user-card-metrics">
+          <div class="metric-chip metric-chip--ads">
+            <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+            <div class="metric-chip__text">
+              <span class="metric-chip__label">إعلانات نشطة</span>
+              <span class="metric-chip__value">{{ userActiveAdsCount(user) }}</span>
+            </div>
+            <span class="metric-chip__sub" *ngIf="userPendingAdsCount(user) > 0">
+              +{{ userPendingAdsCount(user) }} مراجعة
+            </span>
+          </div>
+          <div class="metric-dates">
+            <div class="metric-date-row">
+              <span class="metric-date-label">بداية التوثيق</span>
+              <span class="metric-date-value">{{ formatCardDate(user.verification_valid_from) }}</span>
+            </div>
+            <div class="metric-date-divider" aria-hidden="true"></div>
+            <div class="metric-date-row">
+              <span class="metric-date-label">نهاية التوثيق</span>
+              <span class="metric-date-value">{{ formatCardDate(user.verification_valid_until) }}</span>
+            </div>
+          </div>
         </div>
       </div>
 

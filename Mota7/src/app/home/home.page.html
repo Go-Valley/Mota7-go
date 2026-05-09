@@ -4,16 +4,34 @@
   (backClick)="backToHome()"> 
 </app-mota7-header>
  
-<div class="city-widget" *ngIf="selectedCategory">
-  <button
-    type="button"
-    class="city-capsule-btn"
-    (click)="toggleCityPopover()"
-    aria-label="اختيار المدينة"
-    [attr.aria-expanded]="showCityPopover">
-    <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
-    <span class="city-label">{{ selectedCityLabel }}</span>
-  </button>
+<div
+  class="city-widget"
+  *ngIf="selectedCategory"
+  [style.--hub-offset-x]="hubActionsOffsetX + 'px'"
+  [style.--hub-offset-y]="hubActionsOffsetY + 'px'">
+  <div class="city-widget-top-row">
+    <button
+      type="button"
+      class="city-capsule-btn"
+      (click)="toggleCityPopover()"
+      aria-label="اختيار المدينة"
+      [attr.aria-expanded]="showCityPopover">
+      <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+      <span class="city-label">{{ selectedCityLabel }}</span>
+    </button>
+    <button
+      type="button"
+      class="hub-cart-btn"
+      *ngIf="selectedCategory === 'products' || selectedCategory === 'stores_types'"
+      (click)="goToCart(); $event.stopPropagation()"
+      aria-label="فتح العربة"
+    >
+      <ion-icon name="cart-outline" aria-hidden="true"></ion-icon>
+      @if (cartCount() > 0) {
+        <span class="hub-cart-badge">{{ cartBadgeText() }}</span>
+      }
+    </button>
+  </div>
   
   <div class="city-popover" *ngIf="showCityPopover" (click)="$event.stopPropagation()">
     <button type="button" class="city-option" (click)="selectCity('الكل')">
@@ -51,21 +69,29 @@
   <div class="main-wrapper">
     
     <div class="search-section" *ngIf="!selectedCategory" (click)="$event.stopPropagation()">
-      <div class="search-bar-wrapper">
-        <ion-icon name="search-outline"></ion-icon>
-        <input 
-          type="text" 
-          placeholder="ابحث عن الخدمات , المنتجات , المتاجر ..." 
-          [(ngModel)]="searchText"
-          (input)="onSearchInput()"
-          aria-label="البحث العام"
-        >
-        <ion-icon
-          name="close-outline"
-          *ngIf="searchText"
-          (click)="clearSearch()"
-          class="search-clear-icon">
-        </ion-icon>
+      <div class="search-row">
+        <div class="search-bar-wrapper">
+          <ion-icon name="search-outline"></ion-icon>
+          <input 
+            type="text" 
+            placeholder="ابحث عن الخدمات , المنتجات , المتاجر ..." 
+            [(ngModel)]="searchText"
+            (input)="onSearchInput()"
+            aria-label="البحث العام"
+          >
+          <ion-icon
+            name="close-outline"
+            *ngIf="searchText"
+            (click)="clearSearch()"
+            class="search-clear-icon">
+          </ion-icon>
+        </div>
+        <button type="button" class="cart-header-btn" (click)="goToCart()" aria-label="العربة">
+          <ion-icon name="cart-outline"></ion-icon>
+          @if (cartCount() > 0) {
+            <span class="cart-header-badge">{{ cartBadgeText() }}</span>
+          }
+        </button>
       </div>
 
       <div class="search-empty" *ngIf="searchText && (searchResults$ | async)?.length === 0">

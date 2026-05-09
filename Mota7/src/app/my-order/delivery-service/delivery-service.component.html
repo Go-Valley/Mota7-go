@@ -62,6 +62,20 @@
       </div>
 
       <div class="input-group">
+        <label class="main-label">ملاحظات إضافية :</label>
+        <ion-textarea
+          #textareaShortNote
+          [ngModel]="orderData.shortNote"
+          (ionInput)="onDeliveryFreeTextInput($event, 'shortNote')"
+          maxlength="200"
+          placeholder="لو عندك ملاحظات او تفاصيل أكتر عن الطلب (أكتبها هنا 👇)"
+          rows="4"
+          class="mota7-textarea">
+        </ion-textarea>
+        <div class="char-counter">{{ (orderData.shortNote || '').length }}/200</div>
+      </div>
+
+      <div class="input-group">
         <label class="main-label">الأسم : <span>*</span></label>
         <ion-input
           #inputCustomerName

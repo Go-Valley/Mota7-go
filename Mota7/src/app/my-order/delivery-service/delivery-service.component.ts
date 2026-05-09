@@ -8,7 +8,7 @@ import {
   Injector,
   runInInjectionContext,
 } from '@angular/core';
-import { AlertController, IonInput, LoadingController, ModalController } from '@ionic/angular';
+import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { Geolocation, type Position } from '@capacitor/geolocation';
 import { Mota7Location } from '../../plugins/mota7-location.plugin';
@@ -47,10 +47,16 @@ import {
 })
 export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
+  /** يُمرَّر من مودال التبويب عند اختيار نوع مركبة من الشبكة السريعة */
+  initialVehicleNameAr?: string;
+  /** عند true: قبول الطلب دون اختيار نوع مركبة (زر «المزيد») */
+  allowUnspecifiedVehicle = false;
+
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('inputFromLocation', { read: IonInput }) private inputFromLocation?: IonInput;
   @ViewChild('inputToLocation', { read: IonInput }) private inputToLocation?: IonInput;
+  @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
   deliveryItems = DELIVERY_CATEGORY.items;
   availableCities = ['الخارجة', 'الداخلة'];
@@ -81,6 +87,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     subService: '',
     fromLocation: '',
     toLocation: '',
+    shortNote: '',
     price: '',
     lat: 0,
     lng: 0,
@@ -103,6 +110,12 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+
+    if (this.initialVehicleNameAr) {
+      const m = findMatchingNameArItem(this.deliveryItems, this.initialVehicleNameAr);
+      this.orderData.subService = m?.nameAr ?? '';
+    }
+
     await this.primeLocationPermissionOnFirstOpen();
   }
 
@@ -189,7 +202,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   /** مزامنة فورية مع ion-input — دمج detail + قيمة العنصر لدعم IME العربي على الموبايل */
   onDeliveryFreeTextInput(
     ev: Event,
-    field: 'customerName' | 'fromLocation' | 'toLocation'
+    field: 'customerName' | 'fromLocation' | 'toLocation' | 'shortNote'
   ): void {
     this.orderData[field] = readIonTextInputValueFromEvent(ev);
   }
@@ -215,6 +228,17 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         }
       } catch {
         /* تجاهل — نعتمد على ngModel */
+      }
+    }
+    if (this.textareaShortNote) {
+      try {
+        const el = await this.textareaShortNote.getInputElement();
+        const v = el?.value;
+        if (typeof v === 'string') {
+          this.orderData.shortNote = v;
+        }
+      } catch {
+        /* ignore */
       }
     }
   }
@@ -718,6 +742,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     this.orderData.subService = (this.orderData.subService || '').trim();
     this.orderData.fromLocation = normalizeUserFreeText(this.orderData.fromLocation);
     this.orderData.toLocation = normalizeUserFreeText(this.orderData.toLocation);
+    this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
     this.orderData.price = this.normalizePrice(this.orderData.price);
     this.priceLiveWarning = null;
@@ -734,8 +759,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const canonicalCity = cityMatch ?? '';
 
     const subMatch = findMatchingNameArItem(this.deliveryItems, this.orderData.subService);
-    const subOk = !!subMatch;
-    const canonicalSub = subMatch?.nameAr ?? '';
+    const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedVehicle ? 'غير محدد' : '');
+    const subOk = !!subMatch || this.allowUnspecifiedVehicle;
 
     const fromOk =
       fromLocation.length > 0 || hasOrderLocationCoordinates(lat, lng);
@@ -861,6 +886,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
           customerName,
           customerPhone,
           subService,
+          shortNote: this.orderData.shortNote || '',
           fromLocation,
           toLocation,
           price: this.orderData.price,

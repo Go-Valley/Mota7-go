@@ -38,6 +38,14 @@
                           <span class="pdc-v pdc-price">{{ row.unitPrice | number : '1.0-2' }} ج.م</span>
                         </div>
                         <div class="pdc-cell">
+                          <span class="pdc-k">الكمية</span>
+                          <span class="pdc-v">× {{ cartRowQty(row) }}</span>
+                        </div>
+                        <div class="pdc-cell">
+                          <span class="pdc-k">إجمالي السطر</span>
+                          <span class="pdc-v pdc-price">{{ cartRowLineTotal(row) | number : '1.0-2' }} ج.م</span>
+                        </div>
+                        <div class="pdc-cell">
                           <span class="pdc-k">حالة المنتج</span>
                           <span class="pdc-v">{{ row.condition }}</span>
                         </div>

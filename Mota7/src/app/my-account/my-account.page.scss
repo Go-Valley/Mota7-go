@@ -867,6 +867,90 @@
   border-radius: 12px;
 }
 
+.subs-gcard__cta--disabled,
+.subs-gcard__cta--disabled:active {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.6);
+  transform: none;
+}
+
+/* ── Subscription dates ── */
+.subs-gcard__dates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+}
+
+.subs-gcard__dates--sm {
+  margin: 8px 12px 0;
+  padding: 8px 10px;
+  gap: 4px;
+}
+
+.subs-gcard__date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  direction: rtl;
+}
+
+.subs-gcard__date-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #166534;
+  letter-spacing: -0.01em;
+}
+
+.subs-gcard__date-value {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #15803d;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+/* ── Promo box ── */
+.subs-gcard__promo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 20px 0;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-radius: 12px;
+  border: 1.5px dashed #f59e0b;
+  text-align: center;
+}
+
+.subs-gcard__promo--sm {
+  margin: 8px 12px 0;
+  padding: 8px 10px;
+  gap: 4px;
+}
+
+.subs-gcard__promo-title {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #dc2626;
+  letter-spacing: -0.02em;
+}
+
+.subs-gcard__promo-body {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
 /* ── Section headings ── */
 .subs-section-heading {
   margin: 22px 0 12px;

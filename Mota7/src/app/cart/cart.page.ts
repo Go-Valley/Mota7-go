@@ -20,9 +20,9 @@ import {
   ViewWillLeave,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { bagOutline, createOutline, trashOutline, logoWhatsapp } from 'ionicons/icons';
+import { bagOutline, createOutline, trashOutline, logoWhatsapp, addOutline, removeOutline } from 'ionicons/icons';
 import { Firestore, deleteDoc, doc } from '@angular/fire/firestore';
-import { CartService } from '../core/services/cart.service';
+import { CartService, cartLineQty, type CartLine } from '../core/services/cart.service';
 import {
   ADMIN_SUPPORT_WHATSAPP_E164_LOCAL,
   MyShoppingOrdersService,
@@ -70,7 +70,7 @@ export class CartPage implements ViewWillEnter, ViewWillLeave {
   readonly hasOrders = computed(() => this.orderRows().length > 0);
 
   constructor() {
-    addIcons({ bagOutline, createOutline, trashOutline, logoWhatsapp });
+    addIcons({ bagOutline, createOutline, trashOutline, logoWhatsapp, addOutline, removeOutline });
   }
 
   ionViewWillEnter(): void {
@@ -90,6 +90,26 @@ export class CartPage implements ViewWillEnter, ViewWillLeave {
 
   remove(rowId: string) {
     this.cart.removeLine(rowId);
+    this.cdr.markForCheck();
+  }
+
+  cartRowQty(row: CartLine): number {
+    return cartLineQty(row);
+  }
+
+  cartRowLineTotal(row: CartLine): number {
+    return row.unitPrice * cartLineQty(row);
+  }
+
+  incrementCartRow(row: CartLine, ev: Event): void {
+    ev.stopPropagation();
+    this.cart.incrementQtyByAdId(row.adId);
+    this.cdr.markForCheck();
+  }
+
+  decrementCartRow(row: CartLine, ev: Event): void {
+    ev.stopPropagation();
+    this.cart.decrementQtyByAdId(row.adId);
     this.cdr.markForCheck();
   }
 

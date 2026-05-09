@@ -1,28 +1,21 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom">
 
-    <ion-tab-button tab="cart">
-      @if (cartCount() > 0) {
-        <ion-badge color="danger" class="tab-cart-badge">{{ cartBadgeText() }}</ion-badge>
-      }
-      <ion-icon name="cart-outline"></ion-icon>
-      <ion-label>العربة</ion-label>
-    </ion-tab-button>
-
-    <ion-tab-button tab="my-account">
+    <ion-tab-button tab="my-account" class="tab-side">
       <ion-icon name="person-outline"></ion-icon>
       <ion-label>حسابي</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button class="tab-order" (click)="openServiceModal()">
-      <div class="icon-wrapper">
-        <ion-icon name="add-circle-outline"></ion-icon>
-        <span class="tiny-plus">+</span>
+    <ion-tab-button class="tab-order" (click)="openServiceModal()" aria-label="طلب خدمة أو نشر إعلان">
+      <div class="tab-order-chip">
+        <div class="tab-order-chip-icon" aria-hidden="true">
+          <span class="fab-plus">+</span>
+        </div>
+        <span class="tab-order-caption">طلب</span>
       </div>
-      <ion-label>طلب</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="home">
+    <ion-tab-button tab="home" class="tab-side" (click)="onHomeTabButtonClick()">
       <ion-icon name="home-outline"></ion-icon>
       <ion-label>الرئيسية</ion-label>
     </ion-tab-button>
@@ -52,32 +45,66 @@
       </div>
 
       <div class="service-modal-body">
-        <section class="service-section" aria-labelledby="modal-section-order-heading">
-          <div class="section-head">
-            <span class="section-kicker">خدمات الأفراد</span>
-            <h2 class="section-title" id="modal-section-order-heading">لو محتاج تطلب:</h2>
+        <h2 class="service-modal-hero-question">محتاج تطلب ايه ؟</h2>
+
+        <section class="service-quick-pick" aria-label="اختصارات طلب الخدمة">
+          <div class="service-picker-grid">
+            <button
+              type="button"
+              class="service-picker-tile"
+              *ngFor="let tile of quickTransportTiles; trackBy: trackByQuickTileId"
+              (click)="onQuickTransportPreset(tile.presetId)"
+            >
+              <div class="service-picker-img-ring">
+                <img [src]="tile.img" [alt]="tile.label" loading="lazy" decoding="async" />
+              </div>
+              <span class="service-picker-label">{{ tile.label }}</span>
+            </button>
+            <button type="button" class="service-picker-tile service-picker-tile--more" (click)="onQuickTransportMore()">
+              <div class="service-picker-more" aria-hidden="true">
+                <span class="service-picker-more-plus">+</span>
+              </div>
+              <span class="service-picker-label">المزيد</span>
+            </button>
           </div>
-          <p class="section-copy">
-            خدمة توصيل، خدمة تعليمية، خدمات حرفية ومتنوعة.
-          </p>
-          <ion-button
-            expand="block"
-            class="service-cta service-cta--order"
-            (click)="goToServiceOrder()"
-          >
-            <div class="service-cta__row">
-              <div class="service-cta__icon" aria-hidden="true">
-                <ion-icon name="briefcase-outline"></ion-icon>
-              </div>
-              <div class="service-cta__copy">
-                <span class="service-cta__title">طلب خدمة</span>
-                <span class="service-cta__sub">ابدأ طلبك بخطوة واحدة</span>
-              </div>
-            </div>
-          </ion-button>
         </section>
 
-        <div class="service-divider" aria-hidden="true"></div>
+        <div class="service-glow-divider" aria-hidden="true"></div>
+
+        <section class="service-quick-pick" aria-label="خدمات الصيانة والحرف">
+          <div class="service-picker-grid">
+            <button
+              type="button"
+              class="service-picker-tile"
+              *ngFor="let tile of quickOtherTiles; trackBy: trackByQuickTileId"
+              (click)="onQuickOtherPreset(tile.presetId)"
+            >
+              <div class="service-picker-img-ring">
+                <img [src]="tile.img" [alt]="tile.label" loading="lazy" decoding="async" />
+              </div>
+              <span class="service-picker-label">{{ tile.label }}</span>
+            </button>
+            <button type="button" class="service-picker-tile service-picker-tile--more" (click)="onQuickOtherMore()">
+              <div class="service-picker-more" aria-hidden="true">
+                <span class="service-picker-more-plus">+</span>
+              </div>
+              <span class="service-picker-label">المزيد</span>
+            </button>
+          </div>
+        </section>
+
+        <div class="service-glow-divider" aria-hidden="true"></div>
+
+        <section class="service-quick-pick service-quick-pick--solo" aria-label="الخدمات التعليمية">
+          <button type="button" class="service-picker-wide" (click)="onQuickEducationHub()">
+            <div class="service-picker-img-ring service-picker-img-ring--wide">
+              <img [src]="educationHubTileImg" alt="دروس خصوصية" loading="lazy" decoding="async" />
+            </div>
+            <span class="service-picker-label service-picker-label--wide">دروس خصوصية</span>
+          </button>
+        </section>
+
+        <div class="service-glow-divider" aria-hidden="true"></div>
 
         <section class="service-section" aria-labelledby="modal-section-ad-heading">
           <div class="section-head">

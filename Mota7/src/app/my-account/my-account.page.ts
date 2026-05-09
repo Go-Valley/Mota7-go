@@ -1,6 +1,7 @@
 import {
   IonicModule,
   ActionSheetController,
+  AlertController,
   LoadingController,
   ToastController,
   Platform,
@@ -10,7 +11,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { Router } from '@angular/router';
-import { Firestore, doc, onSnapshot, getDoc } from '@angular/fire/firestore';
+import {
+  Firestore, doc, onSnapshot, getDoc, updateDoc, Timestamp,
+  collection, query, where, getDocs, writeBatch,
+} from '@angular/fire/firestore';
 import {
   ChangeDetectorRef,
   Component,
@@ -50,6 +54,10 @@ import { WtsappGroupLinkService } from '../core/services/wtsapp-group-link.servi
 import { SubscriptionsModalBridgeService } from '../core/services/subscriptions-modal-bridge.service';
 import { VerificationBadgeComponent } from '../shared/verification-badge/verification-badge.component';
 import { HARDWARE_BACK_SUBSCRIPTIONS_PACKAGES_MODAL_PRIORITY } from '../core/utils/hardware-back-my-account.util';
+import {
+  effectiveTierFromUserFields,
+  parseFirestoreMillis,
+} from '../core/utils/verification-tiers.util';
 
 @Component({
   selector: 'app-my-account',
@@ -93,8 +101,15 @@ export class MyAccountPage implements OnInit, OnDestroy {
   profileBadgeVerified: string | undefined;
   profileBadgeValidFrom: unknown = null;
   profileBadgeValidUntil: unknown = null;
+  /** حالة التوثيق الفعلية للمستخدم */
+  userEffectiveTier: string = 'empty';
+  /** هل استخدم المستخدم الباقة التجريبية */
+  userFreeTrialUsed = false;
+  /** مفتاح مستند المستخدم في Firestore */
+  private userDocKey = '';
   private unsubscribeSnapshot: any;
   private subsModalHardwareBackSub?: Subscription;
+  private readonly alertCtrl = inject(AlertController);
 
   private auth = inject(Auth);
   private firestore = inject(Firestore);
@@ -171,12 +186,25 @@ export class MyAccountPage implements OnInit, OnDestroy {
                 data['verificationStatus'];
               this.profileBadgeValidFrom = data['verification_valid_from'];
               this.profileBadgeValidUntil = data['verification_valid_until'];
+              this.userDocKey = userIdentifier;
+              this.userEffectiveTier = effectiveTierFromUserFields(
+                data as Record<string, unknown>
+              );
+              this.userFreeTrialUsed = !!data['free_trial_used'];
+              this.checkAndExpireFreeTrialAds(
+                data as Record<string, unknown>,
+                userIdentifier
+              );
             } else {
               this.profileBadgeTier = undefined;
               this.profileBadgeVerified = undefined;
               this.profileBadgeValidFrom = null;
               this.profileBadgeValidUntil = null;
+              this.userDocKey = userIdentifier;
+              this.userEffectiveTier = 'empty';
+              this.userFreeTrialUsed = false;
             }
+            this.cdr.markForCheck();
           });
         });
       } else {
@@ -404,9 +432,86 @@ export class MyAccountPage implements OnInit, OnDestroy {
     };
   }
 
+  isTrialPlan(plan: SubscriptionPlan): boolean {
+    return plan.tier === 'trial' || plan.price === 0;
+  }
+
+  /** تحويل tier الباقة إلى tier المستخدم */
+  private planTierToUserTier(planTier?: string): string | null {
+    switch (planTier) {
+      case 'trial': return 'free';
+      case 'bronze': return 'bronze';
+      case 'silver': return 'silver';
+      case 'gold': return 'golden';
+      case 'diamond': return 'Diamonds';
+      default: return null;
+    }
+  }
+
+  /** هل المستخدم مشترك حالياً بهذه الباقة */
+  isPlanCurrentlyActive(plan: SubscriptionPlan): boolean {
+    if (this.isTrialPlan(plan)) {
+      return this.userEffectiveTier === 'free' && this.userFreeTrialUsed;
+    }
+    const mapped = this.planTierToUserTier(plan.tier);
+    return mapped != null && this.userEffectiveTier === mapped;
+  }
+
+  /** هل زر الباقة معطّل */
+  isPlanCtaDisabled(plan: SubscriptionPlan): boolean {
+    if (this.isTrialPlan(plan)) {
+      return this.userFreeTrialUsed || this.userEffectiveTier !== 'empty';
+    }
+    return this.isPlanCurrentlyActive(plan);
+  }
+
+  /** نص زر الاشتراك */
+  planCtaLabel(plan: SubscriptionPlan): string {
+    if (this.isTrialPlan(plan)) {
+      if (this.userEffectiveTier === 'free' && this.userFreeTrialUsed) {
+        return 'أنت مشترك حاليا بهذة الباقة';
+      }
+      if (this.userFreeTrialUsed) {
+        return 'سبق لك الاشتراك بهذة الباقة';
+      }
+      return 'اشترك الآن';
+    }
+    if (this.isPlanCurrentlyActive(plan)) {
+      return 'أنت مشترك حاليا بهذة الباقة';
+    }
+    return 'اشترك الآن';
+  }
+
+  /** تنسيق تاريخ التوثيق للعرض */
+  formatVerificationDate(raw: unknown): string {
+    const ms = parseFirestoreMillis(raw);
+    if (ms == null) return '';
+    const d = new Date(ms);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+  }
+
+  get userSubStartDate(): string {
+    return this.formatVerificationDate(this.profileBadgeValidFrom);
+  }
+
+  get userSubEndDate(): string {
+    return this.formatVerificationDate(this.profileBadgeValidUntil);
+  }
+
+  get hasActiveDateRange(): boolean {
+    return !!this.userSubStartDate && !!this.userSubEndDate;
+  }
+
   async subscribePlanNow(plan: SubscriptionPlan, ev?: Event): Promise<void> {
     ev?.stopPropagation?.();
     ev?.preventDefault?.();
+
+    if (this.isTrialPlan(plan)) {
+      await this.handleTrialSubscription();
+      return;
+    }
+
     const biz = this.subsOrdersWhatsapp.trim();
     if (!biz) {
       const t = await this.toastCtrl.create({
@@ -424,7 +529,155 @@ export class MyAccountPage implements OnInit, OnDestroy {
     openWhatsappNative(biz, msg);
   }
 
-  // تحديث الدالة لتصبح احترافية (Action Sheet)
+  private async handleTrialSubscription(): Promise<void> {
+    if (!this.userDocKey) {
+      const t = await this.toastCtrl.create({
+        message: 'يرجى تسجيل الدخول مرة أخرى.',
+        duration: 2800, position: 'bottom', mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    if (this.userFreeTrialUsed || this.userEffectiveTier !== 'empty') {
+      const t = await this.toastCtrl.create({
+        message: 'لقد استخدمت الباقة التجريبية مسبقاً.',
+        duration: 2800, position: 'bottom', mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    const confirmAlert = await this.alertCtrl.create({
+      header: 'تأكيد الاشتراك',
+      message: 'هل ترغب بالاشتراك في الباقة التجريبية المجانية؟ مدتها 30 يوم — يمكنك الاشتراك مرة واحدة فقط.',
+      mode: 'ios',
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        { text: 'اشترك الآن', role: 'confirm' },
+      ],
+    });
+    await confirmAlert.present();
+    const { role } = await confirmAlert.onDidDismiss();
+    if (role !== 'confirm') return;
+
+    const loading = await this.loadingCtrl.create({
+      message: 'جاري تفعيل الباقة التجريبية...', spinner: 'crescent',
+    });
+    await loading.present();
+
+    try {
+      const now = Timestamp.now();
+      const expiresAt = Timestamp.fromMillis(now.toMillis() + 30 * 24 * 60 * 60 * 1000);
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'users', this.userDocKey), {
+          verification_level: 'free',
+          verifiedStatus: 'free',
+          max_active_ads: 1,
+          free_trial_used: true,
+          free_trial_started_at: now,
+          free_trial_expires_at: expiresAt,
+          verification_valid_from: now,
+          verification_valid_until: expiresAt,
+        })
+      );
+      await loading.dismiss();
+      const t = await this.toastCtrl.create({
+        message: 'تم تفعيل الباقة التجريبية بنجاح!',
+        duration: 3000, position: 'bottom', color: 'success', mode: 'ios',
+      });
+      await t.present();
+    } catch (e) {
+      console.error('handleTrialSubscription', e);
+      await loading.dismiss();
+      const t = await this.toastCtrl.create({
+        message: 'حدث خطأ — حاول مرة أخرى.',
+        duration: 2800, position: 'bottom', mode: 'ios',
+      });
+      await t.present();
+    }
+  }
+
+  private freeTrialExpiryCheckDone = false;
+
+  private checkAndExpireFreeTrialAds(
+    data: Record<string, unknown>,
+    userKey: string
+  ): void {
+    if (this.freeTrialExpiryCheckDone) return;
+    const trialUsed = !!data['free_trial_used'];
+    if (!trialUsed) return;
+
+    const expiresMs = parseFirestoreMillis(
+      data['free_trial_expires_at'] ?? data['verification_valid_until']
+    );
+    if (expiresMs == null || Date.now() <= expiresMs) return;
+
+    const alreadyExpired = !!data['free_trial_ads_expired'];
+    if (alreadyExpired) {
+      this.freeTrialExpiryCheckDone = true;
+      return;
+    }
+
+    this.freeTrialExpiryCheckDone = true;
+    void this.expireAllUserAds(userKey, data);
+  }
+
+  private async expireAllUserAds(
+    userKey: string,
+    userData: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await runInInjectionContext(this.injector, async () => {
+        const adIds = new Set<string>();
+        const uid = String(userData['uid'] ?? '').trim();
+        const phone = String(userData['phone'] ?? '').trim();
+
+        if (uid) {
+          const snap = await getDocs(
+            query(collection(this.firestore, 'ads'), where('userId', '==', uid))
+          );
+          snap.docs.forEach((d) => adIds.add(d.id));
+        }
+        const phoneKeys = new Set<string>();
+        if (phone) phoneKeys.add(phone);
+        if (userKey) phoneKeys.add(userKey);
+        for (const p of phoneKeys) {
+          const snap = await getDocs(
+            query(collection(this.firestore, 'ads'), where('owner_phone', '==', p))
+          );
+          snap.docs.forEach((d) => adIds.add(d.id));
+        }
+
+        if (adIds.size === 0) {
+          await updateDoc(doc(this.firestore, 'users', userKey), {
+            free_trial_ads_expired: true,
+          });
+          return;
+        }
+
+        const ids = [...adIds];
+        const chunkSize = 400;
+        for (let i = 0; i < ids.length; i += chunkSize) {
+          const batch = writeBatch(this.firestore);
+          for (const adId of ids.slice(i, i + chunkSize)) {
+            batch.update(doc(this.firestore, 'ads', adId), {
+              status: 'expired',
+            });
+          }
+          await batch.commit();
+        }
+
+        await updateDoc(doc(this.firestore, 'users', userKey), {
+          free_trial_ads_expired: true,
+          verification_level: 'empty',
+          verifiedStatus: 'empty',
+          max_active_ads: 0,
+        });
+      });
+    } catch (e) {
+      console.error('expireAllUserAds', e);
+    }
+  }
+
   async openContactOptions() {
     if (this.contactSheetOpen) {
       return;

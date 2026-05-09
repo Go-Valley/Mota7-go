@@ -28,6 +28,7 @@ export interface SubscriptionPlan {
   badge?: string;
   tier?: SubscriptionPlanTier;
   max_allowed_ads?: number;
+  promo_text?: string;
 }
 
 export interface SubscriptionsConfig {
@@ -168,6 +169,7 @@ export function coerceSubscriptionPlan(raw: unknown): SubscriptionPlan | null {
     max_allowed_ads: coerceMaxAllowedAds(
       o['max_allowed_ads'] ?? o['maxAllowedAds']
     ),
+    promo_text: String(o['promo_text'] ?? o['promoText'] ?? '').trim() || undefined,
   };
 }
 

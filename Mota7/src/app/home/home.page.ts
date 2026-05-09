@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, EnvironmentInjector, runInInjectionContext, HostBinding } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, EnvironmentInjector, runInInjectionContext, HostBinding, computed } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { IonicModule, Platform, AlertController } from '@ionic/angular';
+import { IonicModule, NavController, Platform, AlertController } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { CommonModule } from '@angular/common';
 import {
@@ -59,6 +59,7 @@ import { HomeAdsRealtimeService } from '../core/services/home-ads-realtime.servi
 import { normalizeProfileCityToShoppingCheckout } from '../core/utils/shopping-checkout-buyer-storage.util';
 import { normalizeAdTypeValue } from '../core/utils/duplicate-ad.util';
 import { computeHighWaterMsFromAds, createdAtMsForSort } from '../core/utils/ad-sync-ms.util';
+import { CartService } from '../core/services/cart.service';
 
 @Component({
   selector: 'app-home',
@@ -88,6 +89,22 @@ export class HomePage implements OnInit, OnDestroy {
   private fCache = inject(FirestoreCacheService);
   private homeAdsRt = inject(HomeAdsRealtimeService);
   private auth = inject(Auth);
+  private navCtrl = inject(NavController);
+  private cart = inject(CartService);
+  readonly cartCount = this.cart.itemCount;
+  readonly cartBadgeText = computed(() => {
+    const n = this.cart.itemCount();
+    return n > 99 ? '99+' : String(n);
+  });
+
+  /**
+   * إزاحة زر المدينة وزر العربة داخل منطقة الهيدر (بكسل، من المرجع الافتراضي يسار + أسفل الـ safe area).
+   * - hubActionsOffsetX: قيمة موجبة تُحرّك المجموعة نحو يمين الشاشة، سالبة نحو اليسار.
+   * - hubActionsOffsetY: قيمة موجبة لأسفل، سالبة لأعلى.
+   */
+  hubActionsOffsetX = 0;
+  hubActionsOffsetY = -2;
+
   private taxonomySub?: Subscription;
 
   /** لا نعيد تصفير الصفحة إذا رجع المستخدم من صفحة تفاصيل المتجر حتى يعود لقسم المتاجر بنفس حالته. */
@@ -540,6 +557,13 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.searchText) {
       this.clearSearch();
     }
+  }
+
+  goToCart(): void {
+    void this.navCtrl.navigateForward('/tabs/cart', {
+      animated: true,
+      animationDirection: 'forward',
+    });
   }
 
   /**

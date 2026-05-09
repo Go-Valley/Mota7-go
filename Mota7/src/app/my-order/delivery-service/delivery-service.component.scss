@@ -98,6 +98,26 @@
       color: #2dd36f !important;
     }
   }
+
+  ion-textarea.mota7-textarea {
+    --background: #fdfdfd;
+    --padding-start: 16px;
+    --padding-top: 12px;
+    --border-radius: 16px;
+    background: #fdfdfd;
+    border-radius: 16px;
+    border: 1.8px solid #f0f0f0;
+    font-weight: 600;
+    color: #1a1a1a;
+    min-height: 100px;
+  }
+
+  .char-counter {
+    text-align: left;
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 5px;
+  }
 }
 
 .footer-action {

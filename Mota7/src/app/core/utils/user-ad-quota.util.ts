@@ -32,7 +32,8 @@ const EFFECTIVE_TIER_LABEL_AR: Record<
   Exclude<CanonicalVerificationTier, 'none'>,
   string
 > = {
-  free: 'مجاني',
+  empty: 'بدون اشتراك',
+  free: 'تجريبية',
   bronze: 'برونزي',
   silver: 'فضّي',
   golden: 'ذهبي',
@@ -99,6 +100,10 @@ async function resolveQuotaExceededWhatsAppLine(
 export const MAX_ADS_QUOTA_TOAST_AR =
   'عفواً .. وصلت للحد الاقصى المسموح به لاضافة اعلان جديد - قم بالترقية للاستفادة من مزايا الباقة الشهرية الأعلى';
 
+/** رسالة مخصصة لمستخدمي الطبقة empty */
+export const EMPTY_TIER_NO_ADS_MSG_AR =
+  'عفواً  .. لايمكنك اضافة اعلان جديد في الوقت الحالي\nلاضافة اعلان جديد - قم بالترقية للاستفادة من مزايا الباقات الشهرية الاعلي';
+
 /**
  * عدّ الإعلانات التي تخصّص «فتحة» المستخدم: **نشطة أو قيد المراجعة فقط**
  * (لا تُحسب مرفوضة/منتهية). يدمج نتائج `owner_phone` و`userId` لتفادي التفريق.
@@ -154,6 +159,8 @@ export type PresentOwnerAdQuotaExceededOptions = {
   onOpenSubscriptionPlans?: () => void | Promise<void>;
   /** زر «تواصل مع الإدارة» — رسالة واتساب برقم الحساب وملخص الباقة/التوثيق */
   quotaAdminContact?: QuotaExceededAdminContactPayload;
+  /** إذا true يُستخدم نص ورأس مخصَّص لمستخدمي empty */
+  isEmptyTier?: boolean;
 };
 
 /** يمرَّر لـ modal.dismiss(..., role) للخروج مباشرة دون «تأكيد الخروج» (مثلاً الانتقال للباقات) */
@@ -167,6 +174,7 @@ export async function presentOwnerAdQuotaExceeded(
 ): Promise<void> {
   const go = options?.onOpenSubscriptionPlans;
   const qc = options?.quotaAdminContact;
+  const isEmpty = options?.isEmptyTier === true;
 
   const buttons: {
     text: string;
@@ -176,7 +184,7 @@ export async function presentOwnerAdQuotaExceeded(
 
   if (go) {
     buttons.push({
-      text: 'باقات الاشتراكات المتاحة',
+      text: 'باقات الاشتراكات المُتاحة',
       handler: () => {
         void Promise.resolve(go()).catch(() => {});
       },
@@ -196,7 +204,7 @@ export async function presentOwnerAdQuotaExceeded(
                 qc.contactPhoneFallback
               );
             const msg =
-              `السلام عليكم .. بستفسّر عن عدم إمكانيّة إضافة إعلان جديد — لحساب رقم "${displayPhone}" — اشتراكي حالياً على باقة: ${packageSummaryAr}`;
+              `السلام عليكم .. بستفسر عن عدم امكانية اضافة اعلان جديد - لحساب رقم "${displayPhone}" - اشتراكي حاليا على باقة "${packageSummaryAr}"`;
             openWhatsappNative(QUOTA_ADMIN_WHATSAPP_PHONE, msg);
           } catch {
             openWhatsappNative(
@@ -215,8 +223,8 @@ export async function presentOwnerAdQuotaExceeded(
   });
 
   const alert = await alertCtrl.create({
-    header: 'تعذّر إضافة إعلان جديد',
-    message: MAX_ADS_QUOTA_TOAST_AR,
+    header: 'تعذر اضافة اعلان جديد',
+    message: isEmpty ? EMPTY_TIER_NO_ADS_MSG_AR : MAX_ADS_QUOTA_TOAST_AR,
     mode: 'ios',
     buttons,
   });
@@ -263,12 +271,12 @@ export async function resolveMaxAdsForOwner(
 ): Promise<number> {
   const id = String(userDocId ?? '').trim();
   if (!id) {
-    return defaultMaxAdsForTier('free');
+    return defaultMaxAdsForTier('empty');
   }
   return runInInjectionContext(injector, async () => {
     const snap = await getDoc(doc(fs, 'users', id));
     if (!snap.exists()) {
-      return defaultMaxAdsForTier('free');
+      return defaultMaxAdsForTier('empty');
     }
     const data = snap.data() as Record<string, unknown>;
     const effective = effectiveTierFromUserFields(data);
@@ -307,11 +315,21 @@ export async function checkOwnerAdQuota(
   ownerPhone: string,
   userDocId: string,
   firebaseUid?: string | null
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<{ ok: boolean; message?: string; isEmptyTier?: boolean }> {
   const phone = String(ownerPhone ?? '').trim();
   if (!phone) {
     return { ok: false, message: 'لا يوجد رقم هاتف مسجّل للحساب.' };
   }
+
+  const userSnap = await runInInjectionContext(injector, () =>
+    getDoc(doc(fs, 'users', String(userDocId ?? '').trim() || '__missing__'))
+  );
+  const userData = userSnap.exists()
+    ? (userSnap.data() as Record<string, unknown>)
+    : undefined;
+  const effectiveTier = effectiveTierFromUserFields(userData);
+  const isEmptyTier = effectiveTier === 'empty';
+
   const max = await resolveMaxAdsForOwner(fs, injector, userDocId);
   const cur = await countOwnerQuotaAds(
     fs,
@@ -322,7 +340,8 @@ export async function checkOwnerAdQuota(
   if (cur >= max) {
     return {
       ok: false,
-      message: MAX_ADS_QUOTA_TOAST_AR,
+      message: isEmptyTier ? EMPTY_TIER_NO_ADS_MSG_AR : MAX_ADS_QUOTA_TOAST_AR,
+      isEmptyTier,
     };
   }
   return { ok: true };
