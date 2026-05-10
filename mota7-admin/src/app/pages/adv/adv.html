@@ -29,6 +29,25 @@
           class="search-clear-icon">
         </ion-icon>
       </div>
+
+      <ion-item lines="none" class="sort-item">
+        <ion-label>فرز النتائج</ion-label>
+        <ion-select
+          [value]="sortBy"
+          (ionChange)="onSortChange($event)"
+          interface="popover"
+          placeholder="اختر نوع الفرز"
+        >
+          <ion-select-option value="createdAtDesc">تاريخ إضافة الإعلان (الأحدث للأقدم)</ion-select-option>
+          <ion-select-option value="acceptedAtDesc">تاريخ قبول الإعلان (الأحدث للأقدم)</ion-select-option>
+          <ion-select-option value="expiryDateDesc">تاريخ انتهاء الإعلان (الأحدث للأقدم)</ion-select-option>
+          <ion-select-option value="createdAtAsc">تاريخ إضافة الإعلان (الأقدم للأحدث)</ion-select-option>
+          <ion-select-option value="ownerPhoneDesc">رقم هاتف المستخدم (تنازلي)</ion-select-option>
+          <ion-select-option value="categoryDesc">فئة الإعلان (أبجدي تنازلي)</ion-select-option>
+          <ion-select-option value="ownerNameDesc">اسم المستخدم (أبجدي تنازلي)</ion-select-option>
+          <ion-select-option value="verificationTier">نوع التوثيق (VIP ← ماسي ← ذهبي ← فضي ← برونزي ← مجاني ← بدون اشتراك)</ion-select-option>
+        </ion-select>
+      </ion-item>
     </div>
 
     <ion-segment [value]="selectedTab" (ionChange)="onTabChange($event)" mode="ios" scrollable="true" class="status-tabs">

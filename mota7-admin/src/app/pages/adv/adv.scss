@@ -131,6 +131,26 @@
         }
       }
     }
+
+    .sort-item {
+      margin-top: 10px;
+      --background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #eee;
+      --padding-start: 12px;
+      --inner-padding-end: 8px;
+
+      ion-label {
+        font-weight: 800;
+        color: #1f2937;
+      }
+
+      ion-select {
+        width: 100%;
+        max-width: 100%;
+        font-weight: 700;
+      }
+    }
   }
 
   // الحاوية التي تجمع الكروت

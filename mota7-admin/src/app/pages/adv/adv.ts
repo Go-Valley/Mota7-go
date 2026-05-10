@@ -40,7 +40,6 @@ import { normalizeAdTypeValue } from '@mota7-app/core/utils/duplicate-ad.util';
 import {
   canonicalTierForFirestore,
   effectiveTierForAdFields,
-  isVerificationDateWindowActive,
   parseFirestoreMillis,
   tierSortWeight,
   yyyyMmDdStringToUtcTimestamp,
@@ -61,6 +60,9 @@ import {
   ]
 })
 export class AdvPage implements OnInit, OnDestroy {
+  private static readonly EXPIRED_AD_REASON =
+    '↶\nاعلان تاريخه منتهي\nلتجديد تاريخ انتهاء الاعلان\nيرجى التواصل مع الادارة - واتساب 01220883999\n❃ شكراً لاستخدامك تطبيق "مُتاح" ❃';
+
   constructor() {
     addIcons({
       checkmarkCircleOutline,
@@ -96,6 +98,7 @@ export class AdvPage implements OnInit, OnDestroy {
   selectedTab: string = 'pending';
   selectedType: string = 'all';
   searchQuery: string = '';
+  sortBy: string = 'createdAtDesc';
 
   readonly longPressMs = 500;
   selectionMode = false;
@@ -104,6 +107,8 @@ export class AdvPage implements OnInit, OnDestroy {
   private longPressTriggered = false;
   /** إلغاء الاشتراك السابق يمنع تعدّد مستمعي onSnapshot ووميض القائمة عند كل تحديث */
   private adsSnapshotUnsub: (() => void) | null = null;
+  /** منع تحديث نفس الإعلان إلى منتهي أكثر من مرة بالتوازي */
+  private expiringAdIds = new Set<string>();
 
   ngOnInit() {
     this.fetchAds();
@@ -168,6 +173,7 @@ export class AdvPage implements OnInit, OnDestroy {
             this.isLoading = false;
             this.pruneAdSelectionToVisible();
           });
+          void this.autoExpireAdsByDate(rows);
         },
         (error) => {
           console.error('Error fetching ads:', error);
@@ -194,6 +200,58 @@ export class AdvPage implements OnInit, OnDestroy {
       return v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6);
     }
     return 0;
+  }
+
+  private adExpiryMs(ad: any): number | null {
+    return parseFirestoreMillis(ad?.expiry_date);
+  }
+
+  private adAcceptedAtMs(ad: any): number {
+    const acceptedMs = parseFirestoreMillis(ad?.active_from);
+    if (acceptedMs != null) {
+      return acceptedMs;
+    }
+    return this.createdAtMs(ad);
+  }
+
+  private isExpiryReached(ad: any, nowMs = Date.now()): boolean {
+    const expiryMs = this.adExpiryMs(ad);
+    return expiryMs != null && nowMs >= expiryMs;
+  }
+
+  private async autoExpireAdsByDate(ads: any[]): Promise<void> {
+    const nowMs = Date.now();
+    for (const ad of ads) {
+      const adId = String(ad?.id ?? ad?.ad_id ?? '').trim();
+      if (!adId || ad?.status === 'expired') {
+        continue;
+      }
+      if (ad?.status !== 'active' && ad?.status !== 'pending') {
+        continue;
+      }
+      if (!this.isExpiryReached(ad, nowMs) || this.expiringAdIds.has(adId)) {
+        continue;
+      }
+      this.expiringAdIds.add(adId);
+      try {
+        await this.markAdAsExpiredWithReason(adId);
+      } catch (e) {
+        console.error('autoExpireAdsByDate', e);
+      } finally {
+        this.expiringAdIds.delete(adId);
+      }
+    }
+  }
+
+  private async markAdAsExpiredWithReason(adId: string): Promise<void> {
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, 'ads', adId), {
+        status: 'expired',
+        admin_reason: AdvPage.EXPIRED_AD_REASON,
+        reject_reason: AdvPage.EXPIRED_AD_REASON,
+        updated_at: serverTimestamp(),
+      })
+    );
   }
 
   private async toastFetchAdsFailed(err: unknown): Promise<void> {
@@ -231,6 +289,18 @@ export class AdvPage implements OnInit, OnDestroy {
     }
     if (typeof v === 'string' && v.length) {
       this.selectedType = v;
+    }
+    this.pruneAdSelectionToVisible();
+  }
+
+  onSortChange(event: Event) {
+    const ce = event as CustomEvent<{ value?: string }>;
+    let v = ce.detail?.value;
+    if (v == null && event.target && 'value' in event.target) {
+      v = (event.target as HTMLIonSelectElement).value as string | undefined;
+    }
+    if (typeof v === 'string' && v.length) {
+      this.sortBy = v;
     }
     this.pruneAdSelectionToVisible();
   }
@@ -431,23 +501,6 @@ export class AdvPage implements OnInit, OnDestroy {
     return tokens.every(token => haystack.includes(token));
   }
 
-  /** ترتيب يدوي نشِط: مستوى 1–5 فقط، مع نافذة manual_sort_from / manual_sort_until إن وُجدت. */
-  private isManualSortSlotActive(ad: any): boolean {
-    const so = Number(ad?.sort_order);
-    if (!Number.isFinite(so) || so < 1 || so > 5) {
-      return false;
-    }
-    const fromMs = parseFirestoreMillis(ad?.manual_sort_from);
-    const untilMs = parseFirestoreMillis(ad?.manual_sort_until);
-    if (fromMs == null && untilMs == null) {
-      return true;
-    }
-    return isVerificationDateWindowActive(
-      ad?.manual_sort_from,
-      ad?.manual_sort_until
-    );
-  }
-
   private tierWeightForActiveSort(ad: any): number {
     const t = effectiveTierForAdFields(
       ad?.verification_level,
@@ -456,6 +509,75 @@ export class AdvPage implements OnInit, OnDestroy {
       ad?.verification_valid_until
     );
     return tierSortWeight(t);
+  }
+
+  private ownerPhoneSortValue(ad: any): string {
+    const raw = String(ad?.owner_phone ?? ad?.phone ?? '').trim();
+    return raw.replace(/\D/g, '');
+  }
+
+  private categorySortValue(ad: any): string {
+    return String(ad?.category_id ?? ad?.ad_type ?? '').trim().toLowerCase();
+  }
+
+  private ownerNameSortValue(ad: any): string {
+    const raw =
+      ad?.owner_name ??
+      ad?.details?.owner_name ??
+      ad?.details?.store_name ??
+      ad?.details?.driver_name ??
+      ad?.details?.teacher_name ??
+      '';
+    return String(raw).trim().toLowerCase();
+  }
+
+  private compareBySelectedSort(a: any, b: any): number {
+    switch (this.sortBy) {
+      case 'createdAtDesc':
+        return this.createdAtMs(b) - this.createdAtMs(a);
+      case 'acceptedAtDesc': {
+        const aMs = this.adAcceptedAtMs(a);
+        const bMs = this.adAcceptedAtMs(b);
+        if (bMs !== aMs) {
+          return bMs - aMs;
+        }
+        return this.createdAtMs(b) - this.createdAtMs(a);
+      }
+      case 'expiryDateDesc': {
+        const aMs = this.adExpiryMs(a) ?? 0;
+        const bMs = this.adExpiryMs(b) ?? 0;
+        if (bMs !== aMs) {
+          return bMs - aMs;
+        }
+        return this.createdAtMs(b) - this.createdAtMs(a);
+      }
+      case 'ownerPhoneDesc': {
+        const phoneA = this.ownerPhoneSortValue(a);
+        const phoneB = this.ownerPhoneSortValue(b);
+        return phoneB.localeCompare(phoneA, 'en', { numeric: true });
+      }
+      case 'categoryDesc': {
+        const catA = this.categorySortValue(a);
+        const catB = this.categorySortValue(b);
+        return catB.localeCompare(catA, 'ar');
+      }
+      case 'ownerNameDesc': {
+        const nameA = this.ownerNameSortValue(a);
+        const nameB = this.ownerNameSortValue(b);
+        return nameB.localeCompare(nameA, 'ar');
+      }
+      case 'verificationTier': {
+        const wa = this.tierWeightForActiveSort(a);
+        const wb = this.tierWeightForActiveSort(b);
+        if (wa !== wb) {
+          return wb - wa; // vip ثم Diamonds ثم golden ... ثم free ثم empty
+        }
+        return this.createdAtMs(a) - this.createdAtMs(b);
+      }
+      case 'createdAtAsc':
+      default:
+        return this.createdAtMs(a) - this.createdAtMs(b);
+    }
   }
 
   getFilteredAds(status: string): any[] {
@@ -480,35 +602,7 @@ export class AdvPage implements OnInit, OnDestroy {
       filtered = filtered.filter(ad => this.matchesSearch(ad, this.searchQuery));
     }
 
-    if (status !== 'active') return filtered;
-
-    const getDate = (a: any) => {
-      const d = a?.created_at?.toDate ? a.created_at.toDate() : a?.created_at;
-      return d ? new Date(d).getTime() : 0;
-    };
-
-    return [...filtered].sort((a, b) => {
-      const manualA = this.isManualSortSlotActive(a);
-      const manualB = this.isManualSortSlotActive(b);
-      if (manualA !== manualB) {
-        return manualA ? -1 : 1;
-      }
-      if (manualA && manualB) {
-        const sa = Number(a.sort_order);
-        const sb = Number(b.sort_order);
-        if (sa !== sb) {
-          return sa - sb;
-        }
-        return getDate(b) - getDate(a);
-      }
-
-      const wa = this.tierWeightForActiveSort(a);
-      const wb = this.tierWeightForActiveSort(b);
-      if (wa !== wb) {
-        return wb - wa;
-      }
-      return getDate(b) - getDate(a);
-    });
+    return [...filtered].sort((a, b) => this.compareBySelectedSort(a, b));
   }
 
   async openAdActions(event: any) {
@@ -522,8 +616,6 @@ export class AdvPage implements OnInit, OnDestroy {
       return;
     }
 
-    const isExpired = ad.status === 'expired';
-
     const sheetButtons: {
       text: string;
       icon?: string;
@@ -534,12 +626,17 @@ export class AdvPage implements OnInit, OnDestroy {
         { 
           text: 'قبول الإعلان', 
           icon: 'checkmark-circle-outline',
-          handler: () => { this.updateAdStatus(ad.id, 'active'); }
+          handler: () => { void this.promptAcceptAdDateRange(ad); }
         },
         { 
           text: 'تعديل الإعلان', 
           icon: 'create-outline',
           handler: () => { this.editAd(ad); }
+        },
+        {
+          text: 'تعليق الإعلان',
+          icon: 'pause-circle-outline',
+          handler: () => { void this.setAdPending(ad); }
         },
     ];
 
@@ -559,14 +656,10 @@ export class AdvPage implements OnInit, OnDestroy {
           handler: () => { this.promptReason(ad.id, 'rejected'); }
         },
         { 
-          text: isExpired ? 'تفعيل الإعلان' : 'إيقاف الإعلان (سبب)', 
-          icon: isExpired ? 'play-circle-outline' : 'pause-circle-outline',
+          text: 'إيقاف الإعلان (سبب)', 
+          icon: 'pause-circle-outline',
           handler: () => { 
-            if (isExpired) {
-              this.updateAdStatus(ad.id, 'active'); 
-            } else {
-              this.promptReason(ad.id, 'expired'); 
-            }
+            void this.expireAdFromActionSheet(ad);
           }
         },
         { 
@@ -678,6 +771,66 @@ export class AdvPage implements OnInit, OnDestroy {
     );
   }
 
+  private async setAdPending(ad: any): Promise<void> {
+    const adId = String(ad?.id ?? ad?.ad_id ?? '').trim();
+    if (!adId) {
+      return;
+    }
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, 'ads', adId), {
+        status: 'pending',
+        updated_at: serverTimestamp(),
+      })
+    );
+  }
+
+  private async expireAdFromActionSheet(ad: any): Promise<void> {
+    const adId = String(ad?.id ?? ad?.ad_id ?? '').trim();
+    if (!adId) {
+      return;
+    }
+    const alert = await this.alertCtrl.create({
+      header: 'سبب إيقاف الإعلان',
+      subHeader: 'يمكنك استخدام الرسالة الحالية أو تعديلها',
+      mode: 'ios',
+      inputs: [
+        {
+          name: 'reason',
+          type: 'textarea',
+          value: AdvPage.EXPIRED_AD_REASON,
+          placeholder: 'اكتب سبب الإيقاف',
+          attributes: {
+            rows: 7,
+          },
+        },
+      ],
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'تأكيد الإيقاف',
+          role: 'destructive',
+          handler: (data) => {
+            const inputReason = String(data?.reason ?? '').trim();
+            const reason =
+              inputReason.length > 0
+                ? inputReason
+                : AdvPage.EXPIRED_AD_REASON;
+            void runInInjectionContext(this.injector, () =>
+              updateDoc(doc(this.firestore, 'ads', adId), {
+                status: 'expired',
+                admin_reason: reason,
+                reject_reason: reason,
+                updated_at: serverTimestamp(),
+              })
+            );
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
   /** تاريخ إعلان من Firestore → YYYY-MM-DD (UTC) لمنتقي التقويم */
   private initialAdDateYyyyMmDd(v: unknown): string | null {
     if (v == null || v === '') {
@@ -708,6 +861,75 @@ export class AdvPage implements OnInit, OnDestroy {
     const d = new Date(ms);
     const p = (n: number) => String(n).padStart(2, '0');
     return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+  }
+
+  /** قبول الإعلان مع اختيار تاريخ القبول وتاريخ الانتهاء من التقويم باللمس. */
+  private async promptAcceptAdDateRange(ad: any): Promise<void> {
+    const adId = String(ad?.id ?? ad?.ad_id ?? '').trim();
+    if (!adId) {
+      return;
+    }
+    const initFrom =
+      this.initialAdDateYyyyMmDd(ad?.active_from) ??
+      this.initialAdDateYyyyMmDd(ad?.created_at);
+    const initUntil = this.initialAdDateYyyyMmDd(ad?.expiry_date);
+
+    const modal = await this.modalCtrl.create({
+      component: DateRangePickerModalComponent,
+      componentProps: {
+        title: 'مدة قبول الإعلان',
+        subtitle:
+          'من = تاريخ قبول الإعلان، إلى = تاريخ انتهاء الإعلان (اختيار باللمس من التقويم)',
+        confirmLabel: 'قبول ونشر',
+        allowWithoutDates: false,
+        initialFrom: initFrom,
+        initialUntil: initUntil,
+      },
+      mode: 'ios',
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss<
+      DateRangePickerResult | null
+    >();
+    if (role !== 'confirm' || !data) {
+      return;
+    }
+
+    const fromTs = yyyyMmDdStringToUtcTimestamp(data.fromIsoDate, false);
+    const untilTs = yyyyMmDdStringToUtcTimestamp(data.untilIsoDate, true);
+    if (!fromTs || !untilTs) {
+      const t = await this.toastCtrl.create({
+        message: 'تواريخ غير صالحة — أعد الاختيار من التقويم',
+        duration: 2500,
+        color: 'warning',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+    if (fromTs.toMillis() > untilTs.toMillis()) {
+      const t = await this.toastCtrl.create({
+        message: 'تاريخ البداية بعد تاريخ النهاية',
+        duration: 2200,
+        color: 'danger',
+        position: 'bottom',
+        mode: 'ios',
+      });
+      await t.present();
+      return;
+    }
+
+    await runInInjectionContext(this.injector, () =>
+      updateDoc(doc(this.firestore, 'ads', adId), {
+        status: 'active',
+        active_from: fromTs,
+        expiry_date: untilTs,
+        admin_reason: '',
+        reject_reason: '',
+        updated_at: serverTimestamp(),
+      })
+    );
   }
 
   /**

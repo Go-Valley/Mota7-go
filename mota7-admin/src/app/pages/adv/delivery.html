@@ -72,9 +72,17 @@
       <span>{{ ad.details?.for_rent ? 'إيجار' : 'لا يؤجر' }}</span>
     </div>
 
+    <div class="footer-item">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <span>
+        تاريخ القبول:
+        {{ (ad.active_from || ad.created_at)?.toDate() | date:'yyyy-MM-dd' }}
+      </span>
+    </div>
+
     <div class="footer-item expiry-toggle" (click)="onSetExpiry($event)">
       <ion-icon name="calendar-outline"></ion-icon>
-      <span>{{ ad.expiry_date?.toDate() | date:'yyyy-MM-dd' }}</span>
+      <span>تاريخ الانتهاء: {{ ad.expiry_date?.toDate() | date:'yyyy-MM-dd' }}</span>
     </div>
   </div>
 

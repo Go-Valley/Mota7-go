@@ -290,6 +290,11 @@ export class UsersPage implements OnInit {
     return n;
   }
 
+  /** إجمالي الإعلانات (نشطة + قيد المراجعة) */
+  private userTotalAdsCount(user: any): number {
+    return this.mergedAdIdsForUser(user).size;
+  }
+
   /** إعلانات قيد المراجعة */
   userPendingAdsCount(user: any): number {
     let n = 0;
@@ -392,6 +397,16 @@ export class UsersPage implements OnInit {
           const wB = this.tierSortWeight(b);
           if (wB !== wA) {
             return wB - wA;
+          }
+          const nameA = (a.fullName || '').trim().toLowerCase();
+          const nameB = (b.fullName || '').trim().toLowerCase();
+          return nameA.localeCompare(nameB, 'ar');
+        }
+        case 'adsCount': {
+          const adsA = this.userTotalAdsCount(a);
+          const adsB = this.userTotalAdsCount(b);
+          if (adsB !== adsA) {
+            return adsB - adsA; // الأكبر أولاً (تنازلي)
           }
           const nameA = (a.fullName || '').trim().toLowerCase();
           const nameB = (b.fullName || '').trim().toLowerCase();
