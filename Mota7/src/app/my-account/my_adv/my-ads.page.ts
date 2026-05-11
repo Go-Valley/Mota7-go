@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule, NavController, AlertController, LoadingController, ModalController, Platform } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { subscribeHardwareBackToMyAccount } from '../../core/utils/hardware-back-my-account.util';
-import { Firestore, collection, query, where, onSnapshot, doc, getDoc, deleteDoc, orderBy } from '@angular/fire/firestore';
-import { CloudinaryCleanupService } from '../../core/services/cloudinary-cleanup.service';
-import { collectCloudinaryPublicIdsFromAd } from '../../core/utils/cloudinary-public-id.util';
+import { Firestore, collection, query, where, onSnapshot, doc, getDoc, updateDoc, orderBy, serverTimestamp } from '@angular/fire/firestore';
 import { Auth, onAuthStateChanged } from '@angular/fire/auth';
 import { addIcons } from 'ionicons';
 import { Mota7HeaderComponent } from '../../top_header/header';
@@ -64,7 +62,6 @@ export class MyAdsPage implements OnInit, OnDestroy {
   private loadingCtrl = inject(LoadingController);
   private modalCtrl = inject(ModalController);
   private alertCtrl = inject(AlertController); // حقن مباشر للـ AlertController لتجنب الأخطاء
-  private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private hardwareBackSub?: Subscription;
   readonly acct = inject(UserAccountStatusService);
 
@@ -153,11 +150,12 @@ export class MyAdsPage implements OnInit, OnDestroy {
         q,
         (snapshot) => {
           const allAds = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          const visibleAds = allAds.filter((ad: any) => ad?.status !== 'delete');
 
-          this.storesAndProducts = allAds.filter(
+          this.storesAndProducts = visibleAds.filter(
             (ad: any) => ad?.ad_type === 'store' || ad?.ad_type === 'product'
           );
-          this.servicesAds = allAds.filter(
+          this.servicesAds = visibleAds.filter(
             (ad: any) =>
               ad?.ad_type === 'delivery' ||
               ad?.ad_type === 'education' ||
@@ -166,7 +164,7 @@ export class MyAdsPage implements OnInit, OnDestroy {
               ad?.ad_type === 'services'
           );
 
-          this.hasAds = allAds.length > 0;
+          this.hasAds = visibleAds.length > 0;
           this.isLoading = false;
         },
         (error) => {
@@ -216,10 +214,9 @@ export class MyAdsPage implements OnInit, OnDestroy {
     if (!this.acct.accountUsable()) {
       return;
     }
-    // تم تصحيح طريقة استدعاء الـ AlertController باستخدام الحقن المباشر
     const alert = await this.alertCtrl.create({
       header: 'تأكيد الحذف',
-      message: 'هل أنت متأكد من حذف هذا الإعلان نهائياً؟',
+      message: 'هل أنت متأكد من حذف هذا الإعلان؟',
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
@@ -230,16 +227,11 @@ export class MyAdsPage implements OnInit, OnDestroy {
             const loader = await this.loadingCtrl.create({ message: 'جاري الحذف...', mode: 'ios' });
             await loader.present();
             try {
-              const snap = await runInInjectionContext(this.injector, () =>
-                getDoc(doc(this.firestore, 'ads', adId))
-              );
-              const data = snap.data() as Record<string, unknown> | undefined;
-              const ids = data ? collectCloudinaryPublicIdsFromAd(data) : [];
-              if (ids.length) {
-                await this.cloudinaryCleanup.deletePublicIds(ids).catch(() => {});
-              }
               await runInInjectionContext(this.injector, () =>
-                deleteDoc(doc(this.firestore, 'ads', adId))
+                updateDoc(doc(this.firestore, 'ads', adId), {
+                  status: 'delete',
+                  updated_at: serverTimestamp(),
+                })
               );
             } catch (e) { console.error(e); }
             await loader.dismiss();
