@@ -40,9 +40,9 @@
         <span class="label">إلى:</span>
         <span class="value">{{ order.toLocation }}</span>
       </div>
-      <div class="detail-item detail-item--full" *ngIf="order.shortNote">
-        <span class="label">ملاحظات:</span>
-        <span class="value">{{ order.shortNote }}</span>
+      <div class="detail-item detail-item--full" *ngIf="order.shortNote || order.notes">
+        <span class="label">ملاحظات إضافية:</span>
+        <span class="value">{{ order.shortNote || order.notes }}</span>
       </div>
     </div>
 
@@ -68,7 +68,7 @@
       </button>
       <button type="button" class="action-pill --track" (click)="navigateToProvider()">
         <ion-icon name="navigate-outline"></ion-icon>
-        تتبع
+        تتبع المسار
       </button>
       <button type="button" class="action-pill --location" (click)="activateCustomerLocation()">
         <ion-icon name="location-outline"></ion-icon>

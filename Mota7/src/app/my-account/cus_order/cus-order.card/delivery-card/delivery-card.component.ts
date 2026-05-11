@@ -41,9 +41,11 @@ import {
   ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs,
-  openMapsUrlWithFallback,
-  buildGoogleMapsDirectionsUrl
 } from 'src/app/core/utils/order-lifecycle.util';
+import {
+  presentTrackingMapModal,
+  buildTrackingPointsFromOrder,
+} from 'src/app/my-order/delivery-service/destination-map-picker/destination-map-picker.presenter';
 import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
@@ -359,56 +361,50 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  async openMap(lat: any, lng: any) {
-    const dLat = lat ?? this.order?.lat;
-    const dLng = lng ?? this.order?.lng;
-    if (dLat == null || dLng == null) {
+  async openMap(lat?: unknown, lng?: unknown) {
+    const pins = buildTrackingPointsFromOrder(this.order);
+    const hasPin =
+      !!pins.providerPoint || !!pins.customerPoint || !!pins.destinationPoint;
+
+    const rawLat = Number(lat ?? this.order?.lat);
+    const rawLng = Number(lng ?? this.order?.lng);
+    const hasNumericPair =
+      Number.isFinite(rawLat) &&
+      Number.isFinite(rawLng) &&
+      !(rawLat === 0 && rawLng === 0);
+
+    if (!hasPin && !hasNumericPair) {
       const toast = await this.toastController.create({
-        message: 'موقع العميل غير محدد',
-        duration: 2000,
-        color: 'warning'
+        message:
+          'لا توجد نقاط كافية للخريطة (موقع أو وجهة). تأكّد من تحديث بيانات الطلب أو من موقع العميل.',
+        duration: 3200,
+        color: 'warning',
       });
       await toast.present();
       return;
     }
-    let originLat: number | undefined;
-    let originLng: number | undefined;
-    try {
-      if (Capacitor.isNativePlatform()) {
-        let perm = await Geolocation.checkPermissions();
-        if (perm.location !== 'granted') {
-          perm = await Geolocation.requestPermissions();
+
+    await presentTrackingMapModal(this.modalCtrl, {
+      order: this.order,
+      directionsRole: 'provider',
+    });
+  }
+
+  async openCustomerCurrentLocationMap(): Promise<void> {
+    const id = this.order?.id;
+    if (id) {
+      try {
+        const snap = await runInInjectionContext(this.injector, () =>
+          getDoc(doc(this.firestore, 'orders', String(id)))
+        );
+        if (snap.exists()) {
+          this.order = { ...this.order, ...(snap.data() as object), id };
         }
-        if (perm.location === 'granted') {
-          const pos = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 30_000
-          });
-          originLat = pos.coords.latitude;
-          originLng = pos.coords.longitude;
-        }
-      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        const o = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-            reject,
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 30_000 }
-          );
-        });
-        originLat = o.lat;
-        originLng = o.lng;
+      } catch {
+        /* نفتح الخريطة ب أي بيانات متاحة محلياً */
       }
-    } catch {
-      /* اتجاهات بوجهة فقط */
     }
-    const url = buildGoogleMapsDirectionsUrl(
-      originLat,
-      originLng,
-      Number(dLat),
-      Number(dLng)
-    );
-    await openMapsUrlWithFallback(url);
+    await this.openMap(this.order?.lat, this.order?.lng);
   }
 
   /** مزامنة الطلب من الفايربيز (آخر إحداثيات العميل والمندوب على المستند) ثم إعادة فتح المسار */

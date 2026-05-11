@@ -115,6 +115,14 @@ ion-toolbar.custom-header {
       }
     }
 
+    .auth-email-hint {
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin: 4px 5px 0;
+      line-height: 1.45;
+      strong { color: #374151; font-weight: 800; }
+    }
+
     .save-btn {
       --background: #FF6B00; --border-radius: 20px; height: 60px;
       margin-top: 30px; font-weight: 800; font-size: 1.1rem;
@@ -125,6 +133,34 @@ ion-toolbar.custom-header {
 /* تعديل خاص لنص المدينة المختار في الأيونيك لضمان سواده */
 .city-select-item ion-select::part(text) {
   color: #000000 !important;
+}
+
+.change-password-modal {
+  --width: 100%;
+  --max-width: 440px;
+  --min-height: 280px;
+  --border-radius: 20px;
+
+  .password-modal-content .edit-wrapper {
+    padding-top: 4px;
+    padding-bottom: 24px;
+  }
+
+  .modal-hint {
+    font-size: 0.82rem;
+    color: #4b5563;
+    line-height: 1.55;
+    margin: 0 0 16px;
+
+    .ltr-email {
+      display: inline-block;
+      direction: ltr;
+      unicode-bidi: embed;
+      font-weight: 800;
+      color: #111827;
+      margin-top: 4px;
+    }
+  }
 }
 
 @keyframes morph-shape {

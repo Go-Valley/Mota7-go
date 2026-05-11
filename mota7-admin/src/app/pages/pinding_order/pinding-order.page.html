@@ -59,9 +59,9 @@
               <span class="label">المرحلة:</span>
               <span class="value">{{ order.stageName }}</span>
             </div>
-            <div class="note-box" *ngIf="order.shortNote">
-              <span class="label">ملاحظات إضافية:</span>
-              <p>{{ order.shortNote }}</p>
+            <div class="note-box" *ngIf="order.shortNote || order.notes">
+              <span class="label">ملاحظات اضافية:</span>
+              <p>{{ order.shortNote || order.notes }}</p>
             </div>
           </ng-container>
 
@@ -78,6 +78,10 @@
               <p><ion-icon name="location-outline" color="primary"></ion-icon> من: {{ order.fromLocation }}</p>
               <p><ion-icon name="location-outline" color="danger"></ion-icon> إلى: {{ order.toLocation }}</p>
             </div>
+            <div class="note-box" *ngIf="order.shortNote || order.notes">
+              <span class="label">ملاحظات اضافية:</span>
+              <p>{{ order.shortNote || order.notes }}</p>
+            </div>
           </ng-container>
 
           <ng-container *ngIf="order.serviceType === 'other'">
@@ -85,9 +89,9 @@
               <span class="label">الخدمة:</span>
               <span class="value highlight">{{ order.subService }}</span>
             </div>
-            <div class="note-box" *ngIf="order.shortNote">
-              <span class="label">ملاحظة العميل:</span>
-              <p>{{ order.shortNote }}</p>
+            <div class="note-box" *ngIf="order.shortNote || order.notes">
+              <span class="label">ملاحظات اضافية:</span>
+              <p>{{ order.shortNote || order.notes }}</p>
             </div>
           </ng-container>
 

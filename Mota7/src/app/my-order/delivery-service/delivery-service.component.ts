@@ -10,7 +10,14 @@ import {
   runInInjectionContext,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
+import {
+  AlertController,
+  IonInput,
+  IonTextarea,
+  LoadingController,
+  ModalController,
+  ToastController
+} from '@ionic/angular';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { Geolocation, type Position } from '@capacitor/geolocation';
 import { Mota7Location } from '../../plugins/mota7-location.plugin';
@@ -20,7 +27,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import { Firestore, collection, addDoc, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth'; 
 import { addIcons } from 'ionicons'; 
-import { checkmarkCircle } from 'ionicons/icons';
+import { checkmarkCircle, locationOutline, mapOutline } from 'ionicons/icons';
 import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
 import {
   applyOrderPhoneInputState,
@@ -41,6 +48,7 @@ import {
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
+import { presentDestinationMapPickerModal } from './destination-map-picker/destination-map-picker.presenter';
 
 @Component({
   selector: 'app-delivery-service',
@@ -76,6 +84,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   private auth = inject(Auth);
   private newOrderNtfy = inject(NewOrderNtfyService); 
   private taxonomy = inject(AppTaxonomyService);
+  private toastCtrl = inject(ToastController);
   private destroyRef = inject(DestroyRef);
 
   /** تحذير فوري تحت حقل الهاتف */
@@ -92,6 +101,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     subService: '',
     fromLocation: '',
     toLocation: '',
+    toLat: 0,
+    toLng: 0,
     shortNote: '',
     price: '',
     lat: 0,
@@ -103,7 +114,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private alertCtrl: AlertController
   ) {
-    addIcons({ checkmarkCircle });
+    addIcons({ checkmarkCircle, locationOutline, mapOutline });
   }
   
   async ngOnInit() {
@@ -227,7 +238,18 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     ev: Event,
     field: 'customerName' | 'fromLocation' | 'toLocation' | 'shortNote'
   ): void {
-    this.orderData[field] = readIonTextInputValueFromEvent(ev);
+    const value = readIonTextInputValueFromEvent(ev);
+    this.orderData[field] = value;
+    if (field === 'toLocation') {
+      const inlineCoords = this.extractCoordinatesFromText(value);
+      if (inlineCoords) {
+        this.orderData.toLat = inlineCoords.lat;
+        this.orderData.toLng = inlineCoords.lng;
+      } else if (!value.trim()) {
+        this.orderData.toLat = 0;
+        this.orderData.toLng = 0;
+      }
+    }
   }
 
   /** قبل التحقق: سحب النص من الـ native input (إصلاح فراغ ngModel/detail على أندرويد) */
@@ -752,6 +774,131 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     return digits.replace(/^0+/, '') || '';
   }
 
+  private extractCoordinatesFromText(value: string): { lat: number; lng: number } | null {
+    const normalized = (value || '').replace(/[،]/g, ',');
+    const match = normalized.match(/(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/);
+    if (!match) {
+      return null;
+    }
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return null;
+    }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+    return { lat, lng };
+  }
+
+  private hasDestinationCoordinates(): boolean {
+    return hasOrderLocationCoordinates(this.orderData.toLat, this.orderData.toLng);
+  }
+
+  private async resolveDestinationCoordinatesFromText(rawText: string): Promise<boolean> {
+    const text = normalizeUserFreeText(rawText);
+    if (!text) {
+      return false;
+    }
+
+    const inline = this.extractCoordinatesFromText(text);
+    if (inline) {
+      this.orderData.toLat = inline.lat;
+      this.orderData.toLng = inline.lng;
+      return true;
+    }
+
+    try {
+      const url =
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=` +
+        encodeURIComponent(text);
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Language': 'ar'
+        }
+      });
+      if (!res.ok) {
+        return false;
+      }
+      const rows = (await res.json()) as Array<{ lat?: string; lon?: string }>;
+      const first = rows?.[0];
+      const lat = Number(first?.lat);
+      const lng = Number(first?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return false;
+      }
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return false;
+      }
+      this.orderData.toLat = lat;
+      this.orderData.toLng = lng;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async presentLocationToast(
+    message: string,
+    color: 'dark' | 'warning' | 'success' = 'dark'
+  ): Promise<void> {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2800,
+      color,
+      position: 'bottom',
+      cssClass: 'mota7-toast'
+    });
+    await toast.present();
+  }
+
+  async pickFromLocationFromMap(): Promise<void> {
+    const selected = await presentDestinationMapPickerModal(this.modalCtrl, {
+      originLat: this.orderData.lat,
+      originLng: this.orderData.lng,
+      initialDestinationLat: 0,
+      initialDestinationLng: 0,
+      initialDestinationText: this.orderData.fromLocation,
+      pickRole: 'origin',
+    });
+    if (!selected || selected.pickKind !== 'origin') {
+      return;
+    }
+    this.orderData.fromLocation = normalizeUserFreeText(selected.fromLocation);
+    this.orderData.lat = Number(selected.lat) || 0;
+    this.orderData.lng = Number(selected.lng) || 0;
+    await this.presentLocationToast('تم تحديد نقطة الانطلاق من الخريطة بنجاح', 'success');
+  }
+
+  async pickToLocationFromMap(): Promise<void> {
+    await this.getCurrentLocation();
+
+    if (!hasOrderLocationCoordinates(this.orderData.lat, this.orderData.lng)) {
+      await this.presentLocationToast(
+        'فعّل موقعك أولاً لتتمكن من تحديد جهة الوصول على الخريطة',
+        'warning'
+      );
+      return;
+    }
+
+    const selected = await presentDestinationMapPickerModal(this.modalCtrl, {
+      originLat: this.orderData.lat,
+      originLng: this.orderData.lng,
+      initialDestinationLat: this.orderData.toLat,
+      initialDestinationLng: this.orderData.toLng,
+      initialDestinationText: this.orderData.toLocation,
+      pickRole: 'destination',
+    });
+    if (!selected || selected.pickKind !== 'destination') {
+      return;
+    }
+
+    this.orderData.toLocation = normalizeUserFreeText(selected.toLocation);
+    this.orderData.toLat = Number(selected.toLat) || 0;
+    this.orderData.toLng = Number(selected.toLng) || 0;
+    await this.presentLocationToast('تم تحديد جهة الوصول من الخريطة بنجاح', 'success');
+  }
+
   dismiss() {
     this.modalCtrl.dismiss(null, 'cancel');
   }
@@ -776,6 +923,9 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const toLocation = this.orderData.toLocation;
     this.orderData.fromLocation = fromLocation;
     this.orderData.toLocation = toLocation;
+    if (toLocation && !this.hasDestinationCoordinates()) {
+      await this.resolveDestinationCoordinatesFromText(toLocation);
+    }
 
     const cityMatch = findMatchingStringInList(this.availableCities, this.orderData.city);
     const cityValid = !!cityMatch;
@@ -912,6 +1062,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
           shortNote: this.orderData.shortNote || '',
           fromLocation,
           toLocation,
+          toLat: this.orderData.toLat || 0,
+          toLng: this.orderData.toLng || 0,
           price: this.orderData.price,
           lat: this.orderData.lat,
           lng: this.orderData.lng,

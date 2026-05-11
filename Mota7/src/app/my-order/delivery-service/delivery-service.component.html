@@ -37,6 +37,16 @@
           <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'location-outline'" slot="start"></ion-icon>
           {{ (orderData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد مكانك الحالي' }}
         </ion-button>
+        <ion-button
+          expand="block"
+          fill="outline"
+          [class.location-success]="orderData.lat !== 0"
+          class="mota7-location-btn"
+          (click)="pickFromLocationFromMap()"
+        >
+          <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'map-outline'" slot="start"></ion-icon>
+          {{ (orderData.lat !== 0) ? 'تم تحديد نقطة الانطلاق من الخريطة' : 'حدد نقطة الانطلاق على الخريطة' }}
+        </ion-button>
       </div>
 
       <div class="input-group">
@@ -47,6 +57,17 @@
           (ionInput)="onDeliveryFreeTextInput($event, 'toLocation')"
           placeholder="المكان المتوجه إليه">
         </ion-input>
+        <p class="hint-text">يمكنك كتابة الوجهة يدوياً أو تحديدها باللمس من الخريطة.</p>
+        <ion-button
+          expand="block"
+          fill="outline"
+          [class.location-success]="orderData.toLat !== 0"
+          class="mota7-location-btn"
+          (click)="pickToLocationFromMap()"
+        >
+          <ion-icon [name]="orderData.toLat !== 0 ? 'checkmark-circle' : 'map-outline'" slot="start"></ion-icon>
+          {{ (orderData.toLat !== 0) ? 'تم تحديد جهة الوصول' : 'حدد جهة الوصول على الخريطة' }}
+        </ion-button>
       </div>
 
       <div class="input-group">

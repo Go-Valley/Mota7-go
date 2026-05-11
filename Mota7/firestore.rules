@@ -168,8 +168,13 @@ service cloud.firestore {
         );
     }
 
+    /**
+     * فحص الحظر عند إرسال طلب بدون تسجيل الدخول يستدعي getDoc(blocked_users/{customerPhone}) —
+     * يجب السماح بقراءة مستند واحد حسب المعرف وليس قائمة كل المحظورين.
+     */
     match /blocked_users/{phone} {
-      allow read: if request.auth != null;
+      allow get: if true;
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
 

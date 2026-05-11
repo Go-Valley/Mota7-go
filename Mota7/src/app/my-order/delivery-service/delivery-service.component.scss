@@ -91,6 +91,14 @@
     }
   }
 
+  .hint-text {
+    margin: 8px 2px 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
   .location-success {
     --border-color: #2dd36f !important;
     --color: #2dd36f !important;

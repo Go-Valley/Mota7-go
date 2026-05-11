@@ -1,0 +1,132 @@
+<ion-header class="ion-no-border" *ngIf="mode !== 'tracking'">
+  <ion-toolbar mode="ios" class="mota7-map-picker-toolbar">
+    <ion-title>
+      {{
+        pickRole === 'origin'
+          ? 'تحديد نقطة الانطلاق'
+          : 'تحديد جهة الوصول'
+      }}
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">إغلاق</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content
+  class="map-picker-content"
+  [fullscreen]="true"
+  [class.map-picker-content--tracking-only]="mode === 'tracking'"
+>
+  <div class="map-shell" [class.map-shell--tracking]="mode === 'tracking'">
+    <div #mapHost class="map-canvas"></div>
+
+    <div class="center-pin" *ngIf="mode === 'destination'" aria-hidden="true">
+      <div class="pin-head"></div>
+      <div class="pin-stem"></div>
+      <div class="pin-shadow"></div>
+    </div>
+
+    <!-- وضع التتبّع: خريطة فقط + زر صغير لخرائط جوجل + إغلاق مصغّر -->
+    <div class="tracking-map-vignette" aria-hidden="true"></div>
+
+    <div class="route-progress" *ngIf="mode === 'tracking' && routeLoading" aria-hidden="true">
+      <span class="route-progress__bar"></span>
+    </div>
+
+    <div class="tracking-role-pill" *ngIf="mode === 'tracking'" role="status">
+      <span class="tracking-role-pill__you">
+        {{ directionsRole === 'provider' ? 'عرضك الحالي: المندوب' : 'عرضك الحالي: طالب الخدمة' }}
+      </span>
+      <span class="tracking-role-pill__hint">مسار على الشوارع</span>
+    </div>
+
+    <div class="tracking-map-chrome" *ngIf="mode === 'tracking'">
+      <ion-button
+        class="tracking-fab-btn tracking-fab-btn--maps"
+        shape="round"
+        color="success"
+        size="small"
+        fill="solid"
+        (click)="openGoogleMapsMobile()"
+        [disabled]="!isMapReady"
+        aria-label="فتح خرائط جوجل"
+      >
+        <ion-icon slot="icon-only" name="map-outline"></ion-icon>
+      </ion-button>
+      <ion-button
+        class="tracking-fab-btn tracking-fab-btn--close"
+        shape="round"
+        color="dark"
+        size="small"
+        fill="solid"
+        (click)="dismiss()"
+        aria-label="إنهاء"
+      >
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </div>
+
+    <nav class="tracking-legend" *ngIf="mode === 'tracking'" aria-label="مواضع التوصيل">
+      <div class="tracking-legend__row">
+        <span class="tracking-legend__item" *ngIf="providerPoint">
+          <i class="tracking-legend__dot tracking-legend__dot--provider" aria-hidden="true"></i>
+          مندوب
+        </span>
+        <span class="tracking-legend__item" *ngIf="customerPoint">
+          <i class="tracking-legend__dot tracking-legend__dot--customer" aria-hidden="true"></i>
+          استلام
+        </span>
+        <span class="tracking-legend__item" *ngIf="destinationPoint">
+          <i class="tracking-legend__dot tracking-legend__dot--dest" aria-hidden="true"></i>
+          تسليم
+        </span>
+      </div>
+    </nav>
+
+    <div class="map-overlay-top" *ngIf="mode === 'destination'">
+      <ion-chip color="light" outline="true">
+        <ion-label *ngIf="pickRole === 'destination'">اسحب الخريطة حتى تقع جهة الوصول تحت المؤشر</ion-label>
+        <ion-label *ngIf="pickRole === 'origin'">حرّك الخريطة حتى تقع نقطة الانطلاق تحت المؤشر</ion-label>
+      </ion-chip>
+    </div>
+
+    <div class="map-overlay-bottom" *ngIf="mode === 'destination'">
+      <div class="address-card panel-blur-strong">
+        <div class="address-title">{{ pickRole === 'origin' ? 'نقطة الانطلاق المحددة' : 'الوجهة المحددة' }}</div>
+        <div class="address-text">{{ selectedAddress }}</div>
+        <div class="coords">{{ selectedLat | number:'1.6-6' }}, {{ selectedLng | number:'1.6-6' }}</div>
+        <div class="resolving" *ngIf="resolvingAddress">جاري تحديث عنوان الوجهة...</div>
+      </div>
+
+      <ion-button
+        expand="block"
+        shape="round"
+        fill="outline"
+        color="tertiary"
+        class="open-gmaps-from-center"
+        (click)="openGoogleMapsMobile()"
+        [disabled]="!isMapReady"
+      >
+        <ion-icon slot="start" name="map-outline"></ion-icon>
+        فتح Google Maps عند المؤشر الحالي
+      </ion-button>
+
+      <div class="map-actions-row">
+        <ion-button size="small" fill="outline" color="dark" (click)="moveToMyLocation()">
+          موقعي
+        </ion-button>
+        <ion-button size="small" color="primary" (click)="confirmSelection()" [disabled]="!isMapReady">
+          {{ pickRole === 'origin' ? 'تأكيد نقطة الانطلاق' : 'تأكيد الوجهة' }}
+        </ion-button>
+      </div>
+
+      <div class="manual-note" *ngIf="pickRole === 'destination'">
+        يمكنك دائماً كتابة الوجهة يدوياً في الحقل إذا كان المكان غير واضح على الخريطة.
+      </div>
+      <div class="manual-note" *ngIf="pickRole === 'origin'">
+        يمكنك تعديل اسم نقطة الانطلاق يدوياً من حقل «من» بعد التأكيد عند الحاجة.
+      </div>
+    </div>
+  </div>
+</ion-content>

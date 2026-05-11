@@ -79,7 +79,7 @@
       </ion-item>
 
       <div class="change-pass-wrapper">
-        <ion-button fill="clear" (click)="changePasswordViaWA()" class="change-password-btn">
+        <ion-button fill="clear" (click)="openChangePasswordModal()" class="change-password-btn" [disabled]="!acct.accountUsable()">
           <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
           تغيير كلمة المرور
         </ion-button>
@@ -97,3 +97,50 @@
     </div>
   </div>
 </ion-content>
+
+<ion-modal
+  [isOpen]="passwordModalOpen"
+  [backdropDismiss]="true"
+  mode="ios"
+  cssClass="change-password-modal"
+  (didDismiss)="onPasswordModalDismiss()"
+>
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar mode="ios">
+        <ion-title>تغيير كلمة المرور</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closePasswordModal()">إغلاق</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding password-modal-content" scrollY="true">
+      <div class="edit-wrapper">
+        <div class="form-container">
+          <p class="modal-hint" *ngIf="userData.phone">
+            تحديث كلمة المرور لحساب
+            <span class="ltr-email" dir="ltr">{{ userData.phone }}</span>
+          </p>
+          <ion-label class="input-label">كلمة المرور الحالية</ion-label>
+          <ion-item lines="none" class="custom-input">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            <ion-input [(ngModel)]="pwdCurrent" type="password" autocomplete="current-password" placeholder="أدخل كلمة المرور الحالية"></ion-input>
+          </ion-item>
+          <ion-label class="input-label">كلمة المرور الجديدة</ion-label>
+          <ion-item lines="none" class="custom-input">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            <ion-input [(ngModel)]="pwdNew" type="password" autocomplete="new-password" placeholder="كلمة المرور الجديدة"></ion-input>
+          </ion-item>
+          <ion-label class="input-label">تأكيد كلمة المرور الجديدة</ion-label>
+          <ion-item lines="none" class="custom-input">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            <ion-input [(ngModel)]="pwdConfirm" type="password" autocomplete="new-password" placeholder="أعد إدخال كلمة المرور الجديدة"></ion-input>
+          </ion-item>
+          <ion-button expand="block" class="save-btn" (click)="submitPasswordChange()">
+            حفظ كلمة المرور الجديدة
+          </ion-button>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

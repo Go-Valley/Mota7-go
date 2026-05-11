@@ -37,6 +37,11 @@ import {
 import { Auth } from '@angular/fire/auth';
 import { Firestore, doc, getDoc, updateDoc } from '@angular/fire/firestore';
 import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from 'firebase/auth';
+import {
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
 } from '../core/utils/order-form-fields.util';
@@ -63,6 +68,12 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
     personalEmail: '',
     city: '' 
   };
+
+  /** مودال تغيير كلمة المرور (Firebase Auth — Email/Password) */
+  passwordModalOpen = false;
+  pwdCurrent = '';
+  pwdNew = '';
+  pwdConfirm = '';
 
   private normalizeFullName(raw: unknown): string {
     return normalizeUserFreeText(raw).slice(0, this.fullNameMaxLen);
@@ -189,12 +200,105 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
     this.userData.fullName = v;
   }
 
-  changePasswordViaWA() {
+  openChangePasswordModal(): void {
+    if (!this.acct.accountUsable()) {
+      void this.showToast('لا يمكن تغيير كلمة المرور — الحساب معطّل');
+      return;
+    }
+    const user = this.auth.currentUser;
+    if (!user?.email) {
+      void this.showToast('لا يوجد مستخدم مسجّل');
+      return;
+    }
     this.blurActiveFocus();
-    const adminPhone = '201220883999';
-    const message = `مرحبا .. اريد تغيير كلمة المرور الخاصة برقم ${this.userData.phone}`;
-    const whatsappUrl = `whatsapp://send?phone=${adminPhone}&text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    this.clearPasswordFields();
+    this.passwordModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closePasswordModal(): void {
+    this.blurActiveFocus();
+    this.clearPasswordFields();
+    this.passwordModalOpen = false;
+  }
+
+  onPasswordModalDismiss(): void {
+    this.clearPasswordFields();
+    this.passwordModalOpen = false;
+  }
+
+  private clearPasswordFields(): void {
+    this.pwdCurrent = '';
+    this.pwdNew = '';
+    this.pwdConfirm = '';
+  }
+
+  /**
+   * تحديث كلمة المرور في Firebase Authentication بعد إعادة مصادقة بكلمة المرور الحالية.
+   * البريد المُستخدم للحساب: {phone}@mota7.com
+   */
+  async submitPasswordChange(): Promise<void> {
+    if (!this.acct.accountUsable()) {
+      await this.showToast('لا يمكن تغيير كلمة المرور — الحساب معطّل');
+      return;
+    }
+
+    const user = this.auth.currentUser;
+    const email = user?.email;
+    if (!user || !email) {
+      await this.showToast('لا يوجد مستخدم مسجّل');
+      return;
+    }
+
+    const cur = this.pwdCurrent;
+    const next = this.pwdNew;
+    const conf = this.pwdConfirm;
+
+    if (!cur || !next || !conf) {
+      await this.showToast('يرجى تعبئة جميع الحقول');
+      return;
+    }
+    if (next !== conf) {
+      await this.showToast('كلمة المرور الجديدة وتأكيدها غير متطابقين');
+      return;
+    }
+    if (next === cur) {
+      await this.showToast('كلمة المرور الجديدة مطابقة للحالية — اختر كلمة مختلفة');
+      return;
+    }
+
+    this.blurActiveFocus();
+    const loading = await this.loadingCtrl.create({ message: 'جاري تغيير كلمة المرور...' });
+    await loading.present();
+
+    try {
+      const credential = EmailAuthProvider.credential(email, cur);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, next);
+
+      await loading.dismiss();
+      this.clearPasswordFields();
+      this.passwordModalOpen = false;
+      await this.showToast('تم تغيير كلمة المرور بنجاح على Firebase');
+    } catch (e: unknown) {
+      await loading.dismiss();
+      const code =
+        typeof e === 'object' && e !== null && 'code' in e
+          ? String((e as { code?: string }).code)
+          : '';
+      let msg = 'تعذّر تغيير كلمة المرور';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        msg = 'كلمة المرور الحالية غير صحيحة';
+      } else if (code === 'auth/weak-password') {
+        msg = 'كلمة المرور الجديدة ضعيفة (الحد الأدنى 6 أحرف في Firebase)';
+      } else if (code === 'auth/too-many-requests') {
+        msg = 'محاولات كثيرة، حاول لاحقاً';
+      } else if (code === 'auth/requires-recent-login') {
+        msg = 'انتهت صلاحية الجلسة، سجّل الخروج ثم أعد الدخول';
+      }
+      console.error('submitPasswordChange:', e);
+      await this.showToast(msg);
+    }
   }
 
   async saveProfile() {

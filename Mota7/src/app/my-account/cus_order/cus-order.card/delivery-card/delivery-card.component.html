@@ -55,6 +55,10 @@
         <span class="label">إلى:</span>
         <span class="value">{{ order.toLocation }}</span>
       </div>
+      <div class="detail-item detail-item--full" *ngIf="order?.shortNote || order?.notes">
+        <span class="label">ملاحظات إضافية:</span>
+        <span class="value note-text">{{ order.shortNote || order.notes }}</span>
+      </div>
     </div>
 
     <div class="bottom-tags-row">
@@ -79,7 +83,7 @@
       </button>
       <button type="button" class="action-pill --track" (click)="openMap(order.lat, order.lng)">
         <ion-icon name="navigate-outline"></ion-icon>
-        تتبع
+        تتبع المسار
       </button>
       <button type="button" class="action-pill --location" (click)="activateProviderLocation()">
         <ion-icon name="location-outline"></ion-icon>
@@ -105,6 +109,9 @@
     </button>
 
     <div class="provider-pending-actions" *ngIf="order.status === 'pending' && !isIgnoredView && !showConfirmIgnore">
+      <button type="button" class="finish-btn-3d provider-btn-accept" (click)="openCustomerCurrentLocationMap()">
+        مكان العميل الحالي
+      </button>
       <button type="button" class="finish-btn-3d provider-btn-accept" (click)="onAcceptClick()">قبول الطلب والتحرك الآن</button>
       <button type="button" class="delete-full-width-btn-unified provider-btn-ignore" (click)="showConfirmIgnore = true">تجاهل الطلب</button>
     </div>

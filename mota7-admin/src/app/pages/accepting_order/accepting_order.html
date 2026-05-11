@@ -112,8 +112,8 @@
           </div>
         </div>
 
-        <div class="order-notes" *ngIf="order.shortNote">
-          <strong>ملاحظات إضافية:</strong> {{ order.shortNote }}
+        <div class="order-notes" *ngIf="order.shortNote || order.notes">
+          <strong>ملاحظات اضافية:</strong> {{ order.shortNote || order.notes }}
         </div>
 
         <div class="card-footer">

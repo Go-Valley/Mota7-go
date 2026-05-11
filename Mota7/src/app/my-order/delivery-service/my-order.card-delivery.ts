@@ -28,14 +28,12 @@ import {
   ORDER_DB_RETENTION_AFTER_UI_MS,
   orderFieldToMs,
   timestampPlusMs,
-  openMapsUrlWithFallback,
-  buildGoogleMapsDirectionsUrl
 } from '../../core/utils/order-lifecycle.util';
-import { hasOrderLocationCoordinates } from '../../core/utils/order-form-fields.util';
 import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
 } from '../../core/utils/order-lifecycle.firestore';
+import { presentTrackingMapModal } from './destination-map-picker/destination-map-picker.presenter';
 
 @Component({
   selector: 'app-my-order-card-delivery',
@@ -360,7 +358,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
   }
 
   /**
-   * تتبع من موقع طالب الخدمة (GPS حالياً، أو «من» المحفوظ) إلى موقع المندوب المحدّث من جهازه.
+   * تتبّع داخلي ثلاثي: طالب الخدمة، مقدّم الخدمة، وجهة الوصول.
    */
   async navigateToProvider() {
     const pLat = this.order?.providerLat;
@@ -376,57 +374,13 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
       );
       return;
     }
-
-    let originLat: number | undefined;
-    let originLng: number | undefined;
-    try {
-      if (Capacitor.isNativePlatform()) {
-        let perm = await Geolocation.checkPermissions();
-        if (perm.location !== 'granted') {
-          perm = await Geolocation.requestPermissions();
-        }
-        if (perm.location === 'granted') {
-          const pos = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 30_000
-          });
-          originLat = pos.coords.latitude;
-          originLng = pos.coords.longitude;
-        }
-      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        const o = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-            reject,
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 30_000 }
-          );
-        });
-        originLat = o.lat;
-        originLng = o.lng;
-      }
-    } catch {
-      /* احتياطي أدناه */
-    }
-
-    if (
-      (originLat == null || originLng == null) &&
-      hasOrderLocationCoordinates(this.order?.lat, this.order?.lng)
-    ) {
-      originLat = Number(this.order.lat);
-      originLng = Number(this.order.lng);
-    }
-
-    const url = buildGoogleMapsDirectionsUrl(
-      originLat,
-      originLng,
-      Number(pLat),
-      Number(pLng)
-    );
-    await openMapsUrlWithFallback(url);
+    await presentTrackingMapModal(this.modalCtrl, {
+      order: this.order,
+      directionsRole: 'customer',
+    });
   }
 
-  /** جلب آخر providerLat/providerLng من الفايربيز ثم إعادة فتح رابط الخرائط */
+  /** جلب آخر providerLat/providerLng من الفايربيز ثم إعادة فتح المودال الداخلي */
   async refreshRouteToProvider() {
     const id = this.order?.id;
     if (!id) {
