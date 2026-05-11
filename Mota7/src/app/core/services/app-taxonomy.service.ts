@@ -150,17 +150,8 @@ export class AppTaxonomyService {
 
   private createBundleObservable(): Observable<TaxonomyBundle> {
     const cacheKey = FirestoreCacheService.KEYS.TAXONOMY_BUNDLE;
-    const cached = this.cache.get<TaxonomyBundle>(cacheKey);
-    const isFresh = this.cache.isFresh(cacheKey, FirestoreCacheService.FRESH_TTL.TAXONOMY);
-
-    // إذا الكاش طازج (< 30 دقيقة) → استخدمه فقط بدون فتح مستمعي Firestore
-    if (isFresh && cached && Array.isArray(cached.deliveryItems)) {
-      return of({ ...cached, loadedFromFirebase: false }).pipe(
-        shareReplay({ bufferSize: 1, refCount: false })
-      );
-    }
-
-    // الكاش قديم أو غير موجود → فتح مستمعي Firestore
+    // نبدأ بالكاش/الثوابت كعرض فوري، لكن نظل دائماً مشتركين في Firestore
+    // حتى تظهر أي تعديلات من لوحة الإدارة فوراً بدون إعادة نشر التطبيق.
     return combineLatest([
       this.safeDoc$('transportation'),
       this.safeDoc$('education'),

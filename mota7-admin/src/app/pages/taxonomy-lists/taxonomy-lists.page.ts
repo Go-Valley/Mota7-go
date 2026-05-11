@@ -143,10 +143,9 @@ export class TaxonomyListsPage implements OnInit, OnDestroy {
   private attachCategoriesDocListener(): void {
     this.detachCategoriesDocListener();
     this.loading = true;
-    const ref = doc(this.firestore, 'Categories', this.selectedDocId);
     this.categoriesDocUnsub = runInInjectionContext(this.injector, () =>
       onSnapshot(
-        ref,
+        doc(this.firestore, 'Categories', this.selectedDocId),
         (snap) => {
           this.ngZone.run(() => {
             if (!this.live) return;

@@ -1,11 +1,13 @@
 import {
   Component,
+  DestroyRef,
   OnInit,
   ViewChild,
   inject,
   Injector,
   runInInjectionContext,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
 import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
 import { Auth } from '@angular/fire/auth';
@@ -29,6 +31,7 @@ import {
   mergeGuestStoredContactIntoOrderData,
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
+import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 
 @Component({
   selector: 'app-educational-service',
@@ -44,7 +47,7 @@ export class EducationalServiceComponent implements OnInit {
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
-  educationItems = EDUCATION_CATEGORY.items;
+  educationItems = [...EDUCATION_CATEGORY.items];
   /** تطابق قيم ion-select حتى لا تبقى المدينة فارغة منطقياً عند جلب مدينة غير مدعومة من الملف الشخصي */
   private readonly orderCityOptions = ['الخارجة', 'الداخلة'] as const;
   availableSubjects: string[] = [];
@@ -55,6 +58,8 @@ export class EducationalServiceComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(Injector);
   private newOrderNtfy = inject(NewOrderNtfyService);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   orderData = {
     customerName: '',
@@ -72,6 +77,32 @@ export class EducationalServiceComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        const nextItems = (b?.educationItems ?? []).filter((i: any) => i?.id && i?.nameAr);
+        if (!nextItems.length) {
+          return;
+        }
+        const prevItems = this.educationItems;
+        const prevStage = findMatchingNameArItem(prevItems, this.orderData.stage);
+        const preservedStageId = this.orderData.stageId || prevStage?.id || '';
+
+        this.educationItems = nextItems;
+
+        if (preservedStageId) {
+          const mappedStage = this.educationItems.find((i: any) => i?.id === preservedStageId);
+          if (mappedStage?.nameAr) {
+            this.orderData.stage = mappedStage.nameAr;
+            this.orderData.stageId = mappedStage.id;
+            this.availableSubjects = Array.isArray(mappedStage.subjects) ? [...mappedStage.subjects] : [];
+            if (!this.availableSubjects.includes(this.orderData.subject)) {
+              this.orderData.subject = '';
+            }
+          }
+        }
+      });
+
     await this.loadUserProfile();
     mergeGuestStoredContactIntoOrderData(
       this.orderData,

@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import {
   Component,
+  DestroyRef,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -8,6 +9,7 @@ import {
   Injector,
   runInInjectionContext,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
 import { Geolocation, type Position } from '@capacitor/geolocation';
@@ -38,6 +40,7 @@ import {
   mergeGuestStoredContactIntoOrderData,
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
+import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 
 @Component({
   selector: 'app-delivery-service',
@@ -58,7 +61,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   @ViewChild('inputToLocation', { read: IonInput }) private inputToLocation?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
-  deliveryItems = DELIVERY_CATEGORY.items;
+  deliveryItems = [...DELIVERY_CATEGORY.items];
   availableCities = ['الخارجة', 'الداخلة'];
 
   /** بعد فتح الإعدادات: إعادة محاولة التحديد عند العودة للتطبيق */
@@ -72,6 +75,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   private injector = inject(Injector);
   private auth = inject(Auth);
   private newOrderNtfy = inject(NewOrderNtfyService); 
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   /** تحذير فوري تحت حقل الهاتف */
   phoneLiveWarning: string | null = null;
@@ -102,6 +107,24 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   }
   
   async ngOnInit() {
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        const nextItems = (b?.deliveryItems ?? []).filter((i: any) => i?.id && i?.nameAr);
+        if (!nextItems.length) {
+          return;
+        }
+        const prevItems = this.deliveryItems;
+        const prevSelected = findMatchingNameArItem(prevItems, this.orderData.subService);
+        this.deliveryItems = nextItems;
+        if (prevSelected?.id) {
+          const renamed = this.deliveryItems.find((i: any) => i?.id === prevSelected.id);
+          if (renamed?.nameAr) {
+            this.orderData.subService = renamed.nameAr;
+          }
+        }
+      });
+
     await this.loadUserProfile();
     mergeGuestStoredContactIntoOrderData(
       this.orderData,
