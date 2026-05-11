@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   OnInit,
   OnChanges,
   SimpleChanges,
@@ -11,6 +12,7 @@ import {
   EnvironmentInjector,
   runInInjectionContext,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -27,6 +29,7 @@ import { VerificationModalComponent } from '../verification-modal.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
+import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 
 @Component({
   selector: 'app-delivery-card',
@@ -38,6 +41,7 @@ import { VerificationBadgeComponent } from '../../../../shared/verification-badg
 export class DeliveryCardComponent implements OnInit, OnChanges {
 
   @Input() ad: any;
+  private deliveryItems = [...DELIVERY_CATEGORY.items];
 
   manageCardFaded = false;
   @Output() edit = new EventEmitter<any>();
@@ -50,6 +54,8 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
   private modalCtrl = inject(ModalController);
   private injector = inject(EnvironmentInjector);
   private cdr = inject(ChangeDetectorRef);
+  private taxonomy = inject(AppTaxonomyService);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     addIcons({ 
@@ -61,6 +67,14 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
   }
 
   ngOnInit() {
+    this.taxonomy.bundle$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((b) => {
+        const items = (b?.deliveryItems ?? []).filter((i: any) => i?.id && i?.nameAr);
+        if (items.length) {
+          this.deliveryItems = items;
+        }
+      });
     this.syncManageCardFaded();
   }
 
@@ -97,12 +111,12 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
   }
 
   getCategoryName(categoryId: string): string {
-    const category = DELIVERY_CATEGORY.items.find(item => item.id === categoryId);
+    const category = this.deliveryItems.find(item => item.id === categoryId);
     return category ? category.nameAr : 'خدمة توصيل';
   }
 
   getCategoryIcon(categoryId: string): string {
-    const category = DELIVERY_CATEGORY.items.find(item => item.id === categoryId);
+    const category = this.deliveryItems.find(item => item.id === categoryId);
     if (!category) return 'car-outline';
     if (category.icon === 'bicycle') return 'bicycle-outline';
     if (category.icon === 'bus') return 'bus-outline';

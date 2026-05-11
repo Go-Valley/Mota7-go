@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { Auth, type User } from '@angular/fire/auth';
-import { Firestore, doc, serverTimestamp, setDoc } from '@angular/fire/firestore';
+import { Firestore } from '@angular/fire/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));

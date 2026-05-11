@@ -14,7 +14,7 @@ import {
 } from 'ionicons/icons';
 import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
-import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
+import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
 import {
   normalizeUserFreeText,
@@ -84,6 +84,7 @@ export class ProductFormComponent implements OnInit {
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
   private subsModalBridge = inject(SubscriptionsModalBridgeService);
+  private sparkFcm = inject(SparkAdFcmJobService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private cdr = inject(ChangeDetectorRef);
   private taxonomy = inject(AppTaxonomyService);
@@ -548,7 +549,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         adPayload.status = 'pending';
         adPayload.admin_reason = '';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
-        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+        await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
       } else {
         const userKey = user.email!.split('@')[0];
         const quota = await checkOwnerAdQuota(
@@ -590,7 +591,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         adPayload.impression_count = 0;
         adPayload.stats = { views: 0, calls: 0, whatsapp: 0, ratings: 0 };
         await setDoc(doc(this.firestore, 'ads', adId), adPayload);
-        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+        await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
         ntfySnapshot = {
           ad_type: adPayload.ad_type,
           category_id: adPayload.category_id,

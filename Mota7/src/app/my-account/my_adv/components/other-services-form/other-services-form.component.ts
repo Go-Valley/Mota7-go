@@ -8,7 +8,7 @@ import { Auth } from '@angular/fire/auth';
 import { OTHER_SERVICES_DATA } from '../../../../core/constants/other-services-data';
 import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
-import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
+import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import {
@@ -54,6 +54,7 @@ export class OtherServicesFormComponent implements OnInit {
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
   private subsModalBridge = inject(SubscriptionsModalBridgeService);
+  private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -253,9 +254,9 @@ async saveServiceAd() {
       if (this.isEditMode) {
         adPayload.status = 'pending';
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
-        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+        await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
         ntfySnapshot = {
-          ad_type: 'other',
+          ad_type: 'other_services',
           category_id: adPayload.category_id,
           owner_name: adPayload.owner_name,
           details: { ...adPayload.details },
@@ -272,9 +273,9 @@ async saveServiceAd() {
         expiry.setDate(expiry.getDate() + 30);
         adPayload.expiry_date = expiry;
         await setDoc(doc(this.firestore, 'ads', adId), adPayload);
-        await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+        await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
         ntfySnapshot = {
-          ad_type: 'other',
+          ad_type: 'other_services',
           category_id: adPayload.category_id,
           owner_name: adPayload.owner_name,
           details: { ...adPayload.details },

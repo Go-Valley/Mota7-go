@@ -116,34 +116,31 @@ export async function countOwnerQuotaAds(
 ): Promise<number> {
   const phone = String(ownerPhone ?? '').trim();
   const uid = String(firebaseUid ?? '').trim();
-
-  return runInInjectionContext(injector, async () => {
-    const byId = new Map<string, { status?: unknown }>();
-    if (phone) {
-      const snap = await getDocs(
-        query(collection(fs, 'ads'), where('owner_phone', '==', phone))
-      );
-      for (const d of snap.docs) {
-        byId.set(d.id, d.data() as { status?: unknown });
-      }
+  const byId = new Map<string, { status?: unknown }>();
+  if (phone) {
+    const snap = await runInInjectionContext(injector, () =>
+      getDocs(query(collection(fs, 'ads'), where('owner_phone', '==', phone)))
+    );
+    for (const d of snap.docs) {
+      byId.set(d.id, d.data() as { status?: unknown });
     }
-    if (uid) {
-      const snapUid = await getDocs(
-        query(collection(fs, 'ads'), where('userId', '==', uid))
-      );
-      for (const d of snapUid.docs) {
-        byId.set(d.id, d.data() as { status?: unknown });
-      }
+  }
+  if (uid) {
+    const snapUid = await runInInjectionContext(injector, () =>
+      getDocs(query(collection(fs, 'ads'), where('userId', '==', uid)))
+    );
+    for (const d of snapUid.docs) {
+      byId.set(d.id, d.data() as { status?: unknown });
     }
-    let n = 0;
-    for (const data of byId.values()) {
-      const st = String(data?.status ?? '');
-      if (st === 'pending' || st === 'active') {
-        n++;
-      }
+  }
+  let n = 0;
+  for (const data of byId.values()) {
+    const st = String(data?.status ?? '');
+    if (st === 'pending' || st === 'active') {
+      n++;
     }
-    return n;
-  });
+  }
+  return n;
 }
 
 export type QuotaExceededAdminContactPayload = {

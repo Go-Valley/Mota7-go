@@ -12,7 +12,7 @@ import { AppLauncher } from '@capacitor/app-launcher';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
-import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
+import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import {
@@ -69,6 +69,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
   private subsModalBridge = inject(SubscriptionsModalBridgeService);
+  private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
   private locationListenerHandles: PluginListenerHandle[] = [];
@@ -398,7 +399,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         };
         await runInInjectionContext(this.injector, async () => {
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
-          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+          await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
         });
       } else {
         adPayload.status = 'pending';
@@ -413,7 +414,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         adPayload.expiry_date = expiry;
         await runInInjectionContext(this.injector, async () => {
           await setDoc(doc(this.firestore, 'ads', adId), adPayload);
-          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+          await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
         });
         ntfySnapshot = {
           ad_type: 'delivery',

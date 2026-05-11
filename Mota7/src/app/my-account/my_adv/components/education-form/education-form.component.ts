@@ -8,7 +8,7 @@ import { Auth } from '@angular/fire/auth';
 import { EDUCATION_CATEGORY } from '../../../../core/constants/educational-data';
 import { AppTaxonomyService, type TaxonomyBundle } from '../../../../core/services/app-taxonomy.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
-import { enqueueSparkAdFcmSavedJob } from 'src/app/core/services/spark-ad-fcm-job.service';
+import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.service';
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import {
@@ -60,6 +60,7 @@ export class EducationFormComponent implements OnInit {
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
   private subsModalBridge = inject(SubscriptionsModalBridgeService);
+  private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -264,7 +265,7 @@ export class EducationFormComponent implements OnInit {
         if (this.isEditMode) {
           adPayload.status = 'pending';
           await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
-          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+          await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
           ntfySnapshot = {
             ad_type: 'education',
             category_id: adPayload.category_id,
@@ -281,7 +282,7 @@ export class EducationFormComponent implements OnInit {
           adPayload.impression_count = 0;
           adPayload.stats = { views: 0, calls: 0, whatsapp: 0 };
           await setDoc(doc(this.firestore, 'ads', adId), adPayload);
-          await enqueueSparkAdFcmSavedJob(this.firestore, adId);
+          await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
           ntfySnapshot = {
             ad_type: 'education',
             category_id: adPayload.category_id,
