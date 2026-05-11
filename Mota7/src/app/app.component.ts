@@ -78,8 +78,6 @@ export class AppComponent implements OnInit {
 
     await this.platform.ready();
 
-    void this.shoppingSeed.ensureShoppingDeliveryChargesDoc();
-
     if (!isNative) {
       this.launchPhaseComplete.set(true);
     }
@@ -247,6 +245,9 @@ export class AppComponent implements OnInit {
       if (user) {
         if (!environment.production) {
           console.log('المستخدم مسجل دخول:', user.uid);
+        }
+        if (user.email?.endsWith('@mota7.com')) {
+          void this.shoppingSeed.ensureShoppingDeliveryChargesDoc();
         }
         if (Capacitor.isNativePlatform()) {
           void this.deviceFcmMota7.registerIfEligible(user);

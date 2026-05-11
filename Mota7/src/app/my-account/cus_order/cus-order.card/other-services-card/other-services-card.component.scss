@@ -1,4 +1,4 @@
-@import '../../../../my-order/shared-order-card.styles.scss';
+@use '../../../../my-order/shared-order-card.styles.scss' as *;
 
 .mota7-order-card.other-card.provider-order-card {
   @include order-card-shell;
