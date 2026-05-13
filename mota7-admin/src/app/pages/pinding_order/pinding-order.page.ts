@@ -21,6 +21,7 @@ import {
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
+import { formatOrderCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-pinding-order',
@@ -110,6 +111,10 @@ export class PindingOrderPage implements OnInit {
       color: 'dark'
     });
     toast.present();
+  }
+
+  orderCoverageLabel(order: unknown): string {
+    return formatOrderCoverageDisplay((order ?? {}) as Record<string, unknown>);
   }
 
   async editOrder(order: any) {

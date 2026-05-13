@@ -17,6 +17,8 @@ import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
+import { OrderPushNotificationBridgeService } from './core/services/order-push-notification-bridge.service';
+import { ProviderOrdersInboxService } from './core/services/provider-orders-inbox.service';
 import { OfflineBannerComponent } from './shared/offline-banner/offline-banner.component';
 import { ShoppingFirestoreSeedService } from './core/services/shopping-firestore-seed.service';
 import { environment } from '../environments/environment';
@@ -42,6 +44,8 @@ export class AppComponent implements OnInit {
   private platform = inject(Platform);
   private ntfyListener = inject(NtfyListenerService);
   private deviceFcmMota7 = inject(DeviceFcmMota7RegistrationService);
+  private orderPushBridge = inject(OrderPushNotificationBridgeService);
+  private providerOrdersInbox = inject(ProviderOrdersInboxService);
   private userAccountStatus = inject(UserAccountStatusService);
   readonly mandatoryUpdate = inject(MandatoryUpdateService);
   private shoppingSeed = inject(ShoppingFirestoreSeedService);
@@ -95,13 +99,20 @@ export class AppComponent implements OnInit {
 
     this.checkAuthState();
     this.userAccountStatus.start();
+    this.providerOrdersInbox.start();
 
     if (this.platform.is('hybrid')) {
+      this.orderPushBridge.start();
       this.ntfyListener.start();
       void this.showNotificationPermissionReminder();
       void App.addListener('resume', () => {
         void this.mandatoryUpdate.recheckAfterResume();
         void this.showNotificationPermissionReminder();
+        this.ntfyListener.start();
+        const u = this.auth.currentUser;
+        if (u) {
+          void this.deviceFcmMota7.registerIfEligible(u);
+        }
       });
     }
 

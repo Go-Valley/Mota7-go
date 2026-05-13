@@ -1,3 +1,5 @@
+@use '../shared/governorate-city-selector/governorate-city-trigger.shared' as *;
+
 .section-feed-loading {
   display: flex;
   flex-direction: column;
@@ -121,6 +123,7 @@
   -webkit-user-select: none;
   user-select: none;
   outline: none;
+  max-width: min(220px, 56vw);
 
   ion-icon {
     font-size: 1.25rem;
@@ -133,6 +136,8 @@
     font-weight: 700;
     font-size: 0.9rem;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &:active {
@@ -141,67 +146,25 @@
   }
 }
 
-.city-popover {
-  position: relative;
-  z-index: 100001;
-  margin-top: 10px;
-  min-width: 180px;
-  padding: 8px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  animation: popoverIn 0.2s ease;
-
-  .city-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 100%;
-    padding: 12px 14px;
-    border: none;
-    border-radius: 12px;
-    background: transparent;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #1a1a2e;
-    text-align: center;
-    transition: background 0.15s ease;
-    direction: rtl;
-
-    ion-icon {
-      font-size: 1.1rem;
-      color: rgb(121, 3, 3) !important;
-      order: 1;
-      flex-shrink: 0;
-    }
-
-    span {
-      order: 2;
-    }
-
-    &:hover,
-    &:active {
-      background: rgba(201, 162, 39, 0.08);
-    }
-  }
+/* ورقة اختيار المدينة (مودال مثل العربة — gcs-sheet-modal) */
+.home-city-sheet {
+  --backdrop-opacity: 0.42;
+  --border-radius: 20px 20px 0 0;
 }
 
-.city-popover-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  background: transparent;
+.home-city-sheet-body .home-city-sheet-hint {
+  margin: 12px 16px 8px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
 }
 
-@keyframes popoverIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+.home-city-sheet-body {
+  --background: #f3f4f6;
+  --padding-top: 12px;
+  --padding-bottom: 16px;
+  --padding-start: 12px;
+  --padding-end: 12px;
 }
 
 /* --- Search Section + Cart Button --- */

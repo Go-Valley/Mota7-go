@@ -61,6 +61,22 @@
       </div>
     </div>
 
+    <div class="form-card">
+      <div class="field-box">
+        <ion-label class="bold-label geo-field-label">مناطق تقديم الخدمة داخل محافظتك:*</ion-label>
+        <p class="location-hint">اختر المدن التي تريد تقديم خدمتك داخلها</p>
+        <app-governorate-city-selector
+          variant="coverageMultiRestricted"
+          fieldLabel="مناطق الخدمة"
+          placeholder="اضغط لاختيار المدن"
+          [displaySummary]="serviceData.city"
+          [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
+          [maxScrollHeight]="'min(260px, 38vh)'"
+          (coverageMultiChange)="onCoverageAreas($event)">
+        </app-governorate-city-selector>
+      </div>
+    </div>
+
     <ion-button expand="block" class="submit-orange-btn" (click)="saveServiceAd()">
       {{ isEditMode ? 'حفظ التعديلات' : 'نشر الخدمة الآن' }}
     </ion-button>

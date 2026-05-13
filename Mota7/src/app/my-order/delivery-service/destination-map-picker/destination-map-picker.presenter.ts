@@ -155,6 +155,13 @@ export async function presentDestinationMapPickerModal(
     initialDestinationText?: string;
     /** اختيار نقطة الانطلاق أو جهة الوصول من الخريطة */
     pickRole?: 'destination' | 'origin';
+    /**
+     * عند اختيار نقطة الانطلاق: عند الإغلاق أو زر الرجوع دون «تأكيد»،
+     * تُسجَّل إحداثيات مركز الخريطة الحالي كما يظهر للمستخدم.
+     */
+    applyOriginCenterOnDismiss?: boolean;
+    /** تمييز بصري خفيف للمؤشر عند فتح الخريطة مباشرة على GPS */
+    accentOriginGpsPick?: boolean;
     mode?: DestinationMapPickerMode;
     providerPoint?: TrackerPoint | null;
     customerPoint?: TrackerPoint | null;
@@ -170,6 +177,8 @@ export async function presentDestinationMapPickerModal(
       initialDestinationLng: props.initialDestinationLng ?? 0,
       initialDestinationText: props.initialDestinationText ?? '',
       pickRole: props.pickRole ?? 'destination',
+      applyOriginCenterOnDismiss: props.applyOriginCenterOnDismiss ?? false,
+      accentOriginGpsPick: props.accentOriginGpsPick ?? false,
       mode: props.mode ?? 'destination',
       providerPoint: props.providerPoint ?? null,
       customerPoint: props.customerPoint ?? null,

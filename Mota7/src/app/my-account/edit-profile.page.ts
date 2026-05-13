@@ -46,13 +46,17 @@ import {
   readIonTextInputValueFromEvent,
 } from '../core/utils/order-form-fields.util';
 import { UserAccountStatusService } from './user-account-status.service';
+import {
+  GovernorateCitySelectorComponent,
+  type SingleCityEmit,
+} from '../shared/governorate-city-selector/governorate-city-selector.component';
 
 @Component({
   selector: 'app-edit-profile',
   templateUrl: './edit-profile.page.html',
   styleUrls: ['./edit-profile.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
 })
 export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
@@ -66,8 +70,17 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
     fullName: '',
     phone: '',
     personalEmail: '',
-    city: '' 
+    city: '',
   };
+
+  /** تمييز المدينة في المحدّد بعد التحميل */
+  profileGeoSeed: { governorateId: string; cityId: string } | null = null;
+  private loadedGeoFields: { governorate_id: string; city_id: string; governorate_name_ar: string } = {
+    governorate_id: '',
+    city_id: '',
+    governorate_name_ar: '',
+  };
+  selectedCityGeo: SingleCityEmit | null = null;
 
   /** مودال تغيير كلمة المرور (Firebase Auth — Email/Password) */
   passwordModalOpen = false;
@@ -137,12 +150,29 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
           this.userData.fullName = this.normalizeFullName(data['fullName'] || '');
           this.userData.phone = data['phone'] || '';
           this.userData.personalEmail = data['personalEmail'] || '';
-          this.userData.city = data['city'] || ''; 
+          this.userData.city = data['city'] || '';
+          const gid = String(data['governorate_id'] ?? '').trim();
+          const cid = String(data['city_id'] ?? '').trim();
+          const gna = String(data['governorate_name_ar'] ?? '').trim();
+          this.loadedGeoFields = {
+            governorate_id: gid,
+            city_id: cid,
+            governorate_name_ar: gna,
+          };
+          if (gid && cid) {
+            this.profileGeoSeed = { governorateId: gid, cityId: cid };
+          }
         }
       } catch (error) {
         console.error("Error loading profile:", error);
       }
     }
+  }
+
+  onProfileCityPick(ev: SingleCityEmit): void {
+    this.blurActiveFocus();
+    this.selectedCityGeo = ev;
+    this.userData.city = ev.cityNameAr || '';
   }
 
   onFullNameBeforeInput(ev: InputEvent): void {
@@ -321,6 +351,10 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
       this.showToast('الاسم مطلوب');
       return;
     }
+    if (!String(this.userData.city || '').trim()) {
+      await this.showToast('يرجى اختيار المدينة من القائمة');
+      return;
+    }
 
     this.blurActiveFocus();
     const loading = await this.loadingCtrl.create({ message: 'جاري حفظ التعديلات...' });
@@ -335,7 +369,11 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
           updateDoc(doc(this.firestore, 'users', userIdentifier), {
             fullName: this.userData.fullName,
             personalEmail: this.userData.personalEmail,
-            city: this.userData.city
+            city: String(this.userData.city || '').trim(),
+            governorate_id: this.selectedCityGeo?.governorateId ?? this.loadedGeoFields.governorate_id ?? '',
+            city_id: this.selectedCityGeo?.cityId ?? this.loadedGeoFields.city_id ?? '',
+            governorate_name_ar:
+              this.selectedCityGeo?.governorateNameAr ?? this.loadedGeoFields.governorate_name_ar ?? '',
           })
         );
 
@@ -353,10 +391,6 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
   goBack(): void {
     this.blurActiveFocus();
     void this.navCtrl.navigateRoot('/tabs/my-account', { animated: true });
-  }
-
-  onCitySelectOpen(): void {
-    this.blurActiveFocus();
   }
 
   async showToast(msg: string) {

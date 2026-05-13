@@ -8,6 +8,7 @@ import { Firestore, collection, collectionData, query, where, deleteDoc, doc, up
 import { Mota7HeaderComponent } from '../../mota7-header/header';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
+import { formatOrderCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkDoneCircle, logoWhatsapp, 
@@ -402,6 +403,10 @@ export class CompletingOrderPage implements OnInit {
   }
 
   goBack() { this.router.navigate(['/dashboard']); }
+
+  orderCoverageLabel(order: unknown): string {
+    return formatOrderCoverageDisplay((order ?? {}) as Record<string, unknown>);
+  }
 
   async editOrder(order: any, ev?: Event) {
     ev?.stopPropagation();

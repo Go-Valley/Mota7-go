@@ -16,6 +16,7 @@ import { extractNameBeforeLastUnderscoreFromMatchKey } from '@mota7-app/core/uti
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
+import { formatAdCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-delivery-card',
@@ -188,6 +189,10 @@ export class DeliveryCard implements OnInit {
     });
 
     await alert.present();
+  }
+
+  coverageDisplay(ad: unknown): string {
+    return formatAdCoverageDisplay((ad ?? {}) as any);
   }
 
   async editAd() {

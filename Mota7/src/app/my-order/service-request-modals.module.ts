@@ -6,10 +6,11 @@ import { ServiceSelectionComponent } from './service-selection.component';
 import { DeliveryServiceComponent } from './delivery-service/delivery-service.component';
 import { EducationalServiceComponent } from './educational-service/educational-service.component';
 import { OtherServiceComponent } from './other-service/other-service.component';
+import { GovernorateCitySelectorComponent } from '../shared/governorate-city-selector/governorate-city-selector.component';
 
 /** Shared modals: service category picker and order forms (tabs + my-order). */
 @NgModule({
-  imports: [IonicModule, CommonModule, FormsModule],
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
   declarations: [
     ServiceSelectionComponent,
     DeliveryServiceComponent,

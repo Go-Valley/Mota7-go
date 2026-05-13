@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { IonicModule, NavController } from '@ionic/angular';
 import { cloudinaryListThumbnailUrl } from 'src/app/core/utils/cloudinary-list-image.util';
+import { formatAdCoverageDisplay, hubHomeGovernorateChipButtonLabelFromAd } from 'src/app/core/utils/governorate-city-display.util';
 import { addIcons } from 'ionicons';
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
@@ -36,7 +37,13 @@ import { VerificationBadgeComponent } from '../../shared/verification-badge/veri
 export class StoreHomeCardComponent implements OnInit, OnChanges {
   @Input() ad: any;
   /** عند الضغط على شارة المدينة: تصفية قائمة المتاجر في الصفحة الرئيسية حسب هذه المدينة */
-  @Output() cityFilter = new EventEmitter<string>();
+  /** تصفية حسب مدن الإعلان (معرف دوك أو نص عرض) */
+  @Output() cityFilter = new EventEmitter<{
+    coverageCityIds?: string[];
+    cityLabel?: string;
+    hubButtonLabel?: string;
+    cityCount?: number;
+  }>();
   private navCtrl = inject(NavController);
 
   displayName: string = 'مستخدم متاح';
@@ -70,10 +77,9 @@ export class StoreHomeCardComponent implements OnInit, OnChanges {
       this.displayName = 'مستخدم متاح';
     }
 
-    const c = this.ad?.city;
-    const cityTrimmed = typeof c === 'string' ? c.trim() : '';
-    this.cityDisplay = cityTrimmed || 'غير محدد';
-    this.hasCityForFilter = cityTrimmed.length > 0;
+    const lbl = formatAdCoverageDisplay(this.ad ?? {});
+    this.cityDisplay = lbl;
+    this.hasCityForFilter = lbl !== 'غير محدد';
 
     const u = cloudinaryListThumbnailUrl(this.ad?.logo || '');
     this.logoThumb = u || 'assets/mota7.png';
@@ -82,7 +88,18 @@ export class StoreHomeCardComponent implements OnInit, OnChanges {
   onCityChipClick(event: Event): void {
     event.stopPropagation();
     if (!this.hasCityForFilter) return;
-    this.cityFilter.emit(this.ad.city.trim());
+    const cov = Array.isArray(this.ad?.coverage_city_ids)
+      ? this.ad.coverage_city_ids.filter((x: unknown) => typeof x === 'string' && String(x).trim()).map(String)
+      : [];
+    const filterLabel = formatAdCoverageDisplay(this.ad ?? {});
+    const hubBtn = hubHomeGovernorateChipButtonLabelFromAd(this.ad ?? {});
+    const cityCount = cov.length;
+    this.cityFilter.emit({
+      coverageCityIds: cov,
+      cityLabel: filterLabel,
+      hubButtonLabel: hubBtn ?? undefined,
+      cityCount: cityCount > 0 ? cityCount : undefined,
+    });
   }
 
   openStorePage(event: Event): void {

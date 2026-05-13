@@ -117,22 +117,15 @@
       <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>
 
       <ion-label class="input-label">المدينة<span class="required">*</span></ion-label>
-      <ion-item lines="none" class="custom-input custom-select">
-        <ion-icon name="location-outline" slot="start"></ion-icon>
-        <ion-select
-          [ngModel]="buyerCity()"
-          (ngModelChange)="onBuyerCityChange($event)"
-          interface="action-sheet"
-          mode="ios"
-          placeholder="اختر المدينة"
-          cancelText="إلغاء"
-          class="full-width-select dark-text"
-          toggleIcon="chevron-down-outline"
-        >
-          <ion-select-option value="الخارجة">الخارجة</ion-select-option>
-          <ion-select-option value="الداخلة">الداخلة</ion-select-option>
-        </ion-select>
-      </ion-item>
+      <app-governorate-city-selector
+        variant="signupSingle"
+        fieldLabel="المدينة"
+        placeholder="اضغط لاختيار المحافظة ثم المدينة"
+        [displaySummary]="buyerCity()"
+        [seedSingleSelection]="checkoutGeoSeed()"
+        [maxScrollHeight]="'min(340px, 55vh)'"
+        (singleCityChange)="onCheckoutCityPick($event)">
+      </app-governorate-city-selector>
     </section>
 
     <section class="payment-method-box">

@@ -8,11 +8,12 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
+import { AlertController, IonInput, IonTextarea, LoadingController, ModalController, NavController } from '@ionic/angular';
 import { OTHER_SERVICES_DATA } from '../../core/constants/other-services-data';
 import { Firestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
+import { SparkOrderFcmJobService } from '../../core/services/spark-order-fcm-job.service';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import {
   applyOrderPhoneInputState,
@@ -23,7 +24,6 @@ import {
 } from '../../core/utils/egyptian-phone-order.util';
 import {
   findMatchingNameArItem,
-  findMatchingStringInList,
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
@@ -31,6 +31,7 @@ import {
   mergeGuestStoredContactIntoOrderData,
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
+import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
 
 @Component({
   selector: 'app-other-service',
@@ -57,13 +58,15 @@ export class OtherServiceComponent implements OnInit {
    */
   otherItems: Array<{ id: string; nameAr: string; nameEn?: string }> =
     [...OTHER_SERVICES_DATA.items];
-  private readonly orderCityOptions = ['الخارجة', 'الداخلة'] as const;
+  requestCoverageCityIds: string[] = [];
+  requestCoverageArabic: string[] = [];
   phoneLiveWarning: string | null = null;
   private loadingCtrl = inject(LoadingController);
   private firestore = inject(Firestore);
   private auth = inject(Auth); 
   private injector = inject(Injector);
   private newOrderNtfy = inject(NewOrderNtfyService);
+  private sparkOrderJobs = inject(SparkOrderFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -77,7 +80,8 @@ export class OtherServiceComponent implements OnInit {
 
   constructor(
     private modalCtrl: ModalController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private navCtrl: NavController
   ) {}
 
   async ngOnInit() {
@@ -199,9 +203,9 @@ export class OtherServiceComponent implements OnInit {
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
           const profileCity = String(data['city'] ?? '').trim();
-          this.orderData.city =
-            findMatchingStringInList(this.orderCityOptions as readonly string[], profileCity) ??
-            '';
+          if (profileCity && !this.requestCoverageCityIds.length) {
+            this.orderData.city = profileCity;
+          }
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -213,6 +217,12 @@ export class OtherServiceComponent implements OnInit {
     this.modalCtrl.dismiss(null, 'cancel');
   }
 
+  onRequestCoverage(ev: CoverageMultiEmit): void {
+    this.requestCoverageCityIds = [...(ev.cityIds || [])];
+    this.requestCoverageArabic = [...(ev.arabicTokens || [])];
+    this.orderData.city = (ev.primaryCityDisplay || '').trim() || this.orderData.city;
+  }
+
   async submitOrder() {
     await this.syncFreeTextFieldsFromNativeInputs();
     this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
@@ -222,16 +232,12 @@ export class OtherServiceComponent implements OnInit {
     this.orderData.subService = (this.orderData.subService || '').trim();
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const prefilledCity = this.orderData.city;
+
+    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
-
-    const cityMatch = findMatchingStringInList(
-      this.orderCityOptions as readonly string[],
-      this.orderData.city
-    );
-    const cityValid = !!cityMatch;
-    const canonicalCity = cityMatch ?? '';
 
     const subMatch = findMatchingNameArItem(this.otherItems, this.orderData.subService);
     const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedService ? 'غير محدد' : '');
@@ -244,8 +250,8 @@ export class OtherServiceComponent implements OnInit {
     if (!customerPhone) {
       missingParts.push('رقم الهاتف');
     }
-    if (!cityValid) {
-      missingParts.push('المدينة');
+    if (!covIds.length && !prefilledCity) {
+      missingParts.push('المدينة (من القائمة)');
     }
     if (!subOk) {
       missingParts.push('الخدمة المطلوبة');
@@ -273,10 +279,20 @@ export class OtherServiceComponent implements OnInit {
       return;
     }
 
-    this.orderData.city = canonicalCity;
     this.orderData.subService = canonicalSub;
     const subService = canonicalSub;
-    const city = canonicalCity;
+
+    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
+    const city =
+      cityDisplayTokens.join('، ') ||
+      String(this.orderData.city || '').trim();
+    const scopeSig = covIds.join('__');
+    const other_service_token =
+      subService === 'غير محدد' ? '' : String(subService);
+    const other_match_key =
+      scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
+
+    this.orderData.city = city;
 
     const loader = await this.loadingCtrl.create({ 
       message: 'جاري معالجة طلبك...', 
@@ -315,7 +331,6 @@ export class OtherServiceComponent implements OnInit {
       }
 
       // --- 2. إعداد المعرف الفريد للمستند (Phone + Other Key) ---
-      const other_match_key = `${subService}_${city}`;
       const customDocId = `${customerPhone}_${other_match_key}`;
       const now = Date.now();
 
@@ -355,6 +370,8 @@ export class OtherServiceComponent implements OnInit {
           subService,
           shortNote: shortNote || '',
           city,
+          order_coverage_city_ids: covIds,
+          other_service_token,
           other_match_key: other_match_key,
           serviceType: 'other',
           status: 'pending',
@@ -363,11 +380,13 @@ export class OtherServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone);
+      writeGuestOrderContact(customerName, customerPhone, city);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
+      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
 
       await loader.dismiss();
-      this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.navCtrl.navigateRoot('/tabs/my-order');
 
     } catch {
       await loader.dismiss();

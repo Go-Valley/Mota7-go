@@ -19,6 +19,7 @@ import {
 } from '@mota7-app/core/utils/other-category-display.util';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
+import { formatAdCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-other-card',
@@ -163,6 +164,10 @@ export class OtherCard implements OnInit {
     });
 
     await alert.present();
+  }
+
+  coverageDisplay(ad: unknown): string {
+    return formatAdCoverageDisplay((ad ?? {}) as any);
   }
 
   // دالة فتح البروفايل (تأكد من استخدام stopPropagation لمنع تضارب الأحداث)

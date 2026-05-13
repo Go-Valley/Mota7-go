@@ -25,7 +25,7 @@ import { map, catchError, filter, startWith } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms'; // تم إضافة FormsModule لدعم البحث
 
 // استيراد الأيقونات الأصلية + أيقونات زر المدينة + أيقونات البحث الجديدة
-import { 
+import {
   car, school, construct, cart, storefront, grid, 
   carSport, chevronForwardOutline, alertCircleOutline, 
   call, logoWhatsapp, locationOutline, globeOutline,
@@ -60,6 +60,9 @@ import { normalizeProfileCityToShoppingCheckout } from '../core/utils/shopping-c
 import { normalizeAdTypeValue } from '../core/utils/duplicate-ad.util';
 import { computeHighWaterMsFromAds, createdAtMsForSort } from '../core/utils/ad-sync-ms.util';
 import { CartService } from '../core/services/cart.service';
+import { GovernorateCitySelectorComponent, HubGeoSelectionEmit } from '../shared/governorate-city-selector/governorate-city-selector.component';
+import { adMatchesHomeGeoFilter } from '../core/utils/home-ad-city-filter.util';
+import { governorateDisplayShort } from '../core/utils/governorate-display-name.util';
 
 @Component({
   selector: 'app-home',
@@ -76,7 +79,8 @@ import { CartService } from '../core/services/cart.service';
     EducationHomeCardComponent,
     OtherServicesHomeCardComponent,
     ProductHomeCardComponent,
-    StoreHomeCardComponent
+    StoreHomeCardComponent,
+    GovernorateCitySelectorComponent,
   ]
 })
 export class HomePage implements OnInit, OnDestroy {
@@ -165,6 +169,10 @@ export class HomePage implements OnInit, OnDestroy {
   // --- متغيرات زر المدينة ---
   showCityPopover: boolean = false;
   selectedCityLabel: string = 'الكل';
+  /** فلتر جغرافي للشبكة — يعتمد Firebase بالكامل */
+  private homeGeoIsAll = true;
+  private readonly homeFlatCityIds = new Set<string>();
+  private readonly homeArabicTokens = new Set<string>();
   /** إذا اختار المستخدم المدينة من الزر لا نفرض مدينة الحساب مرة ثانية قبل الرجوع للواجهة الرئيسية. */
   private cityChosenExplicitSinceHub = false;
   deliveryCategories = DELIVERY_CATEGORY.items;
@@ -330,17 +338,81 @@ export class HomePage implements OnInit, OnDestroy {
     this.showCityPopover = false;
   }
 
-  selectCity(city: string) {
+  /** نص زر الكبسولة: يُحسب في المحدد (محافظة / مدينة / محافظة+(عدد)) */
+  private formatHubCapsuleFromSelection(sel: HubGeoSelectionEmit): string {
+    if (sel.isAll) {
+      return 'الكل';
+    }
+    const label = String(sel.hubButtonLabel ?? '').trim();
+    return label || 'مدينة';
+  }
+
+  /** من كرت المتجر: محافظة قصيرة + عدد معرفات التغطية */
+  private formatChipCapsule(hubGovShort: string, cityCount: number, filterFallback: string): string {
+    const g = hubGovShort.trim();
+    if (g && cityCount > 0) {
+      return `${g} ${cityCount}`;
+    }
+    if (g) {
+      return g;
+    }
+    return filterFallback.trim() || 'مدينة';
+  }
+
+  onHubGeoSelection(sel: HubGeoSelectionEmit): void {
     this.cityChosenExplicitSinceHub = true;
-    this.selectedCityLabel = city;
-    this.showCityPopover = false;
-    // مسح الكاش لإجبار إعادة الجلب من الخادم لمدينة جديدة
+    this.homeGeoIsAll = !!sel.isAll;
+    this.homeFlatCityIds.clear();
+    this.homeArabicTokens.clear();
+    for (const id of sel.flatCityIds || []) this.homeFlatCityIds.add(id);
+    for (const t of sel.arabicTokens || []) this.homeArabicTokens.add(t);
+    this.selectedCityLabel = this.formatHubCapsuleFromSelection(sel);
     this.tabCountsPoolCache = null;
     this.loadAdsForCategory(this.selectedCategory);
-    // إذا كان هناك بحث نشط عند تغيير المدينة، يتم تحديث نتائجه
     if (this.searchText.length >= 2) {
       this.loadSearchResults();
     }
+  }
+
+  onCityFilterFromChip(payload: {
+    coverageCityIds?: string[];
+    cityLabel?: string;
+    hubButtonLabel?: string;
+    cityCount?: number;
+  }) {
+    this.cityChosenExplicitSinceHub = true;
+    const ids = (payload.coverageCityIds || []).filter(Boolean);
+    const filterText = String(payload.cityLabel ?? '').trim();
+    const hubBtn = String(payload.hubButtonLabel ?? '').trim();
+    const explicitCount =
+      typeof payload.cityCount === 'number' && Number.isFinite(payload.cityCount)
+        ? Math.max(0, Math.floor(payload.cityCount))
+        : 0;
+    const cityCount = explicitCount > 0 ? explicitCount : ids.length > 0 ? ids.length : filterText ? 1 : 0;
+    if (ids.length > 0) {
+      this.homeGeoIsAll = false;
+      this.homeFlatCityIds.clear();
+      for (const id of ids) this.homeFlatCityIds.add(id);
+      this.homeArabicTokens.clear();
+      if (filterText) this.homeArabicTokens.add(filterText);
+    } else {
+      this.homeGeoIsAll = false;
+      this.homeFlatCityIds.clear();
+      this.homeArabicTokens.clear();
+      if (filterText) this.homeArabicTokens.add(filterText);
+    }
+    this.selectedCityLabel = this.formatChipCapsule(hubBtn, cityCount, filterText);
+    this.showCityPopover = false;
+    this.tabCountsPoolCache = null;
+    this.loadAdsForCategory(this.selectedCategory);
+    if (this.searchText.length >= 2) {
+      this.loadSearchResults();
+    }
+  }
+
+  /** @deprecated — للتوافق إن وُجد استدعاء نصّي قديم */
+  selectCity(city: string) {
+    this.onCityFilterFromChip({ coverageCityIds: [], cityLabel: city });
   }
 
   // --- دوال الفلاتر ---
@@ -408,7 +480,7 @@ export class HomePage implements OnInit, OnDestroy {
     enteringFromHub: boolean
   ): Promise<void> {
     if (!categoryId) return;
-    if (enteringFromHub && !this.cityChosenExplicitSinceHub && this.selectedCityLabel === 'الكل') {
+    if (enteringFromHub && !this.cityChosenExplicitSinceHub && this.homeGeoIsAll) {
       await this.tryApplyLoggedInUserCityFilter();
     }
     this.loadAdsForCategory(categoryId);
@@ -425,8 +497,26 @@ export class HomePage implements OnInit, OnDestroy {
       );
       if (!snap.exists()) return;
       const d = snap.data() as Record<string, unknown>;
+      const cid = String(d['city_id'] ?? '').trim();
+      const cname = String(d['city'] ?? '').trim();
+      if (cid) {
+        this.homeGeoIsAll = false;
+        this.homeFlatCityIds.clear();
+        this.homeArabicTokens.clear();
+        this.homeFlatCityIds.add(cid);
+        if (cname) this.homeArabicTokens.add(cname);
+        const gna = String(d['governorate_name_ar'] ?? '').trim();
+        const govShort = gna ? governorateDisplayShort(gna) : '';
+        this.selectedCityLabel = (cname || govShort || 'مدينتي').trim();
+        this.tabCountsPoolCache = null;
+        return;
+      }
       const canon = normalizeProfileCityToShoppingCheckout(d['city']);
       if (canon !== 'الخارجة' && canon !== 'الداخلة') return;
+      this.homeGeoIsAll = false;
+      this.homeFlatCityIds.clear();
+      this.homeArabicTokens.clear();
+      this.homeArabicTokens.add(canon);
       this.selectedCityLabel = canon;
       this.tabCountsPoolCache = null;
     } catch {
@@ -473,6 +563,9 @@ export class HomePage implements OnInit, OnDestroy {
     this.resetFilters();
     this.filteredAds$ = undefined;
     this.selectedCityLabel = 'الكل';
+    this.homeGeoIsAll = true;
+    this.homeFlatCityIds.clear();
+    this.homeArabicTokens.clear();
     this.cityChosenExplicitSinceHub = false;
     this.showCityPopover = false;
     this.clearSearch();
@@ -609,74 +702,14 @@ export class HomePage implements OnInit, OnDestroy {
       .trim();
   }
 
-  private normalizeCity(input: any): string {
-    const normalized = this.normalizeText(input);
-    // Normalize common Egyptian city writing variants.
-    return normalized
-      .replace(/^محافظه\s+/g, '')
-      .replace(/^محافظة\s+/g, '')
-      .replace(/^مدينه\s+/g, '')
-      .replace(/^مدينة\s+/g, '')
-      .replace(/^مركز\s+/g, '')
-      .trim();
-  }
-
-  private canonFromShownCityLabel(label: string): 'الخارجة' | 'الداخلة' | null {
-    if (label === 'الكل') return null;
-    const c = normalizeProfileCityToShoppingCheckout(label);
-    return c === 'الخارجة' || c === 'الداخلة' ? c : null;
-  }
-
-  /** مصادر نص المدينة للإعلان (للمنتجات: الحقل الرئيسي + موقع السلعة في التفاصيل إن وجد) */
-  private adCityFieldSources(ad: any): string[] {
-    const chunks: string[] = [];
-    if (typeof ad?.city === 'string' && ad.city.trim()) {
-      chunks.push(ad.city.trim());
-    }
-    if (ad?.details && typeof ad.details === 'object') {
-      const loc = (ad.details as Record<string, unknown>)['location'];
-      if (typeof loc === 'string' && loc.trim()) {
-        chunks.push(loc.trim());
-      }
-    }
-    return chunks;
-  }
-
-  private adSellerCityCanon(ad: any): 'الخارجة' | 'الداخلة' | null {
-    const parts = this.adCityFieldSources(ad);
-    if (!parts.length) return null;
-    const mergedCanon = normalizeProfileCityToShoppingCheckout(parts.join(' '));
-    if (mergedCanon === 'الخارجة' || mergedCanon === 'الداخلة') {
-      return mergedCanon;
-    }
-    for (const p of parts) {
-      const c = normalizeProfileCityToShoppingCheckout(p);
-      if (c === 'الخارجة' || c === 'الداخلة') return c;
-    }
-    return null;
-  }
-
-  /** تطابق نصّي قديم عند تعذّر تصنيف المدينة صراحةً إلى خارجة/داخلة */
-  private isCityMatchLegacyFreeText(adCity: any): boolean {
-    const selected = this.normalizeCity(this.selectedCityLabel);
-    const adNorm = this.normalizeCity(adCity);
-    if (!selected) return true;
-    if (!adNorm) return false;
-    return adNorm === selected || adNorm.includes(selected) || selected.includes(adNorm);
-  }
 
   private isCityMatchAd(ad: any): boolean {
-    if (this.selectedCityLabel === 'الكل') return true;
-    const want = this.canonFromShownCityLabel(this.selectedCityLabel);
-    const got = this.adSellerCityCanon(ad);
-    if (want !== null && got !== null) {
-      return want === got;
-    }
-    /** إعلان بلا مدينة مصنّفة صراحةً: نعرضه مع أي مدينة لتفادي إخفاء القسم بالكامل */
-    if (want !== null && got === null) {
-      return true;
-    }
-    return this.isCityMatchLegacyFreeText(ad?.city ?? '');
+    return adMatchesHomeGeoFilter({
+      ad,
+      isAll: this.homeGeoIsAll,
+      flatCityIds: this.homeFlatCityIds,
+      arabicTokens: this.homeArabicTokens,
+    });
   }
 
   /** نفس شروط العرض في القائمة: مفعل + المدينة المختارة */

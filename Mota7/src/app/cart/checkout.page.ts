@@ -18,7 +18,6 @@ import { addIcons } from 'ionicons';
 import {
   personOutline,
   phonePortraitOutline,
-  locationOutline,
   cashOutline,
   chevronForwardOutline,
   trashOutline,
@@ -32,6 +31,10 @@ import {
   updateDoc,
 } from '@angular/fire/firestore';
 import { Mota7HeaderComponent } from '../top_header/header';
+import {
+  GovernorateCitySelectorComponent,
+  type SingleCityEmit,
+} from '../shared/governorate-city-selector/governorate-city-selector.component';
 import { CartService, cartLineQty, type CartLine } from '../core/services/cart.service';
 import { MyShoppingOrdersService } from '../core/services/my-shopping-orders.service';
 import { NewOrderNtfyService } from '../core/services/new-order-ntfy.service';
@@ -72,11 +75,8 @@ import {
   normalizeProfileCityToShoppingCheckout,
   readStoredShoppingBuyer,
   writeStoredShoppingBuyer,
-  type ShoppingCheckoutCity,
 } from '../core/utils/shopping-checkout-buyer-storage.util';
 import { HARDWARE_BACK_CART_CHECKOUT_PRIORITY } from '../core/utils/hardware-back-my-account.util';
-
-type CityValue = ShoppingCheckoutCity;
 
 function normalizeOrderLinesFromFirestoreDoc(itemsRaw: unknown): {
   adId: string;
@@ -147,7 +147,7 @@ function normalizeOrderLinesFromFirestoreDoc(itemsRaw: unknown): {
   standalone: true,
   templateUrl: './checkout.page.html',
   styleUrls: ['./checkout.page.scss'],
-  imports: [CommonModule, FormsModule, IonicModule, Mota7HeaderComponent],
+  imports: [CommonModule, FormsModule, IonicModule, Mota7HeaderComponent, GovernorateCitySelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
@@ -191,7 +191,9 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   name = '';
   phone = '';
   /** إشارة لأن رسوم التوصيل تعتمد عليها داخل computed ويجب إعادة الحساب عند تغيير القائمة */
-  readonly buyerCity = signal<CityValue>('الخارجة');
+  readonly buyerCity = signal<string>('الخارجة');
+  /** لمزامنة تمييز المدينة في المحدّد عند التحميل من التخزين أو ملف المستخدم */
+  readonly checkoutGeoSeed = signal<{ governorateId: string; cityId: string } | null>(null);
 
   phoneLiveWarning: string | null = null;
 
@@ -205,25 +207,18 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
    */
   readonly deliveryFee = computed(() => {
     const cfg = this.deliveryConfig();
-    const userCity = this.buyerCity();
+    const userCity = this.buyerCity().trim();
     const cartLines = this.lines();
-    if (!cartLines.length) {
+    if (!cartLines.length || !userCity) {
       return 0;
     }
     let needsIn = false;
     let needsOut = false;
     for (const l of cartLines) {
       const loc = (l.locationLabel || '').trim();
-      const matchesBuyerCity =
-        userCity === 'الخارجة' ? this.isKharga(loc) : this.isDakhla(loc);
-      const matchesOtherCity =
-        userCity === 'الخارجة' ? this.isDakhla(loc) : this.isKharga(loc);
-      if (matchesBuyerCity && matchesOtherCity) {
+      if (this.sellerLocationMatchesBuyerCity(userCity, loc)) {
         needsIn = true;
-        needsOut = true;
-      } else if (matchesBuyerCity) {
-        needsIn = true;
-      } else if (matchesOtherCity) {
+      } else if (loc.length >= 2) {
         needsOut = true;
       }
     }
@@ -243,7 +238,6 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     addIcons({
       personOutline,
       phonePortraitOutline,
-      locationOutline,
       cashOutline,
       chevronForwardOutline,
       trashOutline,
@@ -357,8 +351,13 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     if (stored) {
       this.name = normalizeUserFreeText(stored.name).slice(0, this.nameMaxLen);
       this.phone = sanitizeOrderPhoneInput(stored.phone);
-      if (stored.city === 'الخارجة' || stored.city === 'الداخلة') {
-        this.buyerCity.set(stored.city as CityValue);
+      if (stored.city?.trim()) {
+        this.buyerCity.set(stored.city.trim());
+      }
+      const gid = stored.governorateId?.trim();
+      const cid = stored.cityId?.trim();
+      if (gid && cid) {
+        this.checkoutGeoSeed.set({ governorateId: gid, cityId: cid });
       }
       this.phoneLiveWarning = getOrderPhoneFieldLiveWarning(this.phone, false);
     }
@@ -389,8 +388,17 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
         typeof d['phone'] === 'string' ? sanitizeOrderPhoneInput(d['phone']) : '';
       this.phone = rawPhone;
 
+      const gid = String(d['governorate_id'] ?? '').trim();
+      const cid = String(d['city_id'] ?? '').trim();
+      if (gid && cid) {
+        this.checkoutGeoSeed.set({ governorateId: gid, cityId: cid });
+      } else {
+        this.checkoutGeoSeed.set(null);
+      }
       const cityGuess = normalizeProfileCityToShoppingCheckout(d['city']);
-      this.buyerCity.set(cityGuess ?? 'الخارجة');
+      const rawCity =
+        typeof d['city'] === 'string' ? String(d['city']).replace(/\u00A0/g, ' ').trim() : '';
+      this.buyerCity.set((cityGuess ?? rawCity).trim() || 'الخارجة');
 
       this.phoneLiveWarning = getOrderPhoneFieldLiveWarning(this.phone, false);
     } catch (e) {
@@ -428,7 +436,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     if (!n.trim() && !isOrderPhoneValid(p)) {
       return;
     }
-    writeStoredShoppingBuyer(n, p, this.buyerCity());
+    writeStoredShoppingBuyer(n, p, this.buyerCity(), this.checkoutGeoSeed());
     this.phone = p;
   }
 
@@ -494,9 +502,10 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       this.phone =
         typeof d['buyerPhone'] === 'string' ? sanitizeOrderPhoneInput(d['buyerPhone']) : '';
       const c = typeof d['buyerCity'] === 'string' ? d['buyerCity'].trim() : '';
-      if (c === 'الداخلة' || c === 'الخارجة') {
-        this.buyerCity.set(c as CityValue);
+      if (c) {
+        this.buyerCity.set(c);
       }
+      this.checkoutGeoSeed.set(null);
 
       this.lastHydratedEditOrderId = editIdRaw;
       this.cdr.detectChanges();
@@ -542,14 +551,31 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     return 0;
   }
 
-  private isKharga(loc: string): boolean {
-    const s = (loc || '').trim().toLowerCase();
-    return s.includes('خارجة') || s.includes('kharga') || s === 'الخارجة';
+  private normCityToken(s: string): string {
+    return (s ?? '')
+      .replace(/\u00A0/g, ' ')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
   }
 
-  private isDakhla(loc: string): boolean {
-    const s = (loc || '').trim().toLowerCase();
-    return s.includes('داخلة') || s.includes('dakhla') || s === 'الداخلة';
+  /** تطابق مرن بين مدينة المشتري ونص موقع البائع في العربة */
+  private sellerLocationMatchesBuyerCity(buyerRaw: string, sellerLocRaw: string): boolean {
+    const b = this.normCityToken(buyerRaw);
+    const s = this.normCityToken(sellerLocRaw);
+    if (!b) {
+      return false;
+    }
+    if (!s || s === 'غير محدد') {
+      return false;
+    }
+    if (s === b) {
+      return true;
+    }
+    if (b.length >= 2 && s.length >= 2 && (s.includes(b) || b.includes(s))) {
+      return true;
+    }
+    return false;
   }
 
   goBack(): void {
@@ -662,11 +688,15 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     }
   }
 
-  onBuyerCityChange(value: unknown): void {
-    const v = typeof value === 'string' ? value.trim() : '';
-    if (v === 'الخارجة' || v === 'الداخلة') {
-      this.buyerCity.set(v as CityValue);
+  onCheckoutCityPick(ev: SingleCityEmit): void {
+    const name = (ev.cityNameAr ?? '').trim();
+    if (!name) {
+      return;
     }
+    this.buyerCity.set(name);
+    const gid = String(ev.governorateId ?? '').trim();
+    const cid = String(ev.cityId ?? '').trim();
+    this.checkoutGeoSeed.set(gid && cid ? { governorateId: gid, cityId: cid } : null);
     this.cdr.markForCheck();
   }
 
@@ -699,7 +729,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       await this.showToast(ORDER_PHONE_INVALID_MSG);
       return;
     }
-    if (!this.buyerCity()) {
+    if (!this.buyerCity().trim()) {
       await this.showToast('يرجى اختيار المدينة');
       return;
     }
@@ -782,7 +812,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       }
 
       if (!this.isRegisteredAuthUser(this.auth.currentUser)) {
-        writeStoredShoppingBuyer(this.name.trim(), this.phone, this.buyerCity());
+        writeStoredShoppingBuyer(this.name.trim(), this.phone, this.buyerCity(), this.checkoutGeoSeed());
       }
 
       await loader.dismiss();

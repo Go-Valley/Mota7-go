@@ -36,6 +36,13 @@
   .field-box {
     margin-bottom: 20px;
     .bold-label { display: block; margin-bottom: 10px; font-weight: 800; font-size: 1rem; color: #000; }
+
+    .geo-field-label.bold-label {
+      margin: 10px 4px 6px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #374151;
+    }
     .input-item {
       --background: #ffffff;
       --border-radius: 16px;

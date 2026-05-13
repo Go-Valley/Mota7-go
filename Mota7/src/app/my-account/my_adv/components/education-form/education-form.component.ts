@@ -22,13 +22,16 @@ import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/dup
 import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
+import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
 
 @Component({
   selector: 'app-education-form',
   templateUrl: './education-form.component.html',
   styleUrls: ['./education-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
 })
 export class EducationFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -52,9 +55,17 @@ export class EducationFormComponent implements OnInit {
     whatsappPhone: '',
     lat: 0,
     lng: 0,
-    city: 'الخارجة'
+    city: ''
   };
-  
+
+  userGovernorateId: string | null = null;
+  coverageCityIdsForAd: string[] = [];
+
+  onCoverageAreas(ev: CoverageMultiEmit): void {
+    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
+    this.eduData.city = (ev.primaryCityDisplay || '').trim() || this.eduData.city;
+  }
+
   private firestore = inject(Firestore);
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
@@ -108,8 +119,9 @@ export class EducationFormComponent implements OnInit {
       whatsappPhone: ad.details?.whatsapp_phone || '',
       lat: ad.location?.lat || 0,
       lng: ad.location?.lng || 0,
-      city: ad.city || ''
+      city: ad.city || '',
     };
+    this.coverageCityIdsForAd = uniqSortedCityIds(ad.coverage_city_ids);
     this.userVerificationStatus = canonicalTierForFirestore(
       ad.verification_level ?? ad.is_verified
     );
@@ -134,8 +146,10 @@ export class EducationFormComponent implements OnInit {
         if (!fullName.startsWith('أ/ ')) {
           fullName = `أ/ ${fullName}`;
         }
-        this.eduData.teacherName = fullName; 
-        this.eduData.city = data['city'] || 'الخارجة';
+        this.eduData.teacherName = fullName;
+        const gid = String(data['governorate_id'] ?? '').trim();
+        this.userGovernorateId = gid || null;
+        this.eduData.city = data['city'] || '';
         this.eduData.contactPhone = data['phone'] || '';
         this.eduData.whatsappPhone = data['phone'] || '';
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
@@ -151,6 +165,10 @@ export class EducationFormComponent implements OnInit {
   async saveEduAd() {
     if (!this.eduData.category_id || !this.eduData.subjectName) {
       this.presentToast('يرجى اختيار المرحلة التعليمية والمادة');
+      return;
+    }
+    if (!this.coverageCityIdsForAd?.length) {
+      this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
       return;
     }
 
@@ -169,7 +187,13 @@ export class EducationFormComponent implements OnInit {
     try {
       const selectedCat = this.eduCategories.find(c => c.id === this.eduData.category_id);
       const stageNameAr = selectedCat ? (selectedCat as any).nameAr : this.eduData.category_id;
-      const educationMatchKey = `${stageNameAr}+${this.eduData.subjectName}+${this.eduData.city}`;
+      const scopeSig = [...this.coverageCityIdsForAd].sort().join('__');
+      const education_subject_token = `${stageNameAr}+${this.eduData.subjectName}`;
+      const cityLabel = String(this.eduData.city || '').trim();
+      const educationMatchKey =
+        scopeSig.length > 0
+          ? `${stageNameAr}+${this.eduData.subjectName}+SCOPE__${scopeSig}`
+          : `${stageNameAr}+${this.eduData.subjectName}+${cityLabel}`;
       let ntfySnapshot: Record<string, unknown> | null = null;
 
       /**
@@ -246,6 +270,7 @@ export class EducationFormComponent implements OnInit {
           category_id: this.eduData.category_id,
           ad_type: 'education',
           education_match_key: educationMatchKey,
+          education_subject_token,
           verification_level: verifyTier,
           is_verified: verifyTier,
           sort_order: 999,
@@ -258,6 +283,7 @@ export class EducationFormComponent implements OnInit {
           },
           location: { lat: this.eduData.lat, lng: this.eduData.lng },
           city: this.eduData.city,
+          coverage_city_ids: [...this.coverageCityIdsForAd],
           is_available: this.eduData.isAvailable,
           updated_at: serverTimestamp(),
         };

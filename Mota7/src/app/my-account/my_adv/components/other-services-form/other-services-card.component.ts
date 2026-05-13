@@ -27,6 +27,7 @@ import {
   resolveOtherCategoryIcon,
   resolveOtherCategoryNameAr,
 } from '../../../../core/utils/other-category-display.util';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 import { 
   trashOutline, createOutline, locationOutline, call, 
   logoWhatsapp, alertCircleOutline, timeOutline, checkmarkCircle, checkmarkDoneCircle, closeCircle, shieldCheckmark, shieldCheckmarkOutline,
@@ -171,6 +172,10 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
   onDelete() {
     // التأكد من إرسال ad_id لعملية الحذف من قبل الأدمن أو المستخدم
     this.delete.emit(this.ad.ad_id);
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 
   async showVerificationModal() {

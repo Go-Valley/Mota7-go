@@ -1,0 +1,217 @@
+@use './governorate-city-trigger.shared' as *;
+
+.gcs-root {
+  direction: rtl;
+  text-align: right;
+  width: 100%;
+}
+
+.gcs-root.gcs-disabled .gcs-premium-trigger {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.gcs-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 16px;
+  background: var(--ion-background-color, #fafafa);
+  border: 1px solid rgba(193, 18, 31, 0.14);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.gcs-hub-embed {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fb 100%);
+}
+
+.gcs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+
+.gcs-row:active {
+  transform: scale(0.997);
+}
+
+.gcs-row:hover {
+  background: rgba(193, 18, 31, 0.06);
+}
+
+.gcs-label {
+  flex: 1;
+  font-size: 15px;
+  color: var(--ion-text-color, #111827);
+}
+
+.gcs-label.strong {
+  font-weight: 700;
+}
+
+.gcs-label.muted {
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.gcs-spacer {
+  flex: 0 0 8px;
+}
+
+/* صف المحافظة: LTR فيضع السهم يسار النص؛ مطوي = back (يسار)، مفتوح = للأسفل */
+.gcs-gov-head {
+  direction: ltr;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.gcs-gov-head .gcs-label {
+  text-align: right;
+}
+
+.gcs-gov-head .gcs-chev {
+  color: #b91c1c;
+}
+
+.gcs-panel {
+  overflow: hidden;
+  animation: gcs-open 0.28s ease;
+}
+
+@keyframes gcs-open {
+  from {
+    opacity: 0.6;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 920px;
+  }
+}
+
+.gcs-sub {
+  padding-inline-start: 22px;
+  background: rgba(249, 250, 251, 0.95);
+}
+
+.gcs-sub + .gcs-sub {
+  border-top: 1px solid rgba(17, 24, 39, 0.05);
+}
+
+.gcs-single-city .gcs-label {
+  font-weight: 500;
+}
+
+.gcs-mark,
+.gcs-ico,
+.gcs-chev,
+.gcs-dot,
+.gcs-picked {
+  flex-shrink: 0;
+  font-size: 22px;
+  color: var(--ion-color-medium, #9ca3af);
+}
+
+.gcs-picked {
+  color: #16a34a;
+}
+
+.gcs-mark.dim {
+  opacity: 0.35;
+}
+
+.disabled-row {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.gcs-sheet-ion-content {
+  --background: #f3f4f6;
+}
+
+:host ::ng-deep ion-modal.gcs-sheet-modal {
+  --backdrop-opacity: 0.42;
+  --border-radius: 20px 20px 0 0;
+}
+
+.gcs-sheet-scroll {
+  margin: 12px;
+  width: calc(100% - 24px);
+  max-height: min(520px, 62vh);
+}
+
+.gcs-request-city-tap-list {
+  margin: 12px;
+  width: calc(100% - 24px);
+}
+
+.gcs-request-city-row {
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.gcs-request-city-row:last-child {
+  border-bottom: none;
+}
+
+.gcs-city-list {
+  padding: 12px 0 28px;
+  background: transparent;
+}
+
+.gcs-city-item {
+  --background: #ffffff;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 8px;
+  margin: 0 12px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04);
+
+  ion-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: #111827;
+  }
+}
+
+.gcs-whole-item {
+  border-color: rgba(193, 18, 31, 0.18);
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.gcs-ion-label-strong {
+  font-weight: 700 !important;
+  color: #991b1b !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .gcs-scroll {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .gcs-hub-embed {
+    background: linear-gradient(180deg, #ffffff 0%, #d3d3d3 100%);
+    }
+
+  .gcs-label {
+    color: var(--ion-text-color);
+  }
+
+  .gcs-gov-head {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .gcs-sub {
+    background: rgb(255, 255, 255)
+  }
+}

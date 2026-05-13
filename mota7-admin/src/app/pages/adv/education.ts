@@ -15,6 +15,7 @@ import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/o
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
+import { formatAdCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-education-card',
@@ -187,13 +188,17 @@ export class EducationCard implements OnInit {
     await alert.present();
   }
 
-  async openUserProfile(event: Event) {
-  event.preventDefault();
-  event.stopPropagation();
-  event.stopImmediatePropagation(); // هذا يمنع أي حدث آخر من التنفيذ نهائياً على هذا العنصر
-  
-  if (this.ad) {
-    this.manage.emit({ action: 'view_user', ad: this.ad });
+  coverageDisplay(ad: unknown): string {
+    return formatAdCoverageDisplay((ad ?? {}) as any);
   }
-}
+
+  async openUserProfile(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (this.ad) {
+      this.manage.emit({ action: 'view_user', ad: this.ad });
+    }
+  }
 }

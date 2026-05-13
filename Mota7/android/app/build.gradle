@@ -16,6 +16,7 @@ android {
         applicationId "com.mota7.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        manifestPlaceholders = [GOOGLE_MAPS_API_KEY: (project.findProperty("GOOGLE_MAPS_API_KEY") ?: "")]
         // يجب أن يطابق App.getInfo().build في Capacitor — يُقارَن مع Remote Config: android_min_version_code
         // مواءمة iOS: نفس اسم الإصدار في ios/App/App.xcodeproj → MARKETING_VERSION ورقم البناء → CURRENT_PROJECT_VERSION، و package.json → "version".
         versionCode 28
@@ -52,6 +53,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation "com.google.android.gms:play-services-maps:19.2.0"
 }
 
 apply from: 'capacitor.build.gradle'
@@ -94,21 +96,32 @@ tasks.register('syncSplashFromAssets') {
     }
 }
 
-def notificationSoundSource = file('../../src/assets/mota7.mp3')
+def notificationSoundAds = file('../../src/assets/mota7.mp3')
+def notificationSoundOrders = file('../../src/assets/talap.mp3')
 def rawResDir = file('src/main/res/raw')
 
 tasks.register('syncNotificationSoundFromAssets') {
     doLast {
-        if (notificationSoundSource.exists()) {
-            rawResDir.mkdirs()
+        rawResDir.mkdirs()
+        if (notificationSoundAds.exists()) {
             copy {
-                from notificationSoundSource
+                from notificationSoundAds
                 into rawResDir
                 rename { 'mota7.mp3' }
             }
             logger.lifecycle("[notification-sound] Copied mota7.mp3 to android/app/src/main/res/raw/")
         } else {
-            logger.lifecycle("[notification-sound] src/assets/mota7.mp3 not found, skipping raw copy.")
+            logger.lifecycle("[notification-sound] src/assets/mota7.mp3 not found, skipping.")
+        }
+        if (notificationSoundOrders.exists()) {
+            copy {
+                from notificationSoundOrders
+                into rawResDir
+                rename { 'talap.mp3' }
+            }
+            logger.lifecycle("[notification-sound] Copied talap.mp3 to android/app/src/main/res/raw/")
+        } else {
+            logger.lifecycle("[notification-sound] src/assets/talap.mp3 not found, skipping (طلبات العملاء).")
         }
     }
 }

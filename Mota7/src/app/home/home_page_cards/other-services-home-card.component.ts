@@ -34,6 +34,7 @@ import { AdImpressionTrackDirective } from '../shared/ad-impression-track.direct
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 import {
   OtherCategoryItem,
   resolveOtherCategoryIcon,
@@ -142,6 +143,10 @@ export class OtherServicesHomeCardComponent implements OnInit, OnChanges {
     } catch (error) {
       console.error('حدث خطأ أثناء تحديث سجلات النقرات:', error);
     }
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 
   async contactAction(type: 'whatsapp' | 'call', event: Event) {

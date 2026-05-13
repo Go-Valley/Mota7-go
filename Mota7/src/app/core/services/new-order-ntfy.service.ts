@@ -23,7 +23,7 @@ export class NewOrderNtfyService {
       return;
     }
 
-    // Header values must be ISO-8859-1 for fetch(); Arabic belongs in UTF-8 body only.
+    // رأس Title يجب أن يبقى ASCII/Latin-1: أحرف عربية هنا قد تُسقط الطلب صامتاً في WebView (لا يصل للموضوع).
     const body = buildOrderNtfyMessageBody(order);
     try {
       const base = cfg.baseUrl.replace(/\/$/, '');

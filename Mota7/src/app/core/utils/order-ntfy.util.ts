@@ -35,15 +35,57 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
 
   if (st === 'delivery' && order['delivery_match_key']) {
     const k = normalizeMatchKeyForOrders(String(order['delivery_match_key']));
-    return ['KIND:order', 'SVC:delivery', `DKEY:${k}`, `PREVIEW:${preview}`].join('\n');
+    const dst = normalizeMatchKeyForOrders(String(order['delivery_service_token'] ?? '').trim());
+    const cids = Array.isArray(order['order_coverage_city_ids'])
+      ? (order['order_coverage_city_ids'] as unknown[])
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(',')
+      : '';
+    const lines = ['KIND:order', 'SVC:delivery', `DKEY:${k}`, `PREVIEW:${preview}`];
+    if (dst) {
+      lines.push(`DST:${dst}`);
+    }
+    if (cids) {
+      lines.push(`CID:${cids}`);
+    }
+    return lines.join('\n');
   }
   if (st === 'education' && order['education_match_key']) {
     const k = normalizeMatchKeyForOrders(String(order['education_match_key']));
-    return ['KIND:order', 'SVC:education', `EKEY:${k}`, `PREVIEW:${preview}`].join('\n');
+    const es = normalizeMatchKeyForOrders(String(order['education_subject_token'] ?? '').trim());
+    const cids = Array.isArray(order['order_coverage_city_ids'])
+      ? (order['order_coverage_city_ids'] as unknown[])
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(',')
+      : '';
+    const lines = ['KIND:order', 'SVC:education', `EKEY:${k}`, `PREVIEW:${preview}`];
+    if (es) {
+      lines.push(`EDU:${es}`);
+    }
+    if (cids) {
+      lines.push(`CID:${cids}`);
+    }
+    return lines.join('\n');
   }
   if (st === 'other' && order['other_match_key']) {
     const k = normalizeMatchKeyForOrders(String(order['other_match_key']));
-    return ['KIND:order', 'SVC:other', `OKEY:${k}`, `PREVIEW:${preview}`].join('\n');
+    const os = normalizeMatchKeyForOrders(String(order['other_service_token'] ?? '').trim());
+    const cids = Array.isArray(order['order_coverage_city_ids'])
+      ? (order['order_coverage_city_ids'] as unknown[])
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(',')
+      : '';
+    const lines = ['KIND:order', 'SVC:other', `OKEY:${k}`, `PREVIEW:${preview}`];
+    if (os) {
+      lines.push(`OST:${os}`);
+    }
+    if (cids) {
+      lines.push(`CID:${cids}`);
+    }
+    return lines.join('\n');
   }
   return ['KIND:order', `SVC:${st}`, `PREVIEW:${preview}`].join('\n');
 }
@@ -78,6 +120,10 @@ export interface ParsedOrderNtfy {
   eKey: string;
   oKey: string;
   preview: string;
+  dSvcTok: string;
+  eSubTok: string;
+  oSvcTok: string;
+  cidCsv: string;
 }
 
 export function parseOrderNtfyMessage(raw: string): ParsedOrderNtfy | null {
@@ -99,5 +145,9 @@ export function parseOrderNtfyMessage(raw: string): ParsedOrderNtfy | null {
     eKey: map['EKEY'] || '',
     oKey: map['OKEY'] || '',
     preview: map['PREVIEW'] || 'طلب خدمة جديد',
+    dSvcTok: map['DST'] || '',
+    eSubTok: map['EDU'] || '',
+    oSvcTok: map['OST'] || '',
+    cidCsv: map['CID'] || '',
   };
 }

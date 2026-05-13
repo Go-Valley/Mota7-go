@@ -48,6 +48,19 @@
     span { color: #ff3b30; margin-right: 2px; }
   }
 
+  .geo-field-label {
+    display: block;
+    margin: 10px 4px 6px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #374151;
+
+    span {
+      color: #ef4444;
+      margin-right: 3px;
+    }
+  }
+
   ion-input, ion-select {
     --background: #fdfdfd;
     --padding-start: 16px;

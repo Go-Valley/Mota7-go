@@ -270,6 +270,20 @@ service cloud.firestore {
     }
 
     /**
+     * دليل المحافظات والمدن (GovernorateService: مجموعة city + city/{id}/cities).
+     * قراءة عامة للتطبيق (مع أو بدون تسجيل)؛ التعديل من الأدمن أو عبر Admin SDK فقط.
+     */
+    match /city/{governorateId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /cities/{cityId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    /**
      * مجموعة shopping:
      * - مستند ثابت delivery_charges يحوي in / out لمبالغ التوصيل؛ يُنشأ تلقائياً من التطبيق/اللوحة إن لم يكن موجوداً.
      * - مستندات الطلبات ستُضاف لاحقاً بمعرّفات تُولَّد آلياً (حين تُفعَّل القواعد المناسبة لإنشاء الطلب من العميل).
@@ -335,19 +349,35 @@ service cloud.firestore {
      */
     match /spark_fcm_jobs/{jobId} {
       allow read: if false;
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['kind', 'ad_id', 'requestedAt'])
-        && request.resource.data.kind == 'ad_saved'
-        && request.resource.data.ad_id is string
-        && request.resource.data.ad_id.size() >= 5
-        && request.resource.data.requestedAt is timestamp
-        && exists(/databases/$(database)/documents/ads/$(request.resource.data.ad_id))
-        && (
-          get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.userId == request.auth.uid
-          || (
-            userDocIdFromAuth() != '' &&
-            get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.owner_phone == userDocIdFromAuth()
+      /**
+       * - إعلان محفوظ: مالك الإعلان فقط (أو المطابقة عبر owner_phone).
+       * - طلب جديد: SparkOrderFcmJobService بعد setDoc(orders/…). لا يُشترط تسجيل الدخول
+       *   لأن الطلب قد يُنشأ كضيف؛ يُشترط وجود الطلب وحالته pending.
+       */
+      allow create: if (
+          request.auth != null
+          && request.resource.data.keys().hasOnly(['kind', 'ad_id', 'requestedAt'])
+          && request.resource.data.kind == 'ad_saved'
+          && request.resource.data.ad_id is string
+          && request.resource.data.ad_id.size() >= 5
+          && request.resource.data.requestedAt is timestamp
+          && exists(/databases/$(database)/documents/ads/$(request.resource.data.ad_id))
+          && (
+            get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.userId == request.auth.uid
+            || (
+              userDocIdFromAuth() != ''
+              && get(/databases/$(database)/documents/ads/$(request.resource.data.ad_id)).data.owner_phone == userDocIdFromAuth()
+            )
           )
+        )
+        || (
+          request.resource.data.keys().hasOnly(['kind', 'order_id', 'requestedAt'])
+          && request.resource.data.kind == 'order_created'
+          && request.resource.data.order_id is string
+          && request.resource.data.order_id.size() >= 5
+          && request.resource.data.requestedAt is timestamp
+          && exists(/databases/$(database)/documents/orders/$(request.resource.data.order_id))
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.order_id)).data.status == 'pending'
         );
       allow update, delete: if false;
     }

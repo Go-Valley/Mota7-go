@@ -22,13 +22,16 @@ import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/dup
 import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
+import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
 
 @Component({
   selector: 'app-other-services-form',
   templateUrl: './other-services-form.component.html',
   styleUrls: ['./other-services-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
 })
 export class OtherServicesFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -48,6 +51,14 @@ export class OtherServicesFormComponent implements OnInit {
     lng: 0,
     city: ''
   };
+
+  userGovernorateId: string | null = null;
+  coverageCityIdsForAd: string[] = [];
+
+  onCoverageAreas(ev: CoverageMultiEmit): void {
+    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
+    this.serviceData.city = (ev.primaryCityDisplay || '').trim() || this.serviceData.city;
+  }
 
   private firestore = inject(Firestore);
   private auth = inject(Auth);
@@ -95,6 +106,7 @@ export class OtherServicesFormComponent implements OnInit {
       lng: ad.location?.lng || 0,
       city: ad.city || ''
     };
+    this.coverageCityIdsForAd = uniqSortedCityIds(ad.coverage_city_ids);
     this.userVerificationStatus = canonicalTierForFirestore(
       ad.verification_level ?? ad.is_verified
     );
@@ -115,6 +127,8 @@ export class OtherServicesFormComponent implements OnInit {
           this.serviceData.city = data['city'] || '';
           this.serviceData.providerName = data['fullName'] || data['name'] || '';
           this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
+          const gid = String(data['governorate_id'] ?? '').trim();
+          this.userGovernorateId = gid || null;
           return data;
         }
       } catch (e) {
@@ -133,6 +147,10 @@ export class OtherServicesFormComponent implements OnInit {
 async saveServiceAd() {
   if (!this.serviceData.category_id) {
     this.presentToast('يرجى اختيار نوع الخدمة');
+    return;
+  }
+  if (!this.coverageCityIdsForAd?.length) {
+    this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
     return;
   }
 
@@ -162,7 +180,11 @@ async saveServiceAd() {
     const serviceNameAr = String(
       dynCat?.nameAr || staticCat?.nameAr || this.serviceData.category_id || ''
     ).trim();
-    const other_match_key = `${serviceNameAr}_${this.serviceData.city}`;
+    const scopeSig = [...this.coverageCityIdsForAd].sort().join('__');
+    const other_service_token = serviceNameAr === 'غير محدد' ? '' : serviceNameAr;
+    const cityLabel = String(this.serviceData.city || '').trim();
+    const other_match_key =
+      scopeSig.length > 0 ? `${serviceNameAr}__SCOPE__${scopeSig}` : `${serviceNameAr}_${cityLabel}`;
     let ntfySnapshot: Record<string, unknown> | null = null;
 
     /**
@@ -234,6 +256,7 @@ async saveServiceAd() {
         ad_type: 'other',
         category_id: this.serviceData.category_id,
         other_match_key: other_match_key,
+        other_service_token,
         verification_level: verifyTier,
         is_verified: verifyTier,
         sort_order: 999,
@@ -247,6 +270,7 @@ async saveServiceAd() {
         },
         location: { lat: this.serviceData.lat, lng: this.serviceData.lng },
         city: this.serviceData.city,
+        coverage_city_ids: [...this.coverageCityIdsForAd],
         is_available: this.serviceData.isAvailable,
         updated_at: serverTimestamp()
       };

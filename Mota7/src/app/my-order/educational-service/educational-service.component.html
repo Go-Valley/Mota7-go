@@ -86,15 +86,15 @@
       </div>
 
       <div class="input-group">
-        <label class="main-label">المدينة : <span>*</span></label>
-        <ion-select [(ngModel)]="orderData.city" 
-                    interface="action-sheet" 
-                    mode="ios" 
-                    placeholder="اختر المدينة"
-                    cancelText="إلغاء">
-          <ion-select-option value="الخارجة">الخارجة</ion-select-option>
-          <ion-select-option value="الداخلة">الداخلة</ion-select-option>
-        </ion-select>
+        <label class="geo-field-label">المدينة : <span>*</span></label>
+        <app-governorate-city-selector
+          variant="requestMultiNoWhole"
+          fieldLabel="اختر مكان تواجدك"
+          placeholder="اضغط لاختيار مكان تواجدك"
+          [displaySummary]="orderData.city"
+          [maxScrollHeight]="'min(260px, 42vh)'"
+          (coverageMultiChange)="onRequestCoverage($event)">
+        </app-governorate-city-selector>
       </div>
 
       <div class="footer-action">

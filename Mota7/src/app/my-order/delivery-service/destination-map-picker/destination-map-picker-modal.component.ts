@@ -17,7 +17,7 @@ import { App } from '@capacitor/app';
 import { AppLauncher } from '@capacitor/app-launcher';
 import { Geolocation } from '@capacitor/geolocation';
 import { Firestore, doc, updateDoc, Timestamp } from '@angular/fire/firestore';
-import { IonicModule, ModalController, ToastController } from '@ionic/angular';
+import { IonicModule, ModalController, Platform, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   closeOutline,
@@ -27,6 +27,7 @@ import {
   navigateOutline,
   personOutline,
 } from 'ionicons/icons';
+import { Mota7Location } from '../../../plugins/mota7-location.plugin';
 
 export const MOTA7_MAPS_RETURN_MESSAGE = 'MOTA7_MAPS_RETURN' as const;
 
@@ -48,6 +49,10 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   @Input() mode: 'destination' | 'tracking' = 'destination';
   /** عند mode === destination: اختيار نقطة الانطلاق أو الوجهة من الخريطة */
   @Input() pickRole: 'destination' | 'origin' = 'destination';
+  /** إغلاق المودال يُسجّل مركز الخريطة كنقطة انطلاق (طلب التوصيل) */
+  @Input() applyOriginCenterOnDismiss = false;
+  /** تمييز بصري للمؤشر عند الفتح على الموقع الحالي */
+  @Input() accentOriginGpsPick = false;
   @Input() directionsRole: TrackingMapDirectionsRole = 'customer';
   /** يُستخدم مع postMessage للتحقق من جلسة العودة من خرائط جوجل */
   @Input() trackingSessionId = '';
@@ -61,9 +66,11 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
 
   private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
+  private platform = inject(Platform);
   private firestore = inject(Firestore);
   private injector = inject(EnvironmentInjector);
   private cdr = inject(ChangeDetectorRef);
+  private hardwareBackSub: { unsubscribe: () => void } | null = null;
 
   constructor() {
     addIcons({
@@ -93,6 +100,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   private onVisibilityChangeRef: (() => void) | null = null;
   private onWindowMessageBound = (ev: MessageEvent) => this.onTrackingWindowMessage(ev);
   private appStateListener: PluginListenerHandle | null = null;
+  private appUrlOpenListener: PluginListenerHandle | null = null;
   private static leafletAssetsPromise: Promise<typeof import('leaflet')> | null = null;
 
   isMapReady = false;
@@ -104,6 +112,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   routeLoading = false;
 
   ngOnInit(): void {
+    this.registerHardwareBackToDismiss();
     if (this.mode === 'tracking') {
       if (!this.trackingSessionId?.trim()) {
         this.trackingSessionId = `trk_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
@@ -153,11 +162,15 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     } catch (e) {
       console.error('destination-map-picker init error:', e);
       await this.presentToast('تعذر تحميل الخريطة الداخلية حالياً', 'warning');
-      this.dismiss();
+      void this.modalCtrl.dismiss(null, 'cancel');
     }
   }
 
   ngOnDestroy(): void {
+    if (this.hardwareBackSub) {
+      this.hardwareBackSub.unsubscribe();
+      this.hardwareBackSub = null;
+    }
     if (this.reverseGeocodeTimer) {
       clearTimeout(this.reverseGeocodeTimer);
       this.reverseGeocodeTimer = null;
@@ -186,9 +199,42 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       void this.appStateListener.remove();
       this.appStateListener = null;
     }
+    if (this.appUrlOpenListener) {
+      void this.appUrlOpenListener.remove();
+      this.appUrlOpenListener = null;
+    }
   }
 
   dismiss(): void {
+    if (
+      this.applyOriginCenterOnDismiss &&
+      this.mode === 'destination' &&
+      this.pickRole === 'origin'
+    ) {
+      let lat = this.selectedLat;
+      let lng = this.selectedLng;
+      try {
+        if (this.map) {
+          const c = this.map.getCenter();
+          lat = c.lat;
+          lng = c.lng;
+        }
+      } catch {
+        /* keep selectedLat/Lng */
+      }
+      const locationLabel =
+        (this.selectedAddress || '').trim() || this.formatLatLng(lat, lng);
+      void this.modalCtrl.dismiss(
+        {
+          pickKind: 'origin' as const,
+          fromLocation: locationLabel,
+          lat,
+          lng,
+        },
+        'confirm'
+      );
+      return;
+    }
     void this.modalCtrl.dismiss(null, 'cancel');
   }
 
@@ -283,7 +329,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       zoomControl: false,
       attributionControl: true,
       center: [lat, lng],
-      zoom: 15,
+      zoom: 16,
       /** Canvas renderer يتسبب أحياناً في عدم استقبال اللمس فوق المودال */
       preferCanvas: false,
     });
@@ -307,7 +353,15 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       return;
     }
 
-    const streets = L.tileLayer(
+    /**
+     * طبقات مجانية بدون مفاتيح: OSM الافتراضي يعرض غالباً تفاصيل/نقاط اهتمام أوضح من Voyager
+     * في نفس بيانات OSM؛ CyclOSM يعزز وضوح الشبكة والممرات.
+     */
+    const osmDetailed = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+    const cartoVoyager = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       {
         maxZoom: 20,
@@ -315,6 +369,11 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
         attribution: '© OpenStreetMap © CARTO',
       }
     );
+    const cyclOsm = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      subdomains: 'abc',
+      attribution: '© OpenStreetMap — CyclOSM',
+    });
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
@@ -323,11 +382,13 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       }
     );
 
-    this.baseLayer = streets;
+    this.baseLayer = osmDetailed;
     this.baseLayer.addTo(this.map);
     L.control.layers(
       {
-        'خريطة طرق': streets,
+        'تفصيلية (OSM)': osmDetailed,
+        'شبكة طرق (CyclOSM)': cyclOsm,
+        'طرق (Carto)': cartoVoyager,
         'صور قمر صناعي': satellite,
       },
       {},
@@ -775,6 +836,28 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
 
   async openGoogleMapsMobile(): Promise<void> {
     try {
+      if (this.mode === 'destination' && Capacitor.getPlatform() === 'android') {
+        const picked = await Mota7Location.pickLocationOnNativeMap({
+          lat: this.selectedLat,
+          lng: this.selectedLng,
+          title: this.pickRole === 'origin' ? 'تحديد نقطة الانطلاق' : 'تحديد جهة الوصول',
+        });
+        const pLat = Number((picked as { lat?: number })?.lat);
+        const pLng = Number((picked as { lng?: number })?.lng);
+        if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+          this.selectedLat = pLat;
+          this.selectedLng = pLng;
+          const pAddr = String((picked as { address?: string })?.address ?? '').trim();
+          this.selectedAddress = pAddr || this.formatLatLng(pLat, pLng);
+          this.panTo(pLat, pLng, 16);
+          if (!pAddr) {
+            void this.reverseGeocodeCenter();
+          }
+          await this.presentToast('تم التقاط موقع جهة الوصول بنجاح', 'success');
+        }
+        return;
+      }
+
       let url = '';
       if (this.mode === 'tracking') {
         url = this.buildTrackingGoogleMapsUrl();
@@ -818,6 +901,42 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     }
   }
 
+  private tryParseLatLngFromExternalUrl(url: string): { lat: number; lng: number } | null {
+    const s = String(url || '').trim();
+    if (!s) return null;
+
+    // نمط شائع في روابط خرائط جوجل: .../@lat,lng,zoom...
+    const atMatch = s.match(/@(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/);
+    if (atMatch) {
+      const lat = Number(atMatch[1]);
+      const lng = Number(atMatch[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+
+    const qMatch = s.match(/[?&](?:q|query|ll|sll)=(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/);
+    if (qMatch) {
+      const lat = Number(qMatch[1]);
+      const lng = Number(qMatch[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+    return null;
+  }
+
+  private applyExternalPickedCoordinates(point: { lat: number; lng: number }): void {
+    if (this.mode !== 'destination') {
+      return;
+    }
+    this.selectedLat = point.lat;
+    this.selectedLng = point.lng;
+    this.selectedAddress = this.formatLatLng(point.lat, point.lng);
+    this.panTo(point.lat, point.lng, 16);
+    void this.reverseGeocodeCenter();
+  }
+
   private onTrackingWindowMessage(ev: MessageEvent): void {
     if (this.mode !== 'tracking') return;
     const d = ev.data;
@@ -855,6 +974,21 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
         });
       } catch {
         /* يكفي visibility */
+      }
+    }
+    if (Capacitor.isNativePlatform() && !this.appUrlOpenListener) {
+      try {
+        this.appUrlOpenListener = await App.addListener('appUrlOpen', ({ url }) => {
+          const point = this.tryParseLatLngFromExternalUrl(String(url || ''));
+          if (point) {
+            this.applyExternalPickedCoordinates(point);
+          }
+          if (this.waitingGoogleReturn) {
+            this.handleReturnFromExternalMaps('رابط موقع');
+          }
+        });
+      } catch {
+        /* ignore */
       }
     }
   }
@@ -916,5 +1050,18 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       mode: 'ios',
     });
     await toast.present();
+  }
+
+  /**
+   * عند فتح مودال الخريطة: رجوع الموبايل يغلق المودال أولاً
+   * بدل الخروج من شاشة الطلبات خلفه.
+   */
+  private registerHardwareBackToDismiss(): void {
+    if (!Capacitor.isNativePlatform() || this.hardwareBackSub) {
+      return;
+    }
+    this.hardwareBackSub = this.platform.backButton.subscribeWithPriority(10001, () => {
+      this.dismiss();
+    });
   }
 }

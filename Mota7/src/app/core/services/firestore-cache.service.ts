@@ -87,6 +87,21 @@ export class FirestoreCacheService {
     } catch { /* ignore */ }
   }
 
+  /** مسح كل مفاتيح الكاش التي تبدأ بالبادئة (بدون PREFIX الداخلي؛ يُضاف تلقائياً) */
+  invalidatePrefix(keyPrefixRelative: string): void {
+    const fullPrefix = FirestoreCacheService.PREFIX + keyPrefixRelative;
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(fullPrefix)) keysToRemove.push(k);
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
+  }
+
   /** مفتاح قائمة إعلانات نوع منطقي: delivery | education | other | product | store */
   static adsListCacheKey(adType: string): string {
     return `${FirestoreCacheService.KEYS.ADS_PREFIX}${adType}`;

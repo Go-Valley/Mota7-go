@@ -21,6 +21,11 @@
   min-height: 70vh;
   overflow: hidden;
 
+  /** وضع اختيار الوجهة/الانطلاق: تباين أخف دون تغيير منطق الخريطة */
+  &:not(.map-shell--tracking) .map-canvas {
+    filter: saturate(1.04) contrast(1.02);
+  }
+
   &.map-shell--tracking {
     min-height: 100%;
     height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
@@ -228,6 +233,38 @@
   transform: translate(-50%, -100%);
   pointer-events: none;
   z-index: 14;
+}
+
+.center-pin--gps-pulse .pin-head {
+  animation: mota7-gps-pin-pulse 1.6s ease-in-out infinite;
+}
+
+.center-pin--gps-pulse .pin-shadow {
+  animation: mota7-gps-shadow-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mota7-gps-pin-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 8px 22px rgba(255, 107, 26, 0.55);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes mota7-gps-shadow-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
 }
 
 .pin-head {

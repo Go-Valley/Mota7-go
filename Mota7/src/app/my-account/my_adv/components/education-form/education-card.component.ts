@@ -27,6 +27,7 @@ import { EducationFormComponent } from './education-form.component';
 import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-engagement-row.component';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 
 @Component({
   selector: 'app-education-card',
@@ -183,5 +184,9 @@ export class EducationCardComponent implements OnInit, OnChanges {
       backdropDismiss: true,
     });
     await modal.present();
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 }

@@ -121,6 +121,20 @@
       </ion-item>
     </div>
 
+    <div class="input-group coverage-block">
+      <ion-label class="main-label geo-field-label">مناطق عرض المنتج ضمن مدينتك*</ion-label>
+      <app-governorate-city-selector
+        variant="coverageMultiRestricted"
+        fieldLabel="مناطق العرض"
+        placeholder="مدينتك الحالية"
+        [displaySummary]="productData.city"
+        [disabled]="true"
+        [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
+        [maxScrollHeight]="'min(260px, 38vh)'"
+        (coverageMultiChange)="onCoverageAreas($event)">
+      </app-governorate-city-selector>
+    </div>
+
 <ion-button expand="block" 
             class="main-orange-btn" 
             (click)="onAddProductClick()" 

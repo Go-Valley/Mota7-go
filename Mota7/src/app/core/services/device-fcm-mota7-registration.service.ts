@@ -4,6 +4,7 @@ import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { Auth, type User } from '@angular/fire/auth';
 import { Firestore } from '@angular/fire/firestore';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { normalizeProviderPhoneForLookup } from '../utils/provider-phone-normalize.util';
 
 async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
@@ -38,7 +39,8 @@ export class DeviceFcmMota7RegistrationService {
         await FirebaseMessaging.addListener('tokenReceived', (ev: { token: string }) => {
           const u = this.auth.currentUser;
           if (!u?.email?.endsWith('@mota7.com')) return;
-          const phone = u.email.replace('@mota7.com', '');
+          const phone = normalizeProviderPhoneForLookup(u.email.replace('@mota7.com', ''));
+          if (!phone) return;
           void this.writeTokenDoc(ev.token, phone);
         });
       } catch (e) {
@@ -47,7 +49,10 @@ export class DeviceFcmMota7RegistrationService {
       this.tokenListenerAttached = true;
     }
 
-    const ownerPhone = user.email.replace('@mota7.com', '');
+    const ownerPhone = normalizeProviderPhoneForLookup(user.email.replace('@mota7.com', ''));
+    if (!ownerPhone) {
+      return;
+    }
     try {
       const { token } = await FirebaseMessaging.getToken();
       if (token) await this.writeTokenDoc(token, ownerPhone);

@@ -4,7 +4,8 @@ name: Mota7 Spark sync (orders + FCM)
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # معالجة spark_fcm_jobs (طلب جديد → FCM) — دقيقة واحدة لتقليل التأخير عن جدول كل دقيقتين
+    - cron: '*/1 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -32,7 +33,7 @@ jobs:
       - name: Run Spark batch
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          SPARK_ORDER_NEW_LOOKBACK_HOURS: '12'
-          SPARK_ORDER_COMPLETED_LOOKBACK_HOURS: '12'
+          SPARK_JOBS_ONLY: '1'
+          SPARK_DISABLE_SWEEP: '1'
         working-directory: firebase/spark-runner
         run: node runOnce.cjs

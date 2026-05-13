@@ -61,7 +61,7 @@
   <div class="footer-grid">
     <div class="footer-item">
       <ion-icon name="location-outline"></ion-icon>
-      <span>{{ ad.city || 'غير محدد' }}</span>
+      <span>{{ coverageDisplay(ad) }}</span>
     </div>
     
     <div class="footer-item status-toggle" [class.active]="ad.is_available" [class.inactive]="!ad.is_available">

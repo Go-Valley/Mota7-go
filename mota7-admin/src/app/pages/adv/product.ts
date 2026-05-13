@@ -15,6 +15,7 @@ import { PRODUCTS_CATEGORY } from '@mota7-app/core/constants/products-data';
 import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
+import { formatAdCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-product-card',
@@ -216,6 +217,10 @@ export class ProductCard implements OnInit {
     await alert.present();
   }
 
+  coverageDisplay(ad: unknown): string {
+    return formatAdCoverageDisplay((ad ?? {}) as any);
+  }
+
   onProductShellClick(): void {
     if (this.selectionMode) {
       return;
@@ -258,7 +263,7 @@ export class ProductCard implements OnInit {
           <div class="item"><span class="label">بواسطة:</span><span class="value">{{ ownerName || ad?.owner_name || ad?.details?.owner_name || 'مستخدم متاح' }}</span></div>
           <div class="item"><span class="label">السعر:</span><span class="value">{{ ad?.details?.price }} ج.م</span></div>
           <div class="item"><span class="label">الحالة:</span><span class="value">{{ ad?.details?.condition || 'جديد' }}</span></div>
-          <div class="item"><span class="label">المدينة:</span><span class="value">{{ ad?.details?.location || ad?.city || 'الخارجة' }}</span></div>
+          <div class="item"><span class="label">المدينة:</span><span class="value">{{ locationLine() }}</span></div>
         </div>
       </div>
     </ion-content>
@@ -339,6 +344,10 @@ export class ProductDetailsModalComponent {
   @Input() ownerName: string = '';
 
   private modalCtrl = inject(ModalController);
+
+  locationLine(): string {
+    return formatAdCoverageDisplay(this.ad ?? {});
+  }
 
   close() {
     this.modalCtrl.dismiss();

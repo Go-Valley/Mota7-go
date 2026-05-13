@@ -28,6 +28,7 @@ import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-en
 import { cloudinaryListThumbnailUrl } from '../../../../core/utils/cloudinary-list-image.util';
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 
 @Component({
   selector: 'app-product-card',
@@ -175,6 +176,10 @@ export class ProductCardComponent implements OnInit, OnChanges {
   onDelete() {
     // إرسال ad_id الصحيح كما في الفايربيز
     this.delete.emit(this.ad.ad_id);
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 
   async showVerificationModal() {

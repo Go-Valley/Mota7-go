@@ -109,6 +109,22 @@
       </div>
     </div>
 
+    <div class="form-card">
+      <div class="field-box">
+        <ion-label class="bold-label geo-field-label">مناطق نشاط المتجر ضمن مدينتك:*</ion-label>
+        <app-governorate-city-selector
+          variant="coverageMultiRestricted"
+          fieldLabel="مناطق النشاط"
+          placeholder="اختار المدن الي عايز تعرض فيها اعلانك"
+          [displaySummary]="storeData.city"
+          [disabled]="true"
+          [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
+          [maxScrollHeight]="'min(260px, 38vh)'"
+          (coverageMultiChange)="onCoverageAreas($event)">
+        </app-governorate-city-selector>
+      </div>
+    </div>
+
     <ion-button expand="block" class="submit-orange-btn" (click)="saveStore()">
       إطلاق المتجر الآن
     </ion-button>

@@ -20,6 +20,11 @@ export const routes: Routes = [
       import('./pages/taxonomy-lists/taxonomy-lists.page').then((m) => m.TaxonomyListsPage),
   },
   {
+    path: 'governorates',
+    loadComponent: () =>
+      import('./pages/governorates/governorates.page').then((m) => m.GovernoratesPage),
+  },
+  {
     path: 'users',
     loadComponent: () => import('./pages/users/users.page').then(m => m.UsersPage)
   },

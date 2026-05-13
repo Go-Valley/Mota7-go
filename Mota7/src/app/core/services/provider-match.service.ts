@@ -11,9 +11,15 @@ import {
 } from '@angular/fire/firestore';
 import { normalizeMatchKeyForOrders } from '../utils/match-key-normalize';
 import type { ParsedOrderNtfy } from '../utils/order-ntfy.util';
+import { normalizeAdTypeValue } from '../utils/duplicate-ad.util';
+import {
+  deliveryOrderMatches,
+  educationOrderMatches,
+  otherOrderMatches,
+} from '../utils/service-order-coverage-match.util';
 
 /**
- * مفاتيح تطابق الطلبات مع إعلانات مقدم الخدمة (نفس منطق cus-order).
+ * مفاتيح تطابق الطلبات مع إعلانات مقدم الخدمة (موازٍ لـ cus-order).
  */
 @Injectable({ providedIn: 'root' })
 export class ProviderMatchService {
@@ -23,9 +29,13 @@ export class ProviderMatchService {
 
   private loadedFor: string | null = null;
   private loadedAt = 0;
+  /** مطابقة قديمة عبر مفتاح نصّي وحيد */
   private deliveryKeysNorm: string[] = [];
   private educationKeysNorm: string[] = [];
   private otherKeysNorm: string[] = [];
+  private adsDelivery: Record<string, unknown>[] = [];
+  private adsEducation: Record<string, unknown>[] = [];
+  private adsOther: Record<string, unknown>[] = [];
 
   private readonly reloadMs = 45_000;
 
@@ -35,6 +45,9 @@ export class ProviderMatchService {
     this.deliveryKeysNorm = [];
     this.educationKeysNorm = [];
     this.otherKeysNorm = [];
+    this.adsDelivery = [];
+    this.adsEducation = [];
+    this.adsOther = [];
   }
 
   async ensureLoaded(): Promise<void> {
@@ -53,6 +66,9 @@ export class ProviderMatchService {
     this.deliveryKeysNorm = [];
     this.educationKeysNorm = [];
     this.otherKeysNorm = [];
+    this.adsDelivery = [];
+    this.adsEducation = [];
+    this.adsOther = [];
 
     try {
       const userDoc = await runInInjectionContext(this.injector, () =>
@@ -61,10 +77,8 @@ export class ProviderMatchService {
       if (!userDoc.exists()) {
         return;
       }
-      const phone = String(userDoc.data()['phone'] || '');
-      if (!phone) {
-        return;
-      }
+      const phone = String(userDoc.data()['phone'] || '').trim();
+      if (!phone) return;
 
       const adsSnap = await runInInjectionContext(this.injector, () =>
         getDocs(
@@ -77,7 +91,7 @@ export class ProviderMatchService {
       );
 
       adsSnap.forEach((d) => {
-        const ad = d.data();
+        const ad = d.data() as Record<string, unknown>;
         if (ad['education_match_key']) {
           this.educationKeysNorm.push(
             normalizeMatchKeyForOrders(String(ad['education_match_key']))
@@ -89,10 +103,12 @@ export class ProviderMatchService {
           );
         }
         if (ad['other_match_key']) {
-          this.otherKeysNorm.push(
-            normalizeMatchKeyForOrders(String(ad['other_match_key']))
-          );
+          this.otherKeysNorm.push(normalizeMatchKeyForOrders(String(ad['other_match_key'])));
         }
+        const t = normalizeAdTypeValue(String(ad['ad_type'] ?? '').trim());
+        if (t === 'delivery') this.adsDelivery.push(ad);
+        else if (t === 'education') this.adsEducation.push(ad);
+        else if (t === 'other') this.adsOther.push(ad);
       });
     } catch (e) {
       console.warn('[ProviderMatchService]', e);
@@ -102,18 +118,61 @@ export class ProviderMatchService {
   /** هل رسالة ntfy الخاصة بالطلب تخص مقدم الخدمة الحالي؟ */
   matchesParsedOrderNtfy(parsed: ParsedOrderNtfy): boolean {
     const svc = (parsed.svc || '').trim();
-    const d = parsed.dKey ? normalizeMatchKeyForOrders(parsed.dKey) : '';
-    const e = parsed.eKey ? normalizeMatchKeyForOrders(parsed.eKey) : '';
-    const o = parsed.oKey ? normalizeMatchKeyForOrders(parsed.oKey) : '';
+    const cidsRaw = String(parsed.cidCsv || '').trim();
+    const cidsArr = cidsRaw
+      ? cidsRaw
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [];
 
-    if (svc === 'delivery' && d) {
-      return this.deliveryKeysNorm.includes(d);
+    const baseOrder = (): Record<string, unknown> =>
+      ({
+        order_coverage_city_ids: cidsArr,
+        city: '',
+      }) as Record<string, unknown>;
+
+    if (svc === 'delivery') {
+      const dk = normalizeMatchKeyForOrders(parsed.dKey);
+      const dto = normalizeMatchKeyForOrders(parsed.dSvcTok);
+      if (dto || cidsArr.length || dk) {
+        const mock = {
+          ...baseOrder(),
+          serviceType: 'delivery',
+          delivery_match_key: parsed.dKey,
+          delivery_service_token: parsed.dSvcTok,
+        };
+        return this.adsDelivery.some((ad) => deliveryOrderMatches(mock, ad));
+      }
+      return dk ? this.deliveryKeysNorm.includes(dk) : false;
     }
-    if (svc === 'education' && e) {
-      return this.educationKeysNorm.includes(e);
+    if (svc === 'education') {
+      const ek = normalizeMatchKeyForOrders(parsed.eKey);
+      const eduTok = normalizeMatchKeyForOrders(parsed.eSubTok);
+      if (eduTok || cidsArr.length || ek) {
+        const mock = {
+          ...baseOrder(),
+          serviceType: 'education',
+          education_match_key: parsed.eKey,
+          education_subject_token: parsed.eSubTok,
+        };
+        return this.adsEducation.some((ad) => educationOrderMatches(mock, ad));
+      }
+      return ek ? this.educationKeysNorm.includes(ek) : false;
     }
-    if (svc === 'other' && o) {
-      return this.otherKeysNorm.includes(o);
+    if (svc === 'other') {
+      const ok = normalizeMatchKeyForOrders(parsed.oKey);
+      const ot = normalizeMatchKeyForOrders(parsed.oSvcTok);
+      if (ot || cidsArr.length || ok) {
+        const mock = {
+          ...baseOrder(),
+          serviceType: 'other',
+          other_match_key: parsed.oKey,
+          other_service_token: parsed.oSvcTok,
+        };
+        return this.adsOther.some((ad) => otherOrderMatches(mock, ad));
+      }
+      return ok ? this.otherKeysNorm.includes(ok) : false;
     }
     return false;
   }

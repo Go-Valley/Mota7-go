@@ -16,6 +16,7 @@ import {
   IonTextarea,
   LoadingController,
   ModalController,
+  NavController,
   ToastController
 } from '@ionic/angular';
 import { DELIVERY_CATEGORY } from '../../core/constants/delivery-data';
@@ -29,6 +30,7 @@ import { Auth } from '@angular/fire/auth';
 import { addIcons } from 'ionicons'; 
 import { checkmarkCircle, locationOutline, mapOutline } from 'ionicons/icons';
 import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
+import { SparkOrderFcmJobService } from '../../core/services/spark-order-fcm-job.service';
 import {
   applyOrderPhoneInputState,
   isOrderPhoneValid,
@@ -49,6 +51,7 @@ import {
 } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import { presentDestinationMapPickerModal } from './destination-map-picker/destination-map-picker.presenter';
+import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
 
 @Component({
   selector: 'app-delivery-service',
@@ -70,19 +73,32 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
   deliveryItems = [...DELIVERY_CATEGORY.items];
-  availableCities = ['الخارجة', 'الداخلة'];
+  requestCoverageCityIds: string[] = [];
+  requestCoverageArabic: string[] = [];
+
+  onRequestCoverage(ev: CoverageMultiEmit): void {
+    this.requestCoverageCityIds = [...(ev.cityIds || [])];
+    this.requestCoverageArabic = [...(ev.arabicTokens || [])];
+    this.orderData.city = (ev.primaryCityDisplay || '').trim() || this.orderData.city;
+  }
 
   /** بعد فتح الإعدادات: إعادة محاولة التحديد عند العودة للتطبيق */
   private locationListenerHandles: PluginListenerHandle[] = [];
   private locationResumeRetryInFlight = false;
   /** بعد «موافق» لفتح الإعدادات: نؤخر ونُعيد طلب الصلاحية (أندرويد يحدّث الحالة متأخراً) */
   private afterLocationSettingsReturn = false;
+  /**
+   * المستخدم ضغط «تحديد مكانك الحالي» (يفتح الخريطة بعد GPS).
+   * يُحفَظ لمسار العودة من الإعدادات حتى يُستدعى getCurrentLocation(true) بعد تفعيل الموقع.
+   */
+  private pendingOriginMapAfterLocation = false;
 
   private loadingCtrl = inject(LoadingController);
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private auth = inject(Auth);
   private newOrderNtfy = inject(NewOrderNtfyService); 
+  private sparkOrderJobs = inject(SparkOrderFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private toastCtrl = inject(ToastController);
   private destroyRef = inject(DestroyRef);
@@ -112,7 +128,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   constructor(
     private modalCtrl: ModalController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private navCtrl: NavController
   ) {
     addIcons({ checkmarkCircle, locationOutline, mapOutline });
   }
@@ -367,8 +384,9 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
           const profileCity = String(data['city'] ?? '').trim();
-          this.orderData.city =
-            findMatchingStringInList(this.availableCities, profileCity) ?? '';
+          if (profileCity && !this.requestCoverageCityIds.length) {
+            this.orderData.city = profileCity;
+          }
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -376,7 +394,13 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
   }
 
-  async getCurrentLocation() {
+  async getCurrentLocation(openMapAfterLocate = false) {
+    if (openMapAfterLocate) {
+      this.pendingOriginMapAfterLocation = true;
+    } else if (!this.locationResumeRetryInFlight) {
+      this.pendingOriginMapAfterLocation = false;
+    }
+
     const loader = await this.loadingCtrl.create({
       message: 'جاري تحديد موقعك بدقة...',
       mode: 'ios'
@@ -403,7 +427,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       if (geoAlreadyGranted) {
         try {
           const coordinates = await this.tryGetPositionWithFallback();
-          await this.applyLocationSuccess(coordinates, loader);
+          await this.flushLocationAndMaybeOriginMap(coordinates, loader, openMapAfterLocate);
           return;
         } catch (e: any) {
           await loader.dismiss();
@@ -454,7 +478,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         if (p.location !== 'granted') {
           try {
             const coordinates = await this.tryGetPositionWithFallback();
-            await this.applyLocationSuccess(coordinates, loader);
+            await this.flushLocationAndMaybeOriginMap(coordinates, loader, openMapAfterLocate);
             return;
           } catch {
             await loader.dismiss();
@@ -484,7 +508,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
     try {
       const coordinates = await this.tryGetPositionWithFallback();
-      await this.applyLocationSuccess(coordinates, loader);
+      await this.flushLocationAndMaybeOriginMap(coordinates, loader, openMapAfterLocate);
     } catch (e: any) {
       await loader.dismiss();
       await this.presentGeolocationFailureAlerts(e, isNative);
@@ -542,6 +566,23 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     this.orderData.lng = lng;
     this.orderData.fromLocation = `تم تحديد الموقع بنجاح — ${lat.toFixed(5)} ، ${lng.toFixed(5)}`;
     await loader.dismiss();
+  }
+
+  /** تسجيل الإحداثيات في النموذج، أو فتح خريطة نقطة الانطلاق أولاً دون كتابة النموذج قبل المودال */
+  private async flushLocationAndMaybeOriginMap(
+    coordinates: Position,
+    loader: HTMLIonLoadingElement,
+    openMapAfterLocate: boolean
+  ): Promise<void> {
+    if (openMapAfterLocate) {
+      await loader.dismiss();
+      await this.pickFromLocationFromMap({
+        lat: coordinates.coords.latitude,
+        lng: coordinates.coords.longitude,
+      });
+      return;
+    }
+    await this.applyLocationSuccess(coordinates, loader);
   }
 
   /**
@@ -649,7 +690,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
               {
                 text: 'إعادة المحاولة',
                 handler: () => {
-                  void this.getCurrentLocation();
+                  void this.getCurrentLocation(this.pendingOriginMapAfterLocation);
                 }
               },
               {
@@ -664,7 +705,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
               {
                 text: 'إعادة المحاولة',
                 handler: () => {
-                  void this.getCurrentLocation();
+                  void this.getCurrentLocation(this.pendingOriginMapAfterLocation);
                 }
               }
             ]
@@ -711,7 +752,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       await this.clearLocationResumeListener();
       // إعطاء GPS/النظام وقتاً بعد العودة من الإعدادات
       await new Promise((r) => setTimeout(r, 900));
-      await this.getCurrentLocation();
+      await this.getCurrentLocation(this.pendingOriginMapAfterLocation);
     } finally {
       this.locationResumeRetryInFlight = false;
     }
@@ -852,22 +893,35 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     await toast.present();
   }
 
-  async pickFromLocationFromMap(): Promise<void> {
-    const selected = await presentDestinationMapPickerModal(this.modalCtrl, {
-      originLat: this.orderData.lat,
-      originLng: this.orderData.lng,
-      initialDestinationLat: 0,
-      initialDestinationLng: 0,
-      initialDestinationText: this.orderData.fromLocation,
-      pickRole: 'origin',
-    });
-    if (!selected || selected.pickKind !== 'origin') {
-      return;
+  async pickFromLocationFromMap(preset?: { lat: number; lng: number } | null): Promise<void> {
+    try {
+      const hasPreset =
+        !!preset &&
+        Number.isFinite(preset.lat) &&
+        Number.isFinite(preset.lng) &&
+        !(preset.lat === 0 && preset.lng === 0);
+
+      const selected = await presentDestinationMapPickerModal(this.modalCtrl, {
+        originLat: hasPreset ? 0 : this.orderData.lat,
+        originLng: hasPreset ? 0 : this.orderData.lng,
+        initialDestinationLat: hasPreset ? preset!.lat : 0,
+        initialDestinationLng: hasPreset ? preset!.lng : 0,
+        initialDestinationText: hasPreset ? '' : this.orderData.fromLocation,
+        pickRole: 'origin',
+        applyOriginCenterOnDismiss: true,
+        accentOriginGpsPick: hasPreset,
+      });
+      if (!selected || selected.pickKind !== 'origin') {
+        return;
+      }
+      this.orderData.fromLocation = normalizeUserFreeText(selected.fromLocation);
+      this.orderData.lat = Number(selected.lat) || 0;
+      this.orderData.lng = Number(selected.lng) || 0;
+      await this.clearLocationResumeListener();
+      await this.presentLocationToast('تم تحديد نقطة الانطلاق من الخريطة بنجاح', 'success');
+    } finally {
+      this.pendingOriginMapAfterLocation = false;
     }
-    this.orderData.fromLocation = normalizeUserFreeText(selected.fromLocation);
-    this.orderData.lat = Number(selected.lat) || 0;
-    this.orderData.lng = Number(selected.lng) || 0;
-    await this.presentLocationToast('تم تحديد نقطة الانطلاق من الخريطة بنجاح', 'success');
   }
 
   async pickToLocationFromMap(): Promise<void> {
@@ -916,6 +970,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     this.orderData.city = (this.orderData.city || '').trim();
     this.orderData.price = this.normalizePrice(this.orderData.price);
     this.priceLiveWarning = null;
+    const prefilledCity = this.orderData.city;
 
     const customerName = this.orderData.customerName;
     const { customerPhone, lat, lng } = this.orderData;
@@ -927,9 +982,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       await this.resolveDestinationCoordinatesFromText(toLocation);
     }
 
-    const cityMatch = findMatchingStringInList(this.availableCities, this.orderData.city);
-    const cityValid = !!cityMatch;
-    const canonicalCity = cityMatch ?? '';
+    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const subMatch = findMatchingNameArItem(this.deliveryItems, this.orderData.subService);
     const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedVehicle ? 'غير محدد' : '');
@@ -945,8 +998,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     if (!customerPhone) {
       missingParts.push('رقم الهاتف');
     }
-    if (!cityValid) {
-      missingParts.push('المدينة');
+    if (!covIds.length && !prefilledCity) {
+      missingParts.push('المدينة (من القائمة)');
     }
     if (!subOk) {
       missingParts.push('نوع المركبة');
@@ -980,10 +1033,17 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.orderData.city = canonicalCity;
-    this.orderData.subService = canonicalSub;
     const subService = canonicalSub;
-    const city = canonicalCity;
+
+    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
+    const city = cityDisplayTokens.join('، ') || (this.orderData.city || '').trim();
+    const delivery_service_token = subService === 'غير محدد' ? '' : String(subService);
+    const scopeSig = covIds.join('__');
+    const delivery_match_key =
+      scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
+
+    this.orderData.subService = canonicalSub;
+    this.orderData.city = city;
 
     const loader = await this.loadingCtrl.create({ 
       message: 'جاري فحص الطلب...', 
@@ -1068,6 +1128,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
           lat: this.orderData.lat,
           lng: this.orderData.lng,
           city,
+          order_coverage_city_ids: covIds,
+          delivery_service_token,
           delivery_match_key: delivery_match_key,
           serviceType: 'delivery',
           status: 'pending',
@@ -1076,11 +1138,13 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone);
+      writeGuestOrderContact(customerName, customerPhone, city);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
+      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
 
       await loader.dismiss();
-      this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.navCtrl.navigateRoot('/tabs/my-order');
 
     } catch {
       await loader.dismiss();

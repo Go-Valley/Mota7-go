@@ -15,6 +15,7 @@ import { commitAdContactClickFirestore } from 'src/app/core/utils/ad-contact-cli
 import { AdImpressionTrackDirective } from '../shared/ad-impression-track.directive';
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 
 @Component({
   selector: 'app-delivery-home-card',
@@ -99,6 +100,10 @@ export class DeliveryHomeCardComponent implements OnInit, OnChanges {
     } catch (error) {
       console.error('حدث خطأ أثناء تحديث سجلات النقرات:', error);
     }
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 
   async contactAction(type: 'whatsapp' | 'call', event: Event) {

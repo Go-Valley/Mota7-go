@@ -27,13 +27,16 @@ import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/dup
 import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline } from 'ionicons/icons';
+import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
 
 @Component({
   selector: 'app-delivery-form',
   templateUrl: './delivery-form.component.html',
   styleUrls: ['./delivery-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent]
 })
 export class DeliveryFormComponent implements OnInit, OnDestroy {
   @Input() editAdData: any; 
@@ -58,6 +61,15 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
     lng: 0,
     city: ''
   };
+
+  /** محافظة المستخدم ومناطق تغطية الإعلان */
+  userGovernorateId: string | null = null;
+  coverageCityIdsForAd: string[] = [];
+
+  onCoverageAreas(ev: CoverageMultiEmit): void {
+    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
+    this.deliveryData.city = (ev.primaryCityDisplay || '').trim() || this.deliveryData.city;
+  }
 
   private firestore = inject(Firestore);
   private auth = inject(Auth);
@@ -112,6 +124,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       lat: ad.location?.lat || 0,
       lng: ad.location?.lng || 0
     };
+    this.coverageCityIdsForAd = uniqSortedCityIds(ad.coverage_city_ids);
   }
 
   async loadUserProfile() {
@@ -125,6 +138,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         const data = userDoc.data();
         this.deliveryData.contactPhone = data['phone'] || '';
         this.deliveryData.whatsappPhone = data['phone'] || '';
+        this.userGovernorateId = String(data['governorate_id'] ?? '').trim() || null;
         this.deliveryData.city = data['city'] || '';
         this.deliveryData.driverName = data['fullName'] || '';
         // جلب حالة التوثيق من حساب المستخدم لتعيينها للإعلان
@@ -284,6 +298,10 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       this.presentToast('يرجى اختيار نوع الخدمة');
       return;
     }
+    if (!this.coverageCityIdsForAd?.length) {
+      this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
+      return;
+    }
   
     const user = this.auth.currentUser;
     if (!user) {
@@ -300,7 +318,12 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
     try {
       const selectedCategory = this.deliveryCategories.find(cat => cat.id === this.deliveryData.category_id);
       const categoryNameAr = selectedCategory ? selectedCategory.nameAr : '';
-      const delivery_match_key = `${categoryNameAr}_${this.deliveryData.city}`;
+      const scopeSig = [...this.coverageCityIdsForAd].sort().join('__');
+      const delivery_service_token = categoryNameAr;
+      const delivery_match_key =
+        scopeSig.length > 0
+          ? `${categoryNameAr}__SCOPE__${scopeSig}`
+          : `${categoryNameAr}_${this.deliveryData.city}`;
       let ntfySnapshot: Record<string, unknown> | null = null;
 
       /**
@@ -385,6 +408,8 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         },
         location: { lat: this.deliveryData.lat, lng: this.deliveryData.lng },
         city: this.deliveryData.city,
+        coverage_city_ids: [...this.coverageCityIdsForAd],
+        delivery_service_token,
         is_available: this.deliveryData.isAvailable,
         updated_at: serverTimestamp(),
       };

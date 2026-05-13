@@ -1,0 +1,201 @@
+<div class="gcs-root" dir="rtl" [class.gcs-disabled]="disabled">
+  <!-- شبكة الرئيسية: قائمة داخل مودال الصفحة -->
+  <ng-container *ngIf="isHubEmbed()">
+    <div class="gcs-scroll gcs-hub-embed" [style.max-height]="maxScrollHeight">
+      <div class="gcs-gov" *ngFor="let g of governorates$ | async">
+        <button type="button" class="gcs-row gcs-gov-head" (click)="onGovHeaderClick(g, $event)">
+          <ion-icon
+            [name]="isExpanded(g.id) ? 'chevron-down-outline' : 'chevron-forward-outline'"
+            class="gcs-chev">
+          </ion-icon>
+          <span class="gcs-spacer"></span>
+          <span class="gcs-label strong" dir="rtl">{{ governorateShort(g) }}</span>
+        </button>
+
+        <div class="gcs-panel" *ngIf="isExpanded(g.id)">
+          <button
+            type="button"
+            class="gcs-row gcs-sub"
+            *ngIf="showWholeRow(g)"
+            (click)="toggleWholeGovernorateClick(g, $event)">
+            <ion-icon [name]="isWholeChosen(g.id) ? 'checkmark-circle' : 'ellipse-outline'" class="gcs-mark"></ion-icon>
+            <span class="gcs-label muted">{{ governorateShort(g) }} — كل المدن</span>
+          </button>
+
+          <button
+            type="button"
+            class="gcs-row gcs-sub"
+            *ngFor="let c of g.cities"
+            [class.disabled-row]="isWholeChosen(g.id)"
+            (click)="toggleCityCheckbox(g, c, $event)">
+            <ion-icon
+              [name]="isCityChosen(g.id, c.id) ? 'checkmark-circle' : 'ellipse-outline'"
+              class="gcs-mark"
+              [class.dim]="isWholeChosen(g.id)">
+            </ion-icon>
+            <span class="gcs-label">{{ c.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- باقي الأنماط: غلاف حقل + ورقة -->
+  <ng-container *ngIf="!isHubEmbed()">
+    <button type="button" class="gcs-premium-trigger" (click)="openSheet()" [disabled]="disabled" [attr.aria-disabled]="disabled">
+      <div class="gcs-tr-icon-wrap" aria-hidden="true">
+        <ion-icon name="location-outline"></ion-icon>
+      </div>
+      <div class="gcs-tr-text">
+        <span class="gcs-tr-label">{{ fieldLabel }}</span>
+        <span class="gcs-tr-value" [class.is-placeholder]="!displaySummary">{{ displaySummary || placeholder }}</span>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="gcs-tr-chevron" aria-hidden="true"></ion-icon>
+    </button>
+
+    <ion-modal
+      class="gcs-sheet-modal"
+      [isOpen]="sheetOpen"
+      (didDismiss)="onSheetDidDismiss()"
+      [initialBreakpoint]="0.88"
+      [breakpoints]="[0, 0.45, 0.72, 0.88]"
+      [backdropDismiss]="true"
+      [handle]="true">
+      <ng-template>
+        <ion-header class="ion-no-border gcs-sheet-head">
+          <ion-toolbar class="gcs-sheet-toolbar-unified">
+            <ion-buttons slot="end">
+              <ion-button fill="clear" (click)="closeSheet()">إغلاق</ion-button>
+            </ion-buttons>
+            <ion-title class="gcs-sheet-ion-title-host">
+              <div class="gcs-sheet-title-cluster" dir="ltr">
+                <ion-icon name="chevron-back-outline" class="gcs-sheet-title-cluster-chev" aria-hidden="true"></ion-icon>
+                <span class="gcs-sheet-title-cluster-text" dir="rtl">{{ fieldLabel }}</span>
+              </div>
+            </ion-title>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="gcs-sheet-ion-content">
+          <!-- محافظات فقط → مودال مدن بتشيك بوكس -->
+          <div *ngIf="isModalMultiVariant()" class="gcs-scroll gcs-sheet-scroll gcs-modal-multi-scroll" [style.max-height]="maxScrollHeight">
+            <button
+              type="button"
+              class="gcs-row gcs-gov-head"
+              *ngFor="let g of governorates$ | async"
+              (click)="openCityPickerModal(g)">
+              <ion-icon name="chevron-back-outline" class="gcs-chev"></ion-icon>
+              <span class="gcs-spacer"></span>
+              <span class="gcs-label strong" dir="rtl">{{ governorateShort(g) }}</span>
+            </button>
+          </div>
+
+          <!-- تسجيل / ملف شخصي: أكورديون داخل الورقة -->
+          <div *ngIf="!isModalMultiVariant()" class="gcs-scroll gcs-sheet-scroll" [style.max-height]="maxScrollHeight">
+            <div class="gcs-gov" *ngFor="let g of governorates$ | async">
+              <button type="button" class="gcs-row gcs-gov-head" (click)="onGovHeaderClick(g, $event)">
+                <ion-icon
+                  [name]="isExpanded(g.id) ? 'chevron-down-outline' : 'chevron-back-outline'"
+                  class="gcs-chev">
+                </ion-icon>
+                <span class="gcs-spacer"></span>
+                <span class="gcs-label strong" dir="rtl">{{ governorateShort(g) }}</span>
+              </button>
+
+              <div class="gcs-panel" *ngIf="isExpanded(g.id)">
+                <button
+                  type="button"
+                  class="gcs-row gcs-sub gcs-single-city"
+                  *ngFor="let c of g.cities"
+                  (click)="toggleCityCheckbox(g, c, $event)">
+                  <span class="gcs-label">{{ c.name }}</span>
+                  <span class="gcs-spacer"></span>
+                  <ion-icon
+                    *ngIf="isSingleSelected(g.id, c.id)"
+                    name="checkmark-circle"
+                    class="gcs-picked">
+                  </ion-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <!-- مودال مدن المحافظة (متعدد الاختيار) -->
+    <ion-modal
+      class="gcs-sheet-modal gcs-cities-modal"
+      [isOpen]="cityModalGov !== null"
+      (didDismiss)="cityModalGov = null"
+      [initialBreakpoint]="0.85"
+      [breakpoints]="[0, 0.55, 0.85]"
+      [backdropDismiss]="true"
+      [handle]="true">
+      <ng-template>
+        <ng-container *ngIf="cityModalGov as cgov">
+          <ion-header class="ion-no-border gcs-sheet-head gcs-city-head">
+            <ion-toolbar class="gcs-sheet-toolbar-unified gcs-city-toolbar">
+              <ion-buttons slot="start">
+                <ion-button fill="clear" (click)="closeCityPickerModal()">رجوع</ion-button>
+              </ion-buttons>
+              <ion-title class="gcs-sheet-ion-title-host">
+                <div class="gcs-sheet-title-cluster" dir="ltr">
+                  <ion-icon name="chevron-back-outline" class="gcs-sheet-title-cluster-chev" aria-hidden="true"></ion-icon>
+                  <span class="gcs-sheet-title-cluster-text" dir="rtl">{{ governorateShort(cgov) }}</span>
+                </div>
+              </ion-title>
+              <ion-buttons slot="end">
+                <ion-button fill="clear" color="danger" (click)="closeCityPickerModal()">تم</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+
+          <ion-content class="gcs-sheet-ion-content gcs-city-ion-content">
+            <!-- طلب خدمة: مدينة واحدة، اختيار مباشر بالنقر -->
+            <div
+              *ngIf="variant === 'requestMultiNoWhole'"
+              class="gcs-scroll gcs-sheet-scroll gcs-request-city-tap-list"
+              [style.max-height]="maxScrollHeight">
+              <button
+                type="button"
+                class="gcs-row gcs-sub gcs-single-city gcs-request-city-row"
+                *ngFor="let c of cgov.cities"
+                (click)="selectRequestCityFromModal(cgov, c, $event)">
+                <span class="gcs-label">{{ c.name }}</span>
+                <span class="gcs-spacer"></span>
+                <ion-icon
+                  *ngIf="isCityChosen(cgov.id, c.id)"
+                  name="checkmark-circle"
+                  class="gcs-picked"
+                  aria-hidden="true">
+                </ion-icon>
+              </button>
+            </div>
+
+            <ion-list *ngIf="variant !== 'requestMultiNoWhole'" lines="full" class="gcs-city-list">
+              <ion-item *ngIf="showWholeRow(cgov)" lines="full" class="gcs-city-item gcs-whole-item">
+                <ion-checkbox
+                  slot="start"
+                  [checked]="isWholeChosen(cgov.id)"
+                  (ionChange)="onWholeCheckboxChange(cgov, $event)">
+                </ion-checkbox>
+                <ion-label class="gcs-ion-label-strong">{{ governorateShort(cgov) }} — كل المدن</ion-label>
+              </ion-item>
+
+              <ion-item *ngFor="let c of cgov.cities" lines="full" class="gcs-city-item">
+                <ion-checkbox
+                  slot="start"
+                  [checked]="isCityChosen(cgov.id, c.id)"
+                  [disabled]="isWholeChosen(cgov.id)"
+                  (ionChange)="onCityCheckboxIonChange(cgov, c, $event)">
+                </ion-checkbox>
+                <ion-label>{{ c.name }}</ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-content>
+        </ng-container>
+      </ng-template>
+    </ion-modal>
+  </ng-container>
+</div>

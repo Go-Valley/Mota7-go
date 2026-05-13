@@ -1,6 +1,5 @@
 /**
- * Mirror logic: Mota7/src/app/core/services/provider-match.service.ts
- * جمع owner_phone لمقدّمي خدمات يُطابقون الطلب وفق نوع الخدمة والمفتاح.
+ * Mirror logic: جمع أرقام مقدّمي الخدمة المطابقين للطلب.
  */
 
 const admin = require('./require-firebase-admin.cjs');
@@ -11,7 +10,15 @@ const AD_TYPES_BY_SERVICE = {
   other: 'other',
 };
 
-const { normalizeMatchKeyForOrders } = require('./match-keys.cjs');
+const {
+  normalizeMatchKeyForOrders,
+} = require('./match-keys.cjs');
+const { normalizeProviderPhoneForLookup } = require('./phone-normalize.cjs');
+const {
+  deliveryOrderMatches,
+  educationOrderMatches,
+  otherOrderMatches,
+} = require('./service-order-match.cjs');
 
 /**
  * @param {FirebaseFirestore.Firestore} db
@@ -24,15 +31,16 @@ async function collectMatchedProviderPhones(db, order) {
     .toLowerCase();
 
   const adType = AD_TYPES_BY_SERVICE[svc];
+  /** @type {Set<string>} */
   const phones = new Set();
 
   if (!adType) {
     return phones;
   }
 
-  let fieldPath;
   /** @type {string | undefined | null} */
   let rawKey = null;
+  let fieldPath = '';
 
   if (svc === 'delivery') {
     fieldPath = 'delivery_match_key';
@@ -45,11 +53,6 @@ async function collectMatchedProviderPhones(db, order) {
     rawKey = order.other_match_key ?? null;
   }
 
-  const targetNorm = rawKey ? normalizeMatchKeyForOrders(String(rawKey)) : '';
-  if (!targetNorm) {
-    return phones;
-  }
-
   const snap = await db
     .collection('ads')
     .where('ad_type', '==', adType)
@@ -57,11 +60,37 @@ async function collectMatchedProviderPhones(db, order) {
     .get();
 
   for (const d of snap.docs) {
-    const ad = d.data() || {};
-    const adRaw = ad[fieldPath];
-    if (!adRaw) continue;
-    if (normalizeMatchKeyForOrders(String(adRaw)) === targetNorm) {
-      const p = String(ad.owner_phone || '').trim();
+    const ad = /** @type {Record<string, unknown>} */ (d.data() || {});
+
+    let hit = false;
+    if (svc === 'delivery') {
+      hit = deliveryOrderMatches(
+        /** @type {Record<string, unknown>} */ (order),
+        ad
+      );
+    } else if (svc === 'education') {
+      hit = educationOrderMatches(
+        /** @type {Record<string, unknown>} */ (order),
+        ad
+      );
+    } else {
+      hit = otherOrderMatches(
+        /** @type {Record<string, unknown>} */ (order),
+        ad
+      );
+    }
+
+    if (!hit && rawKey && ad[fieldPath]) {
+      if (
+        normalizeMatchKeyForOrders(String(ad[fieldPath])) ===
+        normalizeMatchKeyForOrders(String(rawKey))
+      ) {
+        hit = true;
+      }
+    }
+
+    if (hit) {
+      const p = normalizeProviderPhoneForLookup(String(ad.owner_phone || '').trim());
       if (p) phones.add(p);
     }
   }

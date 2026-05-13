@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
+import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { environment } from '../../../environments/environment';
@@ -11,6 +12,7 @@ import {
   parseOrderNtfyMessage,
   type ParsedOrderNtfy,
 } from '../utils/order-ntfy.util';
+import { ORDER_NOTIFY_ACTION_LINE_AR, isNtfyOrdersPipelineActive } from '../utils/ntfy-orders-policy.util';
 import { NewAdNtfyService } from './new-ad-ntfy.service';
 import { ProviderMatchService } from './provider-match.service';
 
@@ -157,9 +159,24 @@ export class NtfyListenerService {
 
     await this.newAdNtfy.prepareLocalNotifications();
 
-    const title = titleFromServer || 'طلب خدمة جديد';
-    const extra = 'افتح «طلبات العملاء» في الحساب للاطلاع والقبول.';
-    const body = `${parsed.preview.trim()}\n${extra}`;
+    /**
+     * في الخلفية يصل FCM من الخادم على قناة mota7-orders (talap).
+     * إن جدولنا إشعاراً محلياً من ntfy لنفس الحدث نحصل على صوتين — نكتفي بـ FCM.
+     * في المقدّمة لا يُعرض FCM تلقائياً غالباً، فيكفي الإشعار المحلي من SSE.
+     */
+    if (isNtfyOrdersPipelineActive() && Capacitor.isNativePlatform()) {
+      try {
+        const st = await App.getState();
+        if (!st?.isActive) {
+          return;
+        }
+      } catch {
+        /* إن فشل التحقق نُكمل الجدولة حتى لا يُفقد الإشعار */
+      }
+    }
+
+    const title = titleFromServer.trim() || 'Mota7: new order';
+    const body = `${parsed.preview.trim()}\n${ORDER_NOTIFY_ACTION_LINE_AR}`;
 
     try {
       const nid = Math.floor(Date.now() % 2147483640) + 1;

@@ -1,0 +1,168 @@
+<app-mota7-header 
+  title="إدارة المحافظات والمدن" 
+  [showBackButton]="true"
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content>
+  <div class="governorates-container">
+    
+    <!-- Add Governorate Button -->
+    <ion-button expand="block" (click)="addGovernorate()" class="add-btn">
+      <ion-icon name="add-outline" slot="start"></ion-icon>
+      إضافة محافظة جديدة
+    </ion-button>
+
+    <!-- Seed All Governorates Button -->
+    <ion-button expand="block" (click)="seedAllGovernorates()" class="seed-btn" fill="outline">
+      <ion-icon name="save-outline" slot="start"></ion-icon>
+      إضافة جميع المحافظات والمدن
+    </ion-button>
+
+    <!-- Governorate Form Modal -->
+    <div class="form-modal" *ngIf="showGovernorateForm">
+      <div class="form-content">
+        <h3>{{ editingGovernorate?.id ? 'تعديل المحافظة' : 'إضافة محافظة جديدة' }}</h3>
+        
+        <ion-item>
+          <ion-label position="floating">اسم المحافظة</ion-label>
+          <ion-input [(ngModel)]="editingGovernorate.name" type="text"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">الترتيب</ion-label>
+          <ion-input [(ngModel)]="editingGovernorate.order" type="number"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label>حالة النشاط</ion-label>
+          <ion-toggle [(ngModel)]="editingGovernorate.active"></ion-toggle>
+        </ion-item>
+
+        <div class="form-actions">
+          <ion-button (click)="saveGovernorate()" fill="solid" color="success">
+            <ion-icon name="save-outline" slot="start"></ion-icon>
+            حفظ
+          </ion-button>
+          <ion-button (click)="cancelGovernorateForm()" fill="solid" color="danger">
+            <ion-icon name="close-outline" slot="start"></ion-icon>
+            إلغاء
+          </ion-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Governorates List -->
+    <div class="governorates-list">
+      <div class="governorate-item" *ngFor="let governorate of governorates; let i = index">
+        <div class="governorate-header" (click)="toggleGovernorate(governorate.id)">
+          <div class="governorate-info">
+            <ion-icon name="location-outline"></ion-icon>
+            <span class="governorate-name">{{ governorate.name }}</span>
+            <span class="order-badge">{{ governorate.order }}</span>
+            <ion-badge [color]="governorate.active ? 'success' : 'medium'">
+              {{ governorate.active ? 'نشط' : 'معطل' }}
+            </ion-badge>
+          </div>
+          <div class="governorate-actions">
+            <ion-icon 
+              [name]="expandedGovernorates.has(governorate.id) ? 'chevron-up-outline' : 'chevron-down-outline'">
+            </ion-icon>
+          </div>
+        </div>
+
+        <!-- Governorate Control Buttons -->
+        <div class="governorate-controls">
+          <ion-button size="small" (click)="editGovernorate(governorate)">
+            <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button size="small" (click)="toggleGovernorateActive(governorate)" [color]="governorate.active ? 'warning' : 'success'">
+            <ion-icon [name]="governorate.active ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button size="small" (click)="moveGovernorateUp(i)" [disabled]="i === 0">
+            <ion-icon name="chevron-up-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button size="small" (click)="moveGovernorateDown(i)" [disabled]="i === governorates.length - 1">
+            <ion-icon name="chevron-down-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button size="small" color="danger" (click)="deleteGovernorate(governorate)">
+            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button size="small" (click)="seedCitiesForGovernorate(governorate)" color="tertiary">
+            <ion-icon name="save-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Cities List (Expanded) -->
+        <div class="cities-list" *ngIf="expandedGovernorates.has(governorate.id)">
+          <ion-button size="small" (click)="addCity(governorate.id)" class="add-city-btn">
+            <ion-icon name="add-outline" slot="start"></ion-icon>
+            إضافة مدينة
+          </ion-button>
+
+          <!-- City Form Modal -->
+          <div class="form-modal city-form" *ngIf="showCityForm && editingCity && editingCity.governorateId === governorate.id">
+            <div class="form-content">
+              <h3>{{ editingCity.id ? 'تعديل المدينة' : 'إضافة مدينة جديدة' }}</h3>
+              
+              <ion-item>
+                <ion-label position="floating">اسم المدينة</ion-label>
+                <ion-input [(ngModel)]="editingCity.name" type="text"></ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="floating">الترتيب</ion-label>
+                <ion-input [(ngModel)]="editingCity.order" type="number"></ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>حالة النشاط</ion-label>
+                <ion-toggle [(ngModel)]="editingCity.active"></ion-toggle>
+              </ion-item>
+
+              <div class="form-actions">
+                <ion-button (click)="saveCity()" fill="solid" color="success">
+                  <ion-icon name="save-outline" slot="start"></ion-icon>
+                  حفظ
+                </ion-button>
+                <ion-button (click)="cancelCityForm()" fill="solid" color="danger">
+                  <ion-icon name="close-outline" slot="start"></ion-icon>
+                  إلغاء
+                </ion-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cities Items -->
+          <div class="city-item" *ngFor="let city of getCities(governorate.id); let j = index">
+            <div class="city-info">
+              <ion-icon name="location-outline"></ion-icon>
+              <span class="city-name">{{ city.name }}</span>
+              <span class="order-badge">{{ city.order }}</span>
+              <ion-badge [color]="city.active ? 'success' : 'medium'">
+                {{ city.active ? 'نشط' : 'معطل' }}
+              </ion-badge>
+            </div>
+            <div class="city-actions">
+              <ion-button size="small" (click)="editCity(city)">
+                <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button size="small" (click)="toggleCityActive(city)" [color]="city.active ? 'warning' : 'success'">
+                <ion-icon [name]="city.active ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button size="small" (click)="moveCityUp(governorate.id, j)" [disabled]="j === 0">
+                <ion-icon name="chevron-up-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button size="small" (click)="moveCityDown(governorate.id, j)" [disabled]="j === getCities(governorate.id).length - 1">
+                <ion-icon name="chevron-down-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button size="small" color="danger" (click)="deleteCity(city)">
+                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

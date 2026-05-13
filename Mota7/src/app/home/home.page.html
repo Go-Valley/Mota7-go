@@ -33,26 +33,40 @@
     </button>
   </div>
   
-  <div class="city-popover" *ngIf="showCityPopover" (click)="$event.stopPropagation()">
-    <button type="button" class="city-option" (click)="selectCity('الكل')">
-      <ion-icon name="globe-outline"></ion-icon>
-      <span>الكل</span>
-    </button>
-    <button type="button" class="city-option" (click)="selectCity('الخارجة')">
-      <ion-icon name="location-outline"></ion-icon>
-      <span>الخارجة</span>
-    </button>
-    <button type="button" class="city-option" (click)="selectCity('الداخلة')">
-      <ion-icon name="location-outline"></ion-icon>
-      <span>الداخلة</span>
-    </button>
-  </div>
 </div>
 
-<div class="city-popover-backdrop" 
-     *ngIf="showCityPopover && selectedCategory" 
-     (click)="closeCityPopover()">
-</div>
+<ion-modal
+  class="home-city-sheet gcs-sheet-modal"
+  [isOpen]="showCityPopover && !!selectedCategory"
+  (didDismiss)="closeCityPopover()"
+  [initialBreakpoint]="0.88"
+  [breakpoints]="[0, 0.45, 0.72, 0.88]"
+  [backdropDismiss]="true"
+  [handle]="true">
+  <ng-template>
+    <ion-header class="ion-no-border home-city-sheet-head gcs-sheet-head">
+      <ion-toolbar class="gcs-sheet-toolbar-unified">
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeCityPopover()">إغلاق</ion-button>
+        </ion-buttons>
+        <ion-title class="gcs-sheet-ion-title-host">
+          <div class="gcs-sheet-title-cluster" dir="ltr">
+            <ion-icon name="chevron-back-outline" class="gcs-sheet-title-cluster-chev" aria-hidden="true"></ion-icon>
+            <span class="gcs-sheet-title-cluster-text" dir="rtl">المدينة</span>
+          </div>
+        </ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="home-city-sheet-body gcs-sheet-ion-content">
+      <p class="home-city-sheet-hint">وسّع محافظة ثم حدّد المدن</p>
+      <app-governorate-city-selector
+        variant="hubMulti"
+        [maxScrollHeight]="'min(420px, 58vh)'"
+        (hubSelectionChange)="onHubGeoSelection($event)">
+      </app-governorate-city-selector>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
 <ion-content [fullscreen]="true" (click)="onGlobalClick()">
   
@@ -153,7 +167,7 @@
             <app-store-home-card
               *ngSwitchCase="'store'"
               [ad]="ad"
-              (cityFilter)="selectCity($event)">
+              (cityFilter)="onCityFilterFromChip($event)">
             </app-store-home-card>
           </ng-container>
         </ng-container>
@@ -255,7 +269,7 @@
         <app-store-home-card
           *ngFor="let ad of adsList; trackBy: trackByAdId"
           [ad]="ad"
-          (cityFilter)="selectCity($event)">
+          (cityFilter)="onCityFilterFromChip($event)">
         </app-store-home-card>
       </ng-container>
 

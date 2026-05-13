@@ -8,6 +8,7 @@ import {
   mailUnreadOutline,
   fingerPrintOutline,
   keyOutline,
+  locationOutline,
 } from 'ionicons/icons';
 
 import { routes } from './app/app.routes';
@@ -24,6 +25,7 @@ addIcons({
   'mail-unread-outline': mailUnreadOutline,
   'finger-print-outline': fingerPrintOutline,
   'key-outline': keyOutline,
+  'location-outline': locationOutline,
 });
 
 bootstrapApplication(AppComponent, {

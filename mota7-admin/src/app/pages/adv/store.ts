@@ -21,6 +21,7 @@ import { STORES_CATEGORIES_DATA } from '@mota7-app/core/constants/stores-data';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
+import { formatAdCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 
 @Component({
   selector: 'app-store-card',
@@ -178,6 +179,10 @@ export class StoreCard implements OnInit {
     });
 
     await alert.present();
+  }
+
+  coverageDisplay(ad: unknown): string {
+    return formatAdCoverageDisplay((ad ?? {}) as any);
   }
 
   toggleProducts(event: Event) {

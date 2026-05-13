@@ -8,11 +8,12 @@ import {
   runInInjectionContext,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, IonInput, IonTextarea, LoadingController, ModalController } from '@ionic/angular';
+import { AlertController, IonInput, IonTextarea, LoadingController, ModalController, NavController } from '@ionic/angular';
 import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
 import { Auth } from '@angular/fire/auth';
 import { Firestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
+import { SparkOrderFcmJobService } from '../../core/services/spark-order-fcm-job.service';
 import {
   applyOrderPhoneInputState,
   isOrderPhoneValid,
@@ -22,7 +23,6 @@ import {
 } from '../../core/utils/egyptian-phone-order.util';
 import {
   findMatchingNameArItem,
-  findMatchingStringInList,
   findMatchingSubject,
   normalizeUserFreeText,
   readIonTextInputValueFromEvent,
@@ -32,6 +32,7 @@ import {
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
+import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
 
 @Component({
   selector: 'app-educational-service',
@@ -48,8 +49,8 @@ export class EducationalServiceComponent implements OnInit {
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
   educationItems = [...EDUCATION_CATEGORY.items];
-  /** تطابق قيم ion-select حتى لا تبقى المدينة فارغة منطقياً عند جلب مدينة غير مدعومة من الملف الشخصي */
-  private readonly orderCityOptions = ['الخارجة', 'الداخلة'] as const;
+  requestCoverageCityIds: string[] = [];
+  requestCoverageArabic: string[] = [];
   availableSubjects: string[] = [];
   phoneLiveWarning: string | null = null;
   
@@ -58,6 +59,7 @@ export class EducationalServiceComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(Injector);
   private newOrderNtfy = inject(NewOrderNtfyService);
+  private sparkOrderJobs = inject(SparkOrderFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -73,7 +75,8 @@ export class EducationalServiceComponent implements OnInit {
 
   constructor(
     private modalCtrl: ModalController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private navCtrl: NavController
   ) {}
 
   async ngOnInit() {
@@ -198,9 +201,9 @@ export class EducationalServiceComponent implements OnInit {
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
           const profileCity = String(data['city'] ?? '').trim();
-          this.orderData.city =
-            findMatchingStringInList(this.orderCityOptions as readonly string[], profileCity) ??
-            '';
+          if (profileCity && !this.requestCoverageCityIds.length) {
+            this.orderData.city = profileCity;
+          }
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -225,6 +228,12 @@ export class EducationalServiceComponent implements OnInit {
     this.modalCtrl.dismiss(null, 'cancel');
   }
 
+  onRequestCoverage(ev: CoverageMultiEmit): void {
+    this.requestCoverageCityIds = [...(ev.cityIds || [])];
+    this.requestCoverageArabic = [...(ev.arabicTokens || [])];
+    this.orderData.city = (ev.primaryCityDisplay || '').trim() || this.orderData.city;
+  }
+
   async submitOrder() {
     if (this.hubQuickEntry) {
       await this.submitHubQuickEducationOrder();
@@ -240,16 +249,12 @@ export class EducationalServiceComponent implements OnInit {
     this.orderData.subject = (this.orderData.subject || '').trim();
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const prefilledCity = this.orderData.city;
+
+    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
-
-    const cityMatch = findMatchingStringInList(
-      this.orderCityOptions as readonly string[],
-      this.orderData.city
-    );
-    const cityValid = !!cityMatch;
-    const canonicalCity = cityMatch ?? '';
 
     const stageItem = findMatchingNameArItem(this.educationItems, this.orderData.stage);
     let stageId = (this.orderData.stageId || '').trim();
@@ -271,8 +276,8 @@ export class EducationalServiceComponent implements OnInit {
     if (!customerPhone) {
       missingParts.push('رقم الهاتف');
     }
-    if (!cityValid) {
-      missingParts.push('المدينة');
+    if (!covIds.length && !prefilledCity) {
+      missingParts.push('المدينة (من القائمة)');
     }
     if (!stageOk) {
       missingParts.push('المرحلة التعليمية');
@@ -291,11 +296,22 @@ export class EducationalServiceComponent implements OnInit {
       return;
     }
 
-    this.orderData.city = canonicalCity;
+    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
+    const city =
+      cityDisplayTokens.join('، ') ||
+      String(this.orderData.city || '').trim();
+    const scopeSig = covIds.join('__');
+    const education_subject_token =
+      `${stage}+${canonicalSubject}`;
+    const education_match_key =
+      scopeSig.length > 0
+        ? `${stage}+${canonicalSubject}+SCOPE__${scopeSig}`
+        : `${stage}+${canonicalSubject}+${city}`;
+
+    this.orderData.city = city;
     this.orderData.stage = stage;
     this.orderData.subject = canonicalSubject;
     const subject = canonicalSubject;
-    const city = canonicalCity;
 
     const loader = await this.loadingCtrl.create({ 
       message: 'جاري معالجة طلبك...', 
@@ -334,7 +350,6 @@ export class EducationalServiceComponent implements OnInit {
       }
 
       // --- 2. إعداد المعرف الفريد للمستند (Phone + Education Key) ---
-      const education_match_key = `${stage}+${subject}+${city}`;
       const customDocId = `${customerPhone}_${education_match_key}`;
       const now = Date.now();
 
@@ -376,6 +391,8 @@ export class EducationalServiceComponent implements OnInit {
           subjectName: subject,
           shortNote: shortNote || '',
           city: city,
+          order_coverage_city_ids: covIds,
+          education_subject_token: education_subject_token,
           education_match_key: education_match_key,
           serviceType: 'education',
           status: 'pending',
@@ -384,11 +401,13 @@ export class EducationalServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone);
+      writeGuestOrderContact(customerName, customerPhone, city);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
+      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
 
       await loader.dismiss();
-      this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.navCtrl.navigateRoot('/tabs/my-order');
 
     } catch {
       await loader.dismiss();
@@ -412,16 +431,12 @@ export class EducationalServiceComponent implements OnInit {
     this.phoneLiveWarning = phoneSt.warning;
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const prefilledCity = this.orderData.city;
+
+    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
-
-    const cityMatch = findMatchingStringInList(
-      this.orderCityOptions as readonly string[],
-      this.orderData.city
-    );
-    const cityValid = !!cityMatch;
-    const canonicalCity = cityMatch ?? '';
 
     const missingParts: string[] = [];
     if (!customerName) {
@@ -430,8 +445,8 @@ export class EducationalServiceComponent implements OnInit {
     if (!customerPhone) {
       missingParts.push('رقم الهاتف');
     }
-    if (!cityValid) {
-      missingParts.push('المدينة');
+    if (!covIds.length && !prefilledCity) {
+      missingParts.push('المدينة (من القائمة)');
     }
 
     if (missingParts.length > 0) {
@@ -447,8 +462,17 @@ export class EducationalServiceComponent implements OnInit {
     const stage = 'دروس خصوصية';
     const stageId = 'hub-general';
     const subject = 'غير محدد';
-    const city = canonicalCity;
-    const education_match_key = `${stage}+${subject}+${city}`;
+    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
+    const city =
+      cityDisplayTokens.join('، ') ||
+      String(this.orderData.city || '').trim();
+    const scopeSig = covIds.join('__');
+    const education_subject_token = `${stage}+${subject}`;
+    const education_match_key =
+      scopeSig.length > 0
+        ? `${stage}+${subject}+SCOPE__${scopeSig}`
+        : `${stage}+${subject}+${city}`;
+    this.orderData.city = city;
     const customDocId = `${customerPhone}_${education_match_key}`;
     const now = Date.now();
 
@@ -518,6 +542,8 @@ export class EducationalServiceComponent implements OnInit {
           subjectName: subject,
           shortNote: shortNote || '',
           city: city,
+          order_coverage_city_ids: covIds,
+          education_subject_token: education_subject_token,
           education_match_key: education_match_key,
           serviceType: 'education',
           status: 'pending',
@@ -526,11 +552,13 @@ export class EducationalServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone);
+      writeGuestOrderContact(customerName, customerPhone, city);
       void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
+      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
 
       await loader.dismiss();
-      this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
+      await this.navCtrl.navigateRoot('/tabs/my-order');
     } catch {
       await loader.dismiss();
       await this.showAlert('خطأ', 'حدثت مشكلة أثناء إرسال الطلب، حاول مرة أخرى.');

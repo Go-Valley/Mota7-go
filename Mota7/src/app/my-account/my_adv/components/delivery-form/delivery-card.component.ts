@@ -30,6 +30,7 @@ import { AdCardEngagementRowComponent } from '../../../../home/shared/ad-card-en
 import { computeMyAdManageCardFaded } from '../shared/my-ad-manage-card-fade.util';
 import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
 import { AppTaxonomyService } from '../../../../core/services/app-taxonomy.service';
+import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
 
 @Component({
   selector: 'app-delivery-card',
@@ -229,5 +230,9 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
     });
 
     await modal.present();
+  }
+
+  coverageDisplay(ad: any): string {
+    return formatAdCoverageDisplay(ad ?? {});
   }
 }

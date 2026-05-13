@@ -16,6 +16,7 @@ import {
   orderFieldToMs,
 } from '../../core/utils/delivery-maps-admin.util';
 import { presentAdminOrderCardEdit } from '../../core/utils/admin-order-card-edit.util';
+import { formatOrderCoverageDisplay } from '../../core/utils/ad-coverage-display.util';
 import { addIcons } from 'ionicons';
 import { 
   searchOutline, checkmarkCircle, logoWhatsapp, createOutline, 
@@ -221,6 +222,10 @@ filterOrders() {
       Number(cLng)
     );
     await openMapsUrlWithFallback(url);
+  }
+
+  orderCoverageLabel(order: unknown): string {
+    return formatOrderCoverageDisplay((order ?? {}) as Record<string, unknown>);
   }
 
   private async presentToast(message: string): Promise<void> {

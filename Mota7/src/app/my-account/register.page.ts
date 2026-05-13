@@ -31,6 +31,11 @@ import {
   readIonTextInputValueFromEvent,
 } from '../core/utils/order-form-fields.util';
 
+import {
+  GovernorateCitySelectorComponent,
+  type SingleCityEmit,
+} from '../shared/governorate-city-selector/governorate-city-selector.component';
+
 import { 
   personAddOutline, 
   personOutline, 
@@ -47,7 +52,7 @@ import {
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
+  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule, GovernorateCitySelectorComponent],
 })
 export class RegisterPage implements OnInit, OnDestroy {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
@@ -59,12 +64,13 @@ export class RegisterPage implements OnInit, OnDestroy {
 
   phoneLiveWarning: string | null = null;
   private readonly fullNameMaxLen = 25;
+  selectedCityGeo: SingleCityEmit | null = null;
 
   // تم إضافة حقل city هنا
   userData = {
     fullName: '',
     phone: '',
-    city: 'الخارجة', // قيمة افتراضية
+    city: '',
     email: '', 
     password: '',
     confirmPassword: ''
@@ -95,6 +101,11 @@ export class RegisterPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.hardwareBackSub = subscribeHardwareBackToMyAccount(this.platform, this.navCtrl);
+  }
+
+  onRegisterCityPick(ev: SingleCityEmit): void {
+    this.selectedCityGeo = ev;
+    this.userData.city = ev.cityNameAr || '';
   }
 
   ngOnDestroy(): void {
@@ -296,7 +307,7 @@ export class RegisterPage implements OnInit, OnDestroy {
     this.phoneLiveWarning = getOrderPhoneFieldLiveWarning(phoneSt.cleaned, false);
 
     // التحقق من إدخال المدينة أيضاً
-    if (!this.userData.fullName || !this.userData.phone || !this.userData.password || !this.userData.city) {
+    if (!this.userData.fullName || !this.userData.phone || !this.userData.password || !this.selectedCityGeo?.cityId) {
       this.showToast('يرجى ملء جميع البيانات الأساسية');
       return;
     }
@@ -332,7 +343,10 @@ export class RegisterPage implements OnInit, OnDestroy {
           uid: uid,
           fullName: this.userData.fullName,
           phone: finalPhone,
-          city: this.userData.city,
+          city: this.selectedCityGeo?.cityNameAr ?? this.userData.city,
+          governorate_id: this.selectedCityGeo?.governorateId ?? '',
+          city_id: this.selectedCityGeo?.cityId ?? '',
+          governorate_name_ar: this.selectedCityGeo?.governorateNameAr ?? '',
           systemEmail: systemAuthEmail,
           personalEmail: this.userData.email || '',
           createdAt: new Date().toISOString(),

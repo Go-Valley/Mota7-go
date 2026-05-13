@@ -59,18 +59,15 @@
       </ion-item>
 
       <ion-label class="input-label">المدينة</ion-label>
-      <ion-item lines="none" class="custom-input city-select-item">
-        <ion-icon name="location-outline" slot="start"></ion-icon>
-        <ion-select [(ngModel)]="userData.city"
-                    interface="action-sheet"
-                    mode="ios"
-                    placeholder="اختر المدينة"
-                    cancelText="إلغاء"
-                    (ionOpen)="onCitySelectOpen()">
-          <ion-select-option value="الخارجة">الخارجة</ion-select-option>
-          <ion-select-option value="الداخلة">الداخلة</ion-select-option>
-        </ion-select>
-      </ion-item>
+      <app-governorate-city-selector
+        variant="signupSingle"
+        fieldLabel="المدينة"
+        placeholder="اضغط لاختيار المحافظة ثم المدينة"
+        [displaySummary]="userData.city"
+        [seedSingleSelection]="profileGeoSeed"
+        [maxScrollHeight]="'min(320px, 50vh)'"
+        (singleCityChange)="onProfileCityPick($event)">
+      </app-governorate-city-selector>
 
       <ion-label class="input-label">البريد الإلكتروني</ion-label>
       <ion-item lines="none" class="custom-input">

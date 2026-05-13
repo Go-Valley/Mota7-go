@@ -3,11 +3,30 @@
  */
 
 const admin = require('./require-firebase-admin.cjs');
+const { normalizeProviderPhoneForLookup } = require('./phone-normalize.cjs');
 
 const ADMIN_TOPIC = 'admin_all';
 
 const IN_CHUNK = 30;
 const MULTICAST_CHUNK = 500;
+
+/**
+ * يوسّع قائمة الأرقام بصيغ متعددة (قديمة/موحّدة) لمطابقة مستندات device_tokens التاريخية.
+ * @param {string[]} phones
+ */
+function expandPhonesForTokenLookup(phones) {
+  const out = new Set();
+  for (const p of phones) {
+    const raw = String(p || '').trim();
+    if (!raw) continue;
+    out.add(raw);
+    const n = normalizeProviderPhoneForLookup(raw);
+    if (n && n !== raw) {
+      out.add(n);
+    }
+  }
+  return [...out];
+}
 
 /**
  * @param {FirebaseFirestore.Firestore} db
@@ -18,9 +37,10 @@ async function getMota7TokensForPhones(db, ownerPhonesNormalized) {
   const uniq = [
     ...new Set(ownerPhonesNormalized.map((x) => String(x || '').trim()).filter(Boolean)),
   ];
+  const expanded = expandPhonesForTokenLookup(uniq);
 
-  for (let i = 0; i < uniq.length; i += IN_CHUNK) {
-    const chunk = uniq.slice(i, i + IN_CHUNK);
+  for (let i = 0; i < expanded.length; i += IN_CHUNK) {
+    const chunk = expanded.slice(i, i + IN_CHUNK);
     if (!chunk.length) continue;
     const q = await db
       .collection('device_tokens')
@@ -83,15 +103,26 @@ async function messagingSendMulticastChunked(tokens, notification, dataPayload) 
     data[k] = typeof v === 'string' ? v : JSON.stringify(v);
   }
 
+  const isOrderNew = String(dataPayload?.kind || '') === 'order_new';
+
+  const androidCfg = {
+    priority: 'high',
+  };
+  if (isOrderNew) {
+    /** يطابق قناة التطبيق mota7-orders وملف res/raw/talap.mp3 بعد المزامنة من Assets */
+    androidCfg.notification = {
+      channelId: 'mota7-orders',
+      sound: 'talap',
+    };
+  }
+
   const payload = {
     notification: {
       title: notification.title || 'مُتاح',
       body: notification.body || '',
     },
     data,
-    android: {
-      priority: 'high',
-    },
+    android: androidCfg,
     apns: {
       payload: {
         aps: {

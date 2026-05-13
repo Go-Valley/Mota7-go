@@ -21,7 +21,12 @@
   <div class="map-shell" [class.map-shell--tracking]="mode === 'tracking'">
     <div #mapHost class="map-canvas"></div>
 
-    <div class="center-pin" *ngIf="mode === 'destination'" aria-hidden="true">
+    <div
+      class="center-pin"
+      *ngIf="mode === 'destination'"
+      [class.center-pin--gps-pulse]="accentOriginGpsPick"
+      aria-hidden="true"
+    >
       <div class="pin-head"></div>
       <div class="pin-stem"></div>
       <div class="pin-shadow"></div>

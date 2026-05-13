@@ -30,12 +30,16 @@ import {
 import { canonicalTierForFirestore } from '../../../../core/utils/verification-tiers.util';
 import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 
+import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+
 @Component({
   selector: 'app-product-form',
   templateUrl: './product-form.component.html',
   styleUrls: ['./product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
 })
 export class ProductFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -89,6 +93,15 @@ export class ProductFormComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+
+  userGovernorateId: string | null = null;
+  userCityId: string | null = null;
+  coverageCityIdsForAd: string[] = [];
+
+  onCoverageAreas(ev: CoverageMultiEmit): void {
+    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
+    this.productData.city = (ev.primaryCityDisplay || '').trim() || this.productData.city;
+  }
 
   private currentStore: any = null; 
 
@@ -158,6 +171,7 @@ export class ProductFormComponent implements OnInit {
       lng: d.location?.lng || 0,
       city: d.city || ''
     };
+    this.coverageCityIdsForAd = uniqSortedCityIds(d.coverage_city_ids);
     this.imagePublicIds = imgs.map((_, i) => existingIds[i] || null);
     this.onMainCategoryChange(false); 
   }
@@ -176,7 +190,14 @@ export class ProductFormComponent implements OnInit {
           this.fetchedOwnerName = data['fullName'] || data['name'] || 'مستخدم متاح';
           this.productData.contactPhone = data['phone'] || '';
           this.productData.whatsappPhone = data['phone'] || '';
-          this.productData.city = data['city'] || 'الخارجة';
+          const gid = String(data['governorate_id'] ?? '').trim();
+          this.userGovernorateId = gid || null;
+          const cid = String(data['city_id'] ?? '').trim();
+          this.userCityId = cid || null;
+          this.productData.city = data['city'] || '';
+          if (!this.isEditMode && this.userCityId) {
+            this.coverageCityIdsForAd = [this.userCityId];
+          }
           this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
         }
       } catch (e) {
@@ -465,6 +486,15 @@ async saveProduct(isStoreProduct: boolean = false) {
     this.presentToast('يرجى إكمال الحقول الإجبارية');
     return;
   }
+  if (!this.coverageCityIdsForAd?.length) {
+    if (!this.isEditMode && this.userCityId) {
+      this.coverageCityIdsForAd = [this.userCityId];
+    }
+  }
+  if (!this.coverageCityIdsForAd?.length) {
+    this.presentToast('يرجى تحديد المناطق / المدن التي يغطيها إعلان المنتج ضمن محافظتك');
+    return;
+  }
 
   const priceDigits = this.toEnglishDigits(this.priceInputStr).replace(/\D/g, '');
   const priceNorm = priceDigits.replace(/^0+/, '') || '';
@@ -508,6 +538,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         is_verified: verifyTier,
         sort_order: 999,
         city: this.productData.city,
+        coverage_city_ids: [...this.coverageCityIdsForAd],
         location: { lat: this.productData.lat, lng: this.productData.lng },
         isStoreProduct: isStoreProduct,
         updated_at: serverTimestamp(),

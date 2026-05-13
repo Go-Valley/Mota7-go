@@ -61,6 +61,8 @@ async function notifyOrderCreated(orderId, order) {
   if (String(order.status || '') !== 'pending') return;
   const db = admin.firestore();
   const preview = shortOrderPreview(order);
+  const orderBodySuffix =
+    'افتح «طلبات العملاء» في الحساب للاطلاع والقبول.';
 
   await notifyAdminTopic(
     'طلب خدمة جديد (معلق)',
@@ -82,8 +84,8 @@ async function notifyOrderCreated(orderId, order) {
   await messagingSendMulticastChunked(
     tokens,
     {
-      title: 'طلب خدمة جديد',
-      body: `${preview}\nافتح «طلبات العملاء» للاطلاع.`,
+      title: 'Mota7: new order',
+      body: `${preview}\n${orderBodySuffix}`,
     },
     {
       kind: 'order_new',

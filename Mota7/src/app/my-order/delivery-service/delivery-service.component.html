@@ -33,19 +33,9 @@
           placeholder="المكان الحالي">
         </ion-input>
         
-        <ion-button expand="block" fill="outline" [class.location-success]="orderData.lat !== 0" class="mota7-location-btn" (click)="getCurrentLocation()">
+        <ion-button expand="block" fill="outline" [class.location-success]="orderData.lat !== 0" class="mota7-location-btn" (click)="getCurrentLocation(true)">
           <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'location-outline'" slot="start"></ion-icon>
           {{ (orderData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد مكانك الحالي' }}
-        </ion-button>
-        <ion-button
-          expand="block"
-          fill="outline"
-          [class.location-success]="orderData.lat !== 0"
-          class="mota7-location-btn"
-          (click)="pickFromLocationFromMap()"
-        >
-          <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'map-outline'" slot="start"></ion-icon>
-          {{ (orderData.lat !== 0) ? 'تم تحديد نقطة الانطلاق من الخريطة' : 'حدد نقطة الانطلاق على الخريطة' }}
         </ion-button>
       </div>
 
@@ -125,14 +115,15 @@
       </div>
 
       <div class="input-group">
-        <label class="main-label">المدينة : <span>*</span></label>
-        <ion-select [(ngModel)]="orderData.city" 
-                    interface="action-sheet" 
-                    mode="ios" 
-                    placeholder="اختر المدينة"
-                    cancelText="إلغاء">
-          <ion-select-option *ngFor="let city of availableCities" [value]="city">{{city}}</ion-select-option>
-        </ion-select>
+        <label class="geo-field-label">المدينة : <span>*</span></label>
+        <app-governorate-city-selector
+          variant="requestMultiNoWhole"
+          fieldLabel="اختر مكان تواجدك"
+          placeholder="اضغط لاختيار مكان تواجدك"
+          [displaySummary]="orderData.city"
+          [maxScrollHeight]="'min(260px, 42vh)'"
+          (coverageMultiChange)="onRequestCoverage($event)">
+        </app-governorate-city-selector>
       </div>
 
       <div class="footer-action">

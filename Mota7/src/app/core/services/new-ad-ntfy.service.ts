@@ -10,8 +10,9 @@ import {
 
 /**
  * بعد نشر إعلان جديد: إشعار محلي لصاحب الإعلان + نشر على ntfy لبقية المشتركين.
- * نغمة mota7.mp3: يجب أن يكون الملف في `src/assets` ويُنسَخ إلى `android/.../res/raw/`
- * (مهمة Gradle `syncNotificationSoundFromAssets` أو `node scripts/copy-notification-sound.js` مع البناء).
+ * إعلانات: نغمة mota7.mp3 — طلبات العملاء (مقدمو الخدمة): talap.mp3.
+ * يجب أن تكون الملفات في `src/assets` وتُنسَخ إلى `android/.../res/raw/`
+ * (مهمة Gradle `syncNotificationSoundFromAssets` أو `copy-notification-sound.js` مع البناء).
  * إن وُجدت القنوات سابقاً بدون صوت، قد تحتاج لمسح بيانات التطبيق أو إعادة تثبيت حتى يظهر الصوت في إعدادات أندرويد.
  */
 @Injectable({ providedIn: 'root' })
@@ -159,7 +160,7 @@ export class NewAdNtfyService {
           description: 'تنبيهات الطلبات الجديدة لمقدمي الخدمة',
           importance: 5,
           vibration: true,
-          sound: 'mota7.mp3',
+          sound: 'talap.mp3',
         });
       } catch {
         /* ignore */

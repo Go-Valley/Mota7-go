@@ -47,7 +47,7 @@
       <div class="chips-row">
         <div class="grid-item city-box">
           <ion-icon name="location-outline"></ion-icon>
-          <span class="chip-label">{{ ad.city || 'غير محدد' }}</span>
+          <span class="chip-label">{{ coverageDisplay(ad) }}</span>
         </div>
         <div class="grid-item status-toggle"
              [class.active]="ad.details?.is_available"
@@ -71,7 +71,7 @@
       <div class="chips-row chips-row--all">
         <div class="grid-item city-box">
           <ion-icon name="location-outline"></ion-icon>
-          <span class="chip-label">{{ ad.city || 'غير محدد' }}</span>
+          <span class="chip-label">{{ coverageDisplay(ad) }}</span>
         </div>
         <div class="grid-item status-toggle"
              [class.active]="ad.details?.is_available"

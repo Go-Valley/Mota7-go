@@ -60,31 +60,41 @@ const { runSparkFcmOnce } = require('./reconcile-spark-fcm.cjs');
 (async () => {
   let quotaHit = false;
 
-  const deleted = await sweep.sweepExpiredPendingOrders().catch((e) => {
-    if (isQuotaExhausted(e)) {
-      console.warn('[WARN] Firestore quota exceeded during sweep pending — skipping this cycle.');
-      quotaHit = true;
-    } else {
-      console.error('Sweep pending:', e);
-    }
-    return 0;
-  });
+  const disableSweep =
+    String(process.env.SPARK_DISABLE_SWEEP || '').trim() === '1' ||
+    String(process.env.SPARK_DISABLE_SWEEP || '').trim().toLowerCase() === 'true';
 
-  const autoCompleted = await sweep.sweepExpiredAcceptedOrders().catch((e) => {
-    if (isQuotaExhausted(e)) {
-      console.warn('[WARN] Firestore quota exceeded during sweep accepted — skipping this cycle.');
-      quotaHit = true;
-    } else {
-      console.error('Sweep accepted:', e);
-    }
-    return 0;
-  });
+  let deleted = 0;
+  let autoCompleted = 0;
+  if (!disableSweep) {
+    deleted = await sweep.sweepExpiredPendingOrders().catch((e) => {
+      if (isQuotaExhausted(e)) {
+        console.warn('[WARN] Firestore quota exceeded during sweep pending — skipping this cycle.');
+        quotaHit = true;
+      } else {
+        console.error('Sweep pending:', e);
+      }
+      return 0;
+    });
 
-  if (deleted || autoCompleted) {
-    console.log(`Order sweep: deleted_pending=${deleted} auto_completed_accepted=${autoCompleted}`);
+    autoCompleted = await sweep.sweepExpiredAcceptedOrders().catch((e) => {
+      if (isQuotaExhausted(e)) {
+        console.warn('[WARN] Firestore quota exceeded during sweep accepted — skipping this cycle.');
+        quotaHit = true;
+      } else {
+        console.error('Sweep accepted:', e);
+      }
+      return 0;
+    });
+
+    if (deleted || autoCompleted) {
+      console.log(`Order sweep: deleted_pending=${deleted} auto_completed_accepted=${autoCompleted}`);
+    }
+  } else {
+    console.log('[Spark] sweep disabled by SPARK_DISABLE_SWEEP');
   }
 
-  let fcm = { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0 };
+  let fcm = { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0, ordJobs: 0 };
   if (!quotaHit) {
     fcm = await runSparkFcmOnce().catch((e) => {
       if (isQuotaExhausted(e)) {
@@ -93,7 +103,7 @@ const { runSparkFcmOnce } = require('./reconcile-spark-fcm.cjs');
       } else {
         console.error('FCM reconcile:', e);
       }
-      return { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0 };
+      return { ordNew: 0, shopNew: 0, ordDone: 0, jobs: 0, ordJobs: 0 };
     });
   }
 
@@ -103,6 +113,7 @@ const { runSparkFcmOnce } = require('./reconcile-spark-fcm.cjs');
       spark_fcm_shop_new_notified: fcm.shopNew,
       spark_fcm_ord_completed_notified: fcm.ordDone,
       spark_fcm_ad_jobs_processed: fcm.jobs,
+      spark_fcm_order_jobs_processed: fcm.ordJobs,
       quota_exhausted: quotaHit,
     })
   );

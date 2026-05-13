@@ -29,6 +29,10 @@ import {
   orderPhoneToEnglishDigits,
 } from '../../../../core/utils/egyptian-phone-order.util';
 
+import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
+import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 import { VerificationBadgeComponent } from '../../../../shared/verification-badge/verification-badge.component';
@@ -38,7 +42,7 @@ import { VerificationBadgeComponent } from '../../../../shared/verification-badg
   templateUrl: './store-form.component.html',
   styleUrls: ['./store-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, VerificationBadgeComponent],
+  imports: [IonicModule, CommonModule, FormsModule, VerificationBadgeComponent, GovernorateCitySelectorComponent],
 })
 export class StoreFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -67,6 +71,15 @@ export class StoreFormComponent implements OnInit {
     lng: 0,
     city: ''
   };
+
+  userGovernorateId: string | null = null;
+  userCityId: string | null = null;
+  coverageCityIdsForAd: string[] = [];
+
+  onCoverageAreas(ev: CoverageMultiEmit): void {
+    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
+    this.storeData.city = (ev.primaryCityDisplay || '').trim() || this.storeData.city;
+  }
 
   private firestore = inject(Firestore);
   private auth = inject(Auth);
@@ -125,6 +138,7 @@ export class StoreFormComponent implements OnInit {
       lng: d.location?.lng || 0,
       city: d.city || ''
     };
+    this.coverageCityIdsForAd = uniqSortedCityIds(d.coverage_city_ids);
     const lid = d.logo_cloudinary_public_id;
     this.logoCloudinaryPublicId = typeof lid === 'string' && lid ? lid : null;
   }
@@ -145,7 +159,14 @@ export class StoreFormComponent implements OnInit {
         this.storeBadgeValidUntil = data['verification_valid_until'];
         this.storeData.contactPhone = data['phone'] || '';
         this.storeData.whatsappPhone = data['phone'] || '';
-        this.storeData.city = data['city'] || 'الخارجة';
+        const gid = String(data['governorate_id'] ?? '').trim();
+        this.userGovernorateId = gid || null;
+        const cid = String(data['city_id'] ?? '').trim();
+        this.userCityId = cid || null;
+        this.storeData.city = data['city'] || '';
+        if (!this.isEditMode && this.userCityId) {
+          this.coverageCityIdsForAd = [this.userCityId];
+        }
       }
     }
   }
@@ -247,6 +268,15 @@ export class StoreFormComponent implements OnInit {
       this.presentToast('يرجى إكمال البيانات الأساسية');
       return;
     }
+    if (!this.coverageCityIdsForAd?.length) {
+      if (!this.isEditMode && this.userCityId) {
+        this.coverageCityIdsForAd = [this.userCityId];
+      }
+    }
+    if (!this.coverageCityIdsForAd?.length) {
+      this.presentToast('يرجى تحديد المناطق / المدن التي يخدمها متجرك ضمن محافظتك');
+      return;
+    }
 
     const user = this.auth.currentUser;
     if (!user) {
@@ -340,6 +370,7 @@ export class StoreFormComponent implements OnInit {
             : this.logoCloudinaryPublicId,
         location: { lat: this.storeData.lat, lng: this.storeData.lng },
         city: this.storeData.city,
+        coverage_city_ids: [...this.coverageCityIdsForAd],
         ad_type: 'store',
         isStore: true,
         status: finalStatus,

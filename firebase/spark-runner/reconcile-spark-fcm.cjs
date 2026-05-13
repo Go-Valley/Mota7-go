@@ -301,15 +301,66 @@ async function processAdSavedJobs(db) {
   return processed;
 }
 
+/**
+ * Jobs: order_created → إرسال FCM لمقدمي الخدمة دون مسح مجموعة orders.
+ * @param {FirebaseFirestore.Firestore} db
+ */
+async function processOrderCreatedJobs(db) {
+  const jobsSnap = await db
+    .collection('spark_fcm_jobs')
+    .orderBy('requestedAt', 'asc')
+    .limit(80)
+    .get();
+
+  if (jobsSnap.empty) return 0;
+
+  let processed = 0;
+  for (const job of jobsSnap.docs) {
+    const row = job.data() || {};
+    const kind = String(row.kind || '');
+    const orderId = typeof row.order_id === 'string' ? row.order_id.trim() : '';
+
+    if (kind !== 'order_created' || !orderId) {
+      continue;
+    }
+
+    try {
+      const s = await db.collection('orders').doc(orderId).get();
+      if (s.exists) {
+        await notifyOrderCreated(orderId, s.data() || {});
+      }
+      await job.ref.delete().catch(() => {});
+      processed += 1;
+    } catch (e) {
+      console.error('[Spark] processOrderCreatedJobs', orderId, e);
+    }
+  }
+
+  return processed;
+}
+
 async function runSparkFcmOnce() {
   const db = admin.firestore();
-  const [ordNew, shopNew, ordDone, jobs] = await Promise.all([
+  const jobsOnly =
+    String(process.env.SPARK_JOBS_ONLY || '').trim() === '1' ||
+    String(process.env.SPARK_JOBS_ONLY || '').trim().toLowerCase() === 'true';
+
+  if (jobsOnly) {
+    const [ordJobs, adJobs] = await Promise.all([
+      processOrderCreatedJobs(db),
+      processAdSavedJobs(db),
+    ]);
+    return { ordNew: 0, shopNew: 0, ordDone: 0, jobs: adJobs, ordJobs };
+  }
+
+  const [ordNew, shopNew, ordDone, jobs, ordJobs] = await Promise.all([
     reconcilePendingOrderNotifications(db),
     reconcilePendingShoppingOrderNotifications(db),
     reconcileCompletedOrderNotifications(db),
     processAdSavedJobs(db),
+    processOrderCreatedJobs(db),
   ]);
-  return { ordNew, shopNew, ordDone, jobs };
+  return { ordNew, shopNew, ordDone, jobs, ordJobs };
 }
 
 module.exports = { runSparkFcmOnce, substantiveJsonFromAd, markerOrdNew, markerShopNew };

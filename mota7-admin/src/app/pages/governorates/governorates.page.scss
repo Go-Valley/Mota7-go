@@ -1,0 +1,235 @@
+.governorates-container {
+  padding: 16px;
+  direction: rtl;
+  --gov-accent: #c62828;
+  --gov-accent-soft: rgba(198, 40, 40, 0.12);
+  --gov-border: #e8e8e8;
+  --gov-text: #111111;
+  --gov-muted: #5f6368;
+  --gov-page-bg: #f5f6f8;
+}
+
+.add-btn {
+  margin-bottom: 12px;
+  --border-radius: 12px;
+  height: 50px;
+  font-weight: 600;
+  --background: var(--gov-accent);
+  --background-activated: #b71c1c;
+  --color: #ffffff;
+}
+
+.seed-btn {
+  margin-bottom: 20px;
+  --border-radius: 12px;
+  height: 48px;
+  font-weight: 600;
+  --background: #ffffff;
+  --color: var(--gov-accent);
+  --border-width: 1.5px;
+  --border-style: solid;
+  --border-color: var(--gov-accent);
+  --box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+}
+
+.form-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px rgba(17, 24, 39, 0.06);
+  border: 1px solid var(--gov-border);
+
+  .form-content {
+    h3 {
+      margin: 0 0 14px 0;
+      color: var(--gov-text);
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    ion-item {
+      margin-bottom: 10px;
+      --background: #fafafa;
+      --border-radius: 10px;
+      --padding-start: 12px;
+      --padding-end: 12px;
+      border: 1px solid var(--gov-border);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+
+      ion-button {
+        flex: 1;
+        --border-radius: 10px;
+        font-weight: 600;
+      }
+    }
+  }
+
+  &.city-form {
+    background: #ffffff;
+    margin-top: 10px;
+    border-color: rgba(198, 40, 40, 0.22);
+  }
+}
+
+.governorates-list {
+  .governorate-item {
+    background: #ffffff;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
+    overflow: hidden;
+    border: 1px solid var(--gov-border);
+
+    .governorate-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      cursor: pointer;
+      background: #ffffff;
+      color: var(--gov-text);
+      border-bottom: 1px solid var(--gov-border);
+
+      &:hover {
+        background: #fafafa;
+      }
+
+      .governorate-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+
+        ion-icon {
+          font-size: 22px;
+          color: var(--gov-accent);
+        }
+
+        .governorate-name {
+          font-size: 16px;
+          font-weight: 700;
+          flex: 1;
+          color: var(--gov-text);
+        }
+
+        .order-badge {
+          background: var(--gov-accent-soft);
+          color: var(--gov-accent);
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        ion-badge {
+          font-size: 11px;
+          font-weight: 600;
+        }
+      }
+
+      .governorate-actions {
+        ion-icon {
+          font-size: 20px;
+          color: var(--gov-muted);
+          transition: transform 0.2s ease;
+        }
+      }
+    }
+
+    .governorate-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 14px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--gov-border);
+
+      ion-button {
+        --border-radius: 10px;
+        font-weight: 600;
+      }
+    }
+
+    .cities-list {
+      padding: 12px 14px;
+      background: #ffffff;
+
+      .add-city-btn {
+        width: 100%;
+        margin-bottom: 12px;
+        --border-radius: 10px;
+        height: 42px;
+        font-weight: 600;
+        --background: var(--gov-accent);
+        --background-activated: #b71c1c;
+        --color: #ffffff;
+      }
+
+      .city-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fafafa;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid var(--gov-border);
+
+        .city-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+
+          ion-icon {
+            font-size: 18px;
+            color: var(--gov-accent);
+          }
+
+          .city-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gov-text);
+            flex: 1;
+          }
+
+          .order-badge {
+            background: #eceff1;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gov-muted);
+          }
+
+          ion-badge {
+            font-size: 10px;
+          }
+        }
+
+        .city-actions {
+          display: flex;
+          gap: 6px;
+
+          ion-button {
+            --border-radius: 8px;
+            --padding-start: 8px;
+            --padding-end: 8px;
+            height: 34px;
+            width: 34px;
+          }
+        }
+      }
+    }
+  }
+}
+
+ion-content {
+  --background: var(--gov-page-bg);
+}
