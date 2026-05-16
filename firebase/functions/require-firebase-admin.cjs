@@ -7,20 +7,32 @@
 const fs = require('fs');
 const path = require('path');
 
+/** @param {string} moduleDir absolute path to firebase-admin package dir */
+function tryRequireFromDir(moduleDir) {
+  const pkgJson = path.join(moduleDir, 'package.json');
+  if (!fs.existsSync(pkgJson)) {
+    return null;
+  }
+  return /** @type {typeof import('firebase-admin')} */ (require(moduleDir));
+}
+
 function loadAdmin() {
   try {
     return require('firebase-admin');
-  } catch (err) {
-    const fallback = path.join(__dirname, '../spark-runner/node_modules/firebase-admin');
-    const pkgJson = path.join(fallback, 'package.json');
-    try {
-      if (fs.existsSync(pkgJson)) {
-        return /** @type {typeof import('firebase-admin')} */ (require(fallback));
+  } catch (firstErr) {
+    const fallbacks = [
+      path.join(__dirname, '../spark-runner/node_modules/firebase-admin'),
+      path.join(__dirname, '../../fcm-push-server/node_modules/firebase-admin'),
+    ];
+    for (const dir of fallbacks) {
+      try {
+        const mod = tryRequireFromDir(dir);
+        if (mod) return mod;
+      } catch {
+        /* try next */
       }
-    } catch {
-      /* fall through */
     }
-    throw err;
+    throw firstErr;
   }
 }
 

@@ -6,6 +6,7 @@ services:
   - type: web
     name: mota7-fcm-push-server
     runtime: node
-    buildCommand: npm install
+    # functions/*.cjs يُحمَّل من مجلد الأخ — ثبّت تبعياته أيضاً
+    buildCommand: npm install && npm install --prefix ../firebase/functions
     startCommand: npm start
     plan: free
