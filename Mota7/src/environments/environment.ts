@@ -20,6 +20,8 @@ export const environment = {
    * للإنتاج: ضع رابط HTTPS بعد النشر (Render إلخ) في environment.prod.ts.
    */
   cloudinaryDeleteProxyUrl: 'http://127.0.0.1:8787',
+  fcmPushServerUrl: 'http://127.0.0.1:8790',
+  fcmPushApiKey: '',
   ntfy: {
     enabled: true,
     baseUrl: 'https://ntfy.sh',

@@ -29,8 +29,7 @@ import { Firestore, collection, addDoc, query, where, getDocs, Timestamp, doc, g
 import { Auth } from '@angular/fire/auth'; 
 import { addIcons } from 'ionicons'; 
 import { checkmarkCircle, locationOutline, mapOutline } from 'ionicons/icons';
-import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
-import { SparkOrderFcmJobService } from '../../core/services/spark-order-fcm-job.service';
+import { ServiceOrderPushService } from '../../core/services/service-order-push.service';
 import {
   applyOrderPhoneInputState,
   isOrderPhoneValid,
@@ -100,8 +99,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private auth = inject(Auth);
-  private newOrderNtfy = inject(NewOrderNtfyService); 
-  private sparkOrderJobs = inject(SparkOrderFcmJobService);
+  private orderPush = inject(ServiceOrderPushService);
   private taxonomy = inject(AppTaxonomyService);
   private toastCtrl = inject(ToastController);
   private destroyRef = inject(DestroyRef);
@@ -1090,9 +1088,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // --- 2. إعداد الـ Match Key والمعرف الجديد للمستند ---
-      const delivery_match_key = `${subService}_${city}`;
-      const customDocId = `${customerPhone}_${delivery_match_key}`;
+      // --- 2. إعداد الـ Match Key والمعرف الجديد للمستند (نفس المفتاح المستخدم للمطابقة مع الإعلانات) ---
+      const customDocId = `${customerPhone}_${delivery_match_key}`.replace(/\//g, '_');
       const now = Date.now();
 
       // --- 3. فحص التكرار باستخدام المعرف المباشر (أسرع وأدق) ---
@@ -1148,8 +1145,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
       writeGuestOrderContact(customerName, customerPhone, city);
-      void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
-      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
+      this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
 
       await loader.dismiss();
       await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');

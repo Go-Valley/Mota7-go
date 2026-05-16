@@ -1,0 +1,9 @@
+# Root Directory = fcm-push-server
+
+services:
+  - type: web
+    name: mota7-fcm-push-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free

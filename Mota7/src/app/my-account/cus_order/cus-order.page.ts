@@ -74,6 +74,7 @@ export class CusOrderPage implements OnInit, OnDestroy {
     if (!this.auth.currentUser) {
       return;
     }
+    // orders من Firestore — نفس معايير إشعار push (fcm-push-server/config/recipient-criteria.cjs)
     await this.inbox.refreshAdsForCurrentUser();
   }
 

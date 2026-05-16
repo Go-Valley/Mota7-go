@@ -12,8 +12,7 @@ import { AlertController, IonInput, IonTextarea, LoadingController, ModalControl
 import { OTHER_SERVICES_DATA } from '../../core/constants/other-services-data';
 import { Firestore, collection, query, where, getDocs, Timestamp, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
-import { NewOrderNtfyService } from '../../core/services/new-order-ntfy.service';
-import { SparkOrderFcmJobService } from '../../core/services/spark-order-fcm-job.service';
+import { ServiceOrderPushService } from '../../core/services/service-order-push.service';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import {
   applyOrderPhoneInputState,
@@ -66,8 +65,7 @@ export class OtherServiceComponent implements OnInit {
   private firestore = inject(Firestore);
   private auth = inject(Auth); 
   private injector = inject(Injector);
-  private newOrderNtfy = inject(NewOrderNtfyService);
-  private sparkOrderJobs = inject(SparkOrderFcmJobService);
+  private orderPush = inject(ServiceOrderPushService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
 
@@ -389,8 +387,7 @@ export class OtherServiceComponent implements OnInit {
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
       writeGuestOrderContact(customerName, customerPhone, city);
-      void this.newOrderNtfy.publishPendingOrder({ ...finalOrder! });
-      void this.sparkOrderJobs.enqueueSparkOrderCreatedJob(customDocId);
+      this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
 
       await loader.dismiss();
       await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
