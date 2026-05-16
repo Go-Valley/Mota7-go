@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Cloud Functions المنشورة: تنصيب firebase ضمن firebase/functions/node_modules.
- * مشغّل Spark محلياً/على GitHub Actions غالباً يثبّت الحزمة فقط تحت firebase/spark-runner.
+ * تحميل firebase-admin موحّد (Functions / spark-runner / fcm-push-server على Render).
+ * يهيّئ التطبيق الافتراضي مرة واحدة عند الحاجة.
  */
 const fs = require('fs');
 const path = require('path');
@@ -16,7 +16,7 @@ function tryRequireFromDir(moduleDir) {
   return /** @type {typeof import('firebase-admin')} */ (require(moduleDir));
 }
 
-function loadAdmin() {
+function loadAdminModule() {
   try {
     return require('firebase-admin');
   } catch (firstErr) {
@@ -36,4 +36,37 @@ function loadAdmin() {
   }
 }
 
-module.exports = loadAdmin();
+/**
+ * @param {import('firebase-admin')} admin
+ */
+function ensureDefaultApp(admin) {
+  if (admin.apps.length > 0) {
+    return;
+  }
+
+  const credentialJsonRaw =
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+  if (credentialJsonRaw && String(credentialJsonRaw).trim()) {
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(JSON.parse(String(credentialJsonRaw))),
+      });
+    } catch (e) {
+      console.error(
+        'Invalid FIREBASE_SERVICE_ACCOUNT_JSON:',
+        /** @type {Error} */ (e).message
+      );
+      throw e;
+    }
+    return;
+  }
+
+  // Cloud Functions / GCP runtime (Application Default Credentials)
+  admin.initializeApp();
+}
+
+const admin = loadAdminModule();
+ensureDefaultApp(admin);
+
+module.exports = admin;

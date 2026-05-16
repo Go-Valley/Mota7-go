@@ -1,31 +1,17 @@
 /**
  * تهيئة firebase-admin قبل تحميل وحدات firebase/functions (CommonJS).
+ * يستخدم require-firebase-admin.cjs حتى لا يكون هناك نسختان (ESM vs CJS) على Render.
  */
-import admin from 'firebase-admin';
+import { createRequire } from 'module';
 
-const credentialJsonRaw =
-  process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-
-function loadCredential() {
-  if (credentialJsonRaw && String(credentialJsonRaw).trim()) {
-    try {
-      return admin.credential.cert(JSON.parse(String(credentialJsonRaw)));
-    } catch (e) {
-      console.error(
-        'Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON:',
-        /** @type {Error} */ (e).message
-      );
-      process.exit(1);
-    }
-  }
-  console.error(
-    'Credentials missing. Set FIREBASE_SERVICE_ACCOUNT_JSON on Render (full service account JSON).'
-  );
-  process.exit(1);
-}
+const require = createRequire(import.meta.url);
+const admin = require('../firebase/functions/require-firebase-admin.cjs');
 
 if (!admin.apps.length) {
-  admin.initializeApp({ credential: loadCredential() });
+  console.error(
+    'Firebase Admin failed to initialize. Set FIREBASE_SERVICE_ACCOUNT_JSON on Render.'
+  );
+  process.exit(1);
 }
 
 export default admin;

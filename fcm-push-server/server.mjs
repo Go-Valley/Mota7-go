@@ -66,8 +66,7 @@ app.post('/notify/order-created', async (req, res) => {
 app.post('/jobs/process', async (req, res) => {
   if (!assertApiKey(req, res)) return;
   try {
-    const db = admin.firestore();
-    const processed = await processOrderCreatedJobs(db);
+    const processed = await processOrderCreatedJobs(admin.firestore());
     return res.json({ ok: true, processed });
   } catch (e) {
     const msg = e?.message || String(e);
@@ -79,8 +78,7 @@ app.post('/jobs/process', async (req, res) => {
 async function pollJobsOnce() {
   if (!API_KEY) return;
   try {
-    const db = admin.firestore();
-    const n = await processOrderCreatedJobs(db);
+    const n = await processOrderCreatedJobs(admin.firestore());
     if (n > 0) {
       console.log(`[poll] processed spark_fcm_jobs: ${n}`);
     }
