@@ -58,11 +58,12 @@ import {
   query as legacyQuery,
   where as legacyWhere,
 } from 'firebase/firestore';
-import { 
-  fingerPrintOutline, 
-  phonePortraitOutline, 
-  lockClosedOutline, 
-  chevronForwardOutline 
+import {
+  fingerPrintOutline,
+  logInOutline,
+  phonePortraitOutline,
+  lockClosedOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -97,11 +98,12 @@ export class LoginPage implements OnInit, OnDestroy {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ 
-      fingerPrintOutline, 
-      phonePortraitOutline, 
-      lockClosedOutline, 
-      chevronForwardOutline 
+    addIcons({
+      fingerPrintOutline,
+      logInOutline,
+      phonePortraitOutline,
+      lockClosedOutline,
+      chevronForwardOutline,
     });
   }
 

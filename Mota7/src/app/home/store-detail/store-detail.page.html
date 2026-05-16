@@ -93,19 +93,14 @@
 
   <section
     class="store-products-section"
-    *ngIf="!loading && !error && ad && (productsLoading || products.length > 0)"
+    *ngIf="!loading && !error && ad && products.length > 0"
   >
     <div class="store-products-section__head">
       <h2>منتجات المتجر</h2>
-      <span class="store-products-count" *ngIf="!productsLoading">{{ products.length }}</span>
-      <span class="store-products-count store-products-count--loading" *ngIf="productsLoading">…</span>
+      <span class="store-products-count">{{ products.length }}</span>
     </div>
 
-    <div class="store-products-loading" *ngIf="productsLoading">
-      <ion-spinner name="crescent"></ion-spinner>
-    </div>
-
-    <div class="store-products-grid" *ngIf="!productsLoading && products.length > 0">
+    <div class="store-products-grid">
       <app-product-home-card *ngFor="let p of products" [ad]="p"></app-product-home-card>
     </div>
   </section>

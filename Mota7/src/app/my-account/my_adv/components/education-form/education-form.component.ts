@@ -25,6 +25,13 @@ import { schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline,
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import {
+  applyCoverageMultiEmitToAdForm,
+  ensureCoverageCityIdsForAdSubmit,
+  hydrateAdFormUserCityFromProfile,
+  loadUserGovernorateContextForAdForm,
+} from 'src/app/core/utils/ad-form-user-city.util';
+import { GovernorateService } from 'src/app/core/services/governorate.service';
 
 @Component({
   selector: 'app-education-form',
@@ -59,11 +66,13 @@ export class EducationFormComponent implements OnInit {
   };
 
   userGovernorateId: string | null = null;
+  userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
-    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
-    this.eduData.city = (ev.primaryCityDisplay || '').trim() || this.eduData.city;
+    const applied = applyCoverageMultiEmitToAdForm(ev, this.coverageCityIdsForAd, this.eduData.city);
+    this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.eduData.city = applied.cityDisplay;
   }
 
   private firestore = inject(Firestore);
@@ -74,6 +83,7 @@ export class EducationFormComponent implements OnInit {
   private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private govService = inject(GovernorateService);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -85,7 +95,7 @@ export class EducationFormComponent implements OnInit {
     addIcons({ schoolOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.taxonomy.bundle$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((b: TaxonomyBundle) => {
       this.eduCategories = b.educationItems;
       this.onCategoryChange();
@@ -93,8 +103,21 @@ export class EducationFormComponent implements OnInit {
 
     if (this.editAdData) {
       this.setupEditData(this.editAdData);
+      await this.applyUserGovernorateContext();
     } else {
-      void this.loadUserProfile();
+      await this.loadUserProfile();
+    }
+  }
+
+  private async applyUserGovernorateContext(): Promise<void> {
+    const ctx = await loadUserGovernorateContextForAdForm(
+      this.auth,
+      this.firestore,
+      this.injector
+    );
+    this.userGovernorateId = ctx.userGovernorateId;
+    if (ctx.userCityId) {
+      this.userCityId = ctx.userCityId;
     }
   }
 
@@ -147,9 +170,15 @@ export class EducationFormComponent implements OnInit {
           fullName = `أ/ ${fullName}`;
         }
         this.eduData.teacherName = fullName;
-        const gid = String(data['governorate_id'] ?? '').trim();
-        this.userGovernorateId = gid || null;
-        this.eduData.city = data['city'] || '';
+        const geo = await hydrateAdFormUserCityFromProfile(
+          this.govService,
+          data as Record<string, unknown>,
+          this.isEditMode
+        );
+        this.userGovernorateId = geo.userGovernorateId;
+        this.userCityId = geo.userCityId;
+        this.eduData.city = geo.cityDisplay || this.eduData.city;
+        this.coverageCityIdsForAd = geo.coverageCityIds;
         this.eduData.contactPhone = data['phone'] || '';
         this.eduData.whatsappPhone = data['phone'] || '';
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
@@ -167,7 +196,16 @@ export class EducationFormComponent implements OnInit {
       this.presentToast('يرجى اختيار المرحلة التعليمية والمادة');
       return;
     }
-    if (!this.coverageCityIdsForAd?.length) {
+    const resolvedCity = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+      isEditMode: this.isEditMode,
+      userGovernorateId: this.userGovernorateId,
+      userCityId: this.userCityId,
+      cityDisplay: this.eduData.city,
+      coverageCityIds: this.coverageCityIdsForAd,
+    });
+    this.userCityId = resolvedCity.userCityId;
+    this.coverageCityIdsForAd = resolvedCity.coverageCityIds;
+    if (!this.coverageCityIdsForAd.length) {
       this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
       return;
     }

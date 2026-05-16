@@ -70,6 +70,7 @@
           fieldLabel="مناطق الخدمة"
           placeholder="اضغط لاختيار المدن"
           [displaySummary]="serviceData.city"
+          [seedCoverageCityIds]="coverageCityIdsForAd"
           [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
           [maxScrollHeight]="'min(260px, 38vh)'"
           (coverageMultiChange)="onCoverageAreas($event)">

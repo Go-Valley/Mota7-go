@@ -1,3 +1,5 @@
+@use '../shared/my-ad-form-toggles';
+
 // هيدر متاح (الثابت: خلفية بيضاء + نص أسود عريض)
 .mota7-header {
   --background: #ffffff;
@@ -14,12 +16,8 @@
   height: 42px;
 }
 
-// زر التفعيل (الثابت: أخضر للتفعيل / أحمر للإغلاق)
 .mota7-toggle-status {
-  --handle-background: #ffffff;
   --handle-background-checked: #ffffff;
-  --track-background: #eb445a !important;      // إغلاق صريح
-  --track-background-checked: #2dd36f !important; // تفعيل صريح
   opacity: 1 !important;
 }
 

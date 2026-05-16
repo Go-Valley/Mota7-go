@@ -19,12 +19,27 @@
       </div>
 
       <div class="auth-group">
-        <ion-button expand="block" class="btn-main" (click)="goToLogin()">
-          تسجيل الدخول
-        </ion-button>
-        <ion-button expand="block" fill="outline" class="btn-register-modern" (click)="goToRegister()">
-          إنشاء حساب جديد
-        </ion-button>
+        <div class="auth-btn-shell auth-btn-shell--login">
+          <ion-button expand="block" class="auth-btn auth-btn--login" (click)="goToLogin()">
+            <span class="auth-btn__inner">
+              <span class="auth-btn__icon" aria-hidden="true">
+                <ion-icon name="log-in-outline"></ion-icon>
+              </span>
+              <span class="auth-btn__label">تسجيل الدخول</span>
+            </span>
+          </ion-button>
+        </div>
+
+        <div class="auth-btn-shell auth-btn-shell--register">
+          <ion-button expand="block" class="auth-btn auth-btn--register" (click)="goToRegister()">
+            <span class="auth-btn__inner">
+              <span class="auth-btn__icon" aria-hidden="true">
+                <ion-icon name="person-add-outline"></ion-icon>
+              </span>
+              <span class="auth-btn__label">إنشاء حساب جديد</span>
+            </span>
+          </ion-button>
+        </div>
       </div>
 
       <div class="support-menu-modern">

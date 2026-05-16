@@ -1,0 +1,336 @@
+/* أزرار الإرسال الرئيسية — تسجيل الدخول / إنشاء حساب */
+
+.submit-btn-shell {
+  position: relative;
+  padding: 3px;
+  border-radius: 22px;
+  isolation: isolate;
+  width: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(18px);
+    opacity: 0.75;
+    animation: submit-btn-glow 4.2s ease-in-out infinite;
+  }
+}
+
+.submit-btn-shell--login {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 152, 0, 0.65) 0%,
+    rgba(234, 88, 12, 0.5) 50%,
+    rgba(251, 191, 36, 0.45) 100%
+  );
+  box-shadow:
+    0 18px 40px -10px rgba(234, 88, 12, 0.35),
+    0 8px 20px -8px rgba(15, 23, 42, 0.12);
+
+  &::before {
+    background: radial-gradient(
+      ellipse 80% 70% at 50% 0%,
+      rgba(255, 183, 77, 0.55) 0%,
+      transparent 65%
+    );
+  }
+}
+
+.submit-btn-shell--signup {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.45) 0%,
+    rgba(14, 165, 233, 0.38) 55%,
+    rgba(99, 102, 241, 0.32) 100%
+  );
+  box-shadow:
+    0 18px 40px -10px rgba(5, 150, 105, 0.28),
+    0 8px 20px -8px rgba(15, 23, 42, 0.1);
+
+  &::before {
+    background: radial-gradient(
+      ellipse 75% 65% at 50% 100%,
+      rgba(52, 211, 153, 0.45) 0%,
+      transparent 68%
+    );
+    animation-delay: 1s;
+  }
+}
+
+ion-button.submit-btn {
+  --border-width: 0;
+  --border-radius: 20px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --box-shadow: none;
+  margin: 0;
+  width: 100%;
+  min-height: 62px;
+  height: auto;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+
+  &::part(native) {
+    min-height: 62px;
+    padding: 0;
+    border-radius: 19px;
+    overflow: hidden;
+    transition:
+      transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1),
+      box-shadow 0.22s ease,
+      filter 0.2s ease;
+  }
+
+  &:active::part(native) {
+    transform: scale(0.985) translateY(1px);
+    filter: brightness(0.97);
+  }
+
+  .submit-btn__inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 62px;
+    padding: 12px 22px;
+    box-sizing: border-box;
+  }
+
+  .submit-btn__icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    animation: submit-btn-icon-float 3s ease-in-out infinite;
+
+    ion-icon {
+      font-size: 26px;
+    }
+  }
+
+  .submit-btn__label {
+    font-size: 1.12rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+}
+
+ion-button.submit-btn--login {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --ripple-color: rgba(255, 255, 255, 0.35);
+  --color: #ffffff;
+
+  &::part(native) {
+    background: linear-gradient(
+      128deg,
+      #ea580c 0%,
+      #f97316 42%,
+      #fb923c 72%,
+      #f59e0b 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.35) inset,
+      0 2px 0 rgba(251, 191, 36, 0.25) inset,
+      0 16px 32px -6px rgba(234, 88, 12, 0.48),
+      0 6px 14px -4px rgba(120, 53, 15, 0.28);
+  }
+
+  &:active::part(native) {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.25) inset,
+      0 8px 18px -6px rgba(234, 88, 12, 0.4);
+  }
+
+  .submit-btn__icon {
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 6px 14px rgba(120, 53, 15, 0.2);
+
+    ion-icon {
+      color: #fff7ed;
+      filter: drop-shadow(0 2px 4px rgba(120, 53, 15, 0.35));
+    }
+  }
+
+  .submit-btn__label {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(120, 53, 15, 0.35);
+  }
+}
+
+ion-button.submit-btn--signup {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --ripple-color: rgba(255, 255, 255, 0.32);
+  --color: #ffffff;
+
+  &::part(native) {
+    background: linear-gradient(
+      128deg,
+      #047857 0%,
+      #059669 35%,
+      #10b981 62%,
+      #0ea5e9 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.32) inset,
+      0 2px 0 rgba(52, 211, 153, 0.28) inset,
+      0 16px 32px -6px rgba(5, 150, 105, 0.42),
+      0 6px 14px -4px rgba(15, 23, 42, 0.22);
+  }
+
+  &:active::part(native) {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.22) inset,
+      0 8px 18px -6px rgba(5, 150, 105, 0.36);
+  }
+
+  .submit-btn__icon {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.48) inset,
+      0 6px 14px rgba(4, 120, 87, 0.22);
+    animation-delay: 0.5s;
+
+    ion-icon {
+      color: #ecfdf5;
+      filter: drop-shadow(0 2px 4px rgba(4, 120, 87, 0.35));
+    }
+  }
+
+  .submit-btn__label {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(4, 120, 87, 0.35);
+  }
+}
+
+.submit-btn-shell--save {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 107, 0, 0.55) 0%,
+    rgba(234, 88, 12, 0.48) 45%,
+    rgba(251, 146, 60, 0.42) 100%
+  );
+  box-shadow:
+    0 20px 44px -12px rgba(234, 88, 12, 0.38),
+    0 10px 24px -10px rgba(15, 23, 42, 0.14);
+
+  &::before {
+    background: radial-gradient(
+      ellipse 85% 75% at 50% 0%,
+      rgba(255, 193, 7, 0.5) 0%,
+      rgba(255, 107, 0, 0.25) 40%,
+      transparent 68%
+    );
+    animation-duration: 3.8s;
+  }
+}
+
+ion-button.submit-btn--save {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --ripple-color: rgba(255, 255, 255, 0.38);
+  --color: #ffffff;
+
+  &::part(native) {
+    background: linear-gradient(
+      125deg,
+      #c2410c 0%,
+      #ea580c 28%,
+      #f97316 55%,
+      #fbbf24 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.4) inset,
+      0 3px 0 rgba(251, 191, 36, 0.3) inset,
+      0 18px 36px -8px rgba(194, 65, 12, 0.52),
+      0 8px 16px -4px rgba(69, 26, 3, 0.3);
+  }
+
+  &:active::part(native) {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.28) inset,
+      0 10px 22px -8px rgba(194, 65, 12, 0.45);
+  }
+
+  &[disabled]::part(native) {
+    opacity: 0.55;
+    filter: grayscale(0.25);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  }
+
+  .submit-btn__icon {
+    background: rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 8px 18px rgba(120, 53, 15, 0.22);
+    animation-delay: 0.35s;
+
+    ion-icon {
+      color: #fffbeb;
+      filter: drop-shadow(0 2px 5px rgba(120, 53, 15, 0.4));
+    }
+  }
+
+  .submit-btn__label {
+    color: #ffffff;
+    font-size: 1.14rem;
+    text-shadow: 0 1px 3px rgba(69, 26, 3, 0.4);
+  }
+}
+
+@keyframes submit-btn-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes submit-btn-icon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit-btn-shell::before,
+  ion-button.submit-btn .submit-btn__icon {
+    animation: none !important;
+  }
+}

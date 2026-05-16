@@ -57,81 +57,44 @@
     </div>
   </div>
 
-  <div class="info-chips" [class.info-chips--split]="useTwoRowChipLayout">
-    <ng-container *ngIf="useTwoRowChipLayout; else deliveryChipsSingle">
-      <div class="chips-row">
-        <div class="grid-item city-box">
-          <ion-icon name="location-outline"></ion-icon>
-          <span class="chip-label">{{ coverageDisplay(ad) }}</span>
-        </div>
-        <div
-          class="grid-item status-toggle"
-          [class.active]="ad.details?.is_available"
-          [class.inactive]="!ad.details?.is_available"
-          (click)="toggleStatus('is_available'); $event.stopPropagation()"
-        >
-          <ion-icon name="time-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.is_available ? 'متاح الآن' : 'غير متاح حالياً' }}</span>
-        </div>
-      </div>
-      <div class="chips-row">
-        <div
-          class="grid-item status-toggle"
-          [class.active]="ad.details?.can_travel"
-          [class.inactive]="!ad.details?.can_travel"
-          (click)="toggleStatus('can_travel'); $event.stopPropagation()"
-        >
-          <ion-icon name="airplane-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.can_travel ? 'متاح للسفر' : 'غير متاح للسفر' }}</span>
-        </div>
-        <div
-          class="grid-item status-toggle"
-          [class.active]="ad.details?.for_rent"
-          [class.inactive]="!ad.details?.for_rent"
-          (click)="toggleStatus('for_rent'); $event.stopPropagation()"
-        >
-          <ion-icon name="key-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.for_rent ? 'متاح للإيجار' : 'غير متاح للايجار' }}</span>
-        </div>
-      </div>
-    </ng-container>
-    <ng-template #deliveryChipsSingle>
-      <div class="chips-row chips-row--all">
-        <div class="grid-item city-box">
-          <ion-icon name="location-outline"></ion-icon>
-          <span class="chip-label">{{ coverageDisplay(ad) }}</span>
-        </div>
-        <div
-          class="grid-item status-toggle"
-          [class.active]="ad.details?.is_available"
-          [class.inactive]="!ad.details?.is_available"
-          (click)="toggleStatus('is_available'); $event.stopPropagation()"
-        >
-          <ion-icon name="time-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.is_available ? 'متاح الآن' : 'غير متاح حالياً' }}</span>
-        </div>
-        <div
-          class="grid-item status-toggle"
-          *ngIf="showTravelChip"
-          [class.active]="ad.details?.can_travel"
-          [class.inactive]="!ad.details?.can_travel"
-          (click)="toggleStatus('can_travel'); $event.stopPropagation()"
-        >
-          <ion-icon name="airplane-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.can_travel ? 'متاح للسفر' : 'غير متاح للسفر' }}</span>
-        </div>
-        <div
-          class="grid-item status-toggle"
-          *ngIf="showRentChip"
-          [class.active]="ad.details?.for_rent"
-          [class.inactive]="!ad.details?.for_rent"
-          (click)="toggleStatus('for_rent'); $event.stopPropagation()"
-        >
-          <ion-icon name="key-outline"></ion-icon>
-          <span class="chip-label">{{ ad.details?.for_rent ? 'متاح للإيجار' : 'غير متاح للايجار' }}</span>
-        </div>
-      </div>
-    </ng-template>
+  <div class="meta-grid-modern">
+    <div class="grid-item city-box">
+      <ion-icon name="location-outline"></ion-icon>
+      <span>{{ coverageDisplay(ad) }}</span>
+    </div>
+
+    <div
+      class="grid-item status-toggle"
+      [class.active]="ad.details?.is_available"
+      [class.inactive]="!ad.details?.is_available"
+      (click)="toggleAvailability(); $event.stopPropagation()"
+    >
+      <ion-icon [name]="ad.details?.is_available ? 'checkmark-done-circle' : 'close-circle'"></ion-icon>
+      <span>{{ ad.details?.is_available ? 'متاح للعمل الآن' : 'غير متاح للعمل الآن' }}</span>
+    </div>
+  </div>
+
+  <div class="meta-grid-modern delivery-extra-chips" *ngIf="showTravelChip || showRentChip">
+    <div
+      *ngIf="showTravelChip"
+      class="grid-item status-toggle"
+      [class.active]="ad.details?.can_travel"
+      [class.inactive]="!ad.details?.can_travel"
+      (click)="toggleStatus('can_travel'); $event.stopPropagation()"
+    >
+      <ion-icon name="airplane-outline"></ion-icon>
+      <span>{{ ad.details?.can_travel ? 'متاح للسفر' : 'غير متاح للسفر' }}</span>
+    </div>
+    <div
+      *ngIf="showRentChip"
+      class="grid-item status-toggle"
+      [class.active]="ad.details?.for_rent"
+      [class.inactive]="!ad.details?.for_rent"
+      (click)="toggleStatus('for_rent'); $event.stopPropagation()"
+    >
+      <ion-icon name="key-outline"></ion-icon>
+      <span>{{ ad.details?.for_rent ? 'متاح للإيجار' : 'غير متاح للايجار' }}</span>
+    </div>
   </div>
 
   <div class="mota7-footer" *ngIf="ad.status">

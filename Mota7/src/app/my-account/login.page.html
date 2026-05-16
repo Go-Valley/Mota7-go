@@ -51,9 +51,16 @@
       </div>
 
       <div class="actions-section">
-        <ion-button expand="block" class="main-login-btn" (click)="performLogin()">
-          دخول
-        </ion-button>
+        <div class="submit-btn-shell submit-btn-shell--login">
+          <ion-button expand="block" class="submit-btn submit-btn--login" (click)="performLogin()">
+            <span class="submit-btn__inner">
+              <span class="submit-btn__icon" aria-hidden="true">
+                <ion-icon name="log-in-outline"></ion-icon>
+              </span>
+              <span class="submit-btn__label">دخول</span>
+            </span>
+          </ion-button>
+        </div>
         
         <div class="register-hint">
           <span>ليس لديك حساب؟</span>

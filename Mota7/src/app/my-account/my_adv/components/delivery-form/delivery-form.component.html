@@ -39,6 +39,7 @@
           fieldLabel="مناطق الخدمة"
           placeholder="اضغط لاختيار المدن"
           [displaySummary]="deliveryData.city"
+          [seedCoverageCityIds]="coverageCityIdsForAd"
           [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
           [maxScrollHeight]="'min(260px, 38vh)'"
           (coverageMultiChange)="onCoverageAreas($event)">
@@ -105,16 +106,13 @@
         <ion-label class="bold-label">موقعك الجغرافي:*</ion-label>
         <ion-button expand="block" fill="outline" color="dark" class="location-btn" (click)="requestLocation()">
           <ion-icon name="location-outline" slot="start"></ion-icon>
-          {{ (deliveryData.lat !== 0) ? 'تم تحديد الموقع بنجاح' : 'اضغط لتحديد موقعك الحالي' }}
+          {{ (deliveryData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد موقعك الحالي' }}
         </ion-button>
-        <p class="location-hint" *ngIf="deliveryData.lat !== 0">
-          إحداثياتك: {{ deliveryData.lat.toFixed(4) }}, {{ deliveryData.lng.toFixed(4) }}
-        </p>
       </div>
     </div>
 
     <ion-button expand="block" class="submit-orange-btn" (click)="saveDeliveryAd()">
-      إرسال الطلب الآن
+      {{ isEditMode ? 'حفظ التعديلات' : 'إرسال الطلب الآن' }}
     </ion-button>
   </div>
 </ion-content>

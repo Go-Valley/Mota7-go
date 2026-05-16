@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { Mota7Location } from '../../plugins/mota7-location.plugin';
+import { MOTA7_GPS_ALERT_MESSAGE } from './mota7-location-gps-alert.util';
 
 export type DeliveryAdLatLng = { lat: number; lng: number };
 
@@ -50,7 +51,7 @@ export async function getDeliveryAdCurrentLocation(): Promise<DeliveryAdLatLng |
     };
   } catch (error) {
     console.error('خطأ في تحديد الموقع:', error);
-    alert('عفواً، تأكد من تفعيل الـ GPS في هاتفك');
+    alert(MOTA7_GPS_ALERT_MESSAGE);
     return null;
   }
 }

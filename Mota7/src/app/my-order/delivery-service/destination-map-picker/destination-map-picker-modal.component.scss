@@ -1,6 +1,22 @@
 .mota7-map-picker-toolbar {
   --background: #111827;
   --color: #ffffff;
+
+  ion-button.map-picker-close-btn {
+    --background: #dc2626;
+    --background-activated: #b91c1c;
+    --background-hover: #ef4444;
+    --color: #ffffff;
+    --box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);
+    width: 44px;
+    height: 44px;
+    margin-inline-end: 4px;
+
+    ion-icon {
+      font-size: 1.65rem;
+      font-weight: 700;
+    }
+  }
 }
 
 .map-picker-content {
@@ -185,11 +201,29 @@
   --padding-end: 0;
 }
 
+.tracking-map-chrome ion-button.tracking-fab-btn--close {
+  height: 50px;
+  width: 50px;
+  --background: #dc2626;
+  --background-activated: #b91c1c;
+  --background-hover: #ef4444;
+  --color: #ffffff;
+  --box-shadow:
+    0 4px 16px rgba(220, 38, 38, 0.5),
+    0 0 0 3px rgba(255, 255, 255, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.tracking-map-chrome ion-button.tracking-fab-btn--close ion-icon {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
 .tracking-map-chrome ion-button.tracking-fab-btn::part(native) {
   padding: 0;
 }
 
-.tracking-map-chrome ion-icon {
+.tracking-map-chrome ion-button.tracking-fab-btn:not(.tracking-fab-btn--close) ion-icon {
   font-size: 1.25rem;
 }
 
@@ -295,20 +329,57 @@
 
 
 
-.map-overlay-top {
+.picker-map-hint {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  left: 10px;
-  display: flex;
-  justify-content: center;
+  top: max(10px, env(safe-area-inset-top));
+  inset-inline-start: max(10px, env(safe-area-inset-left));
+  z-index: 12;
+  max-width: min(52vw, 200px);
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
   pointer-events: none;
-  z-index: 15;
 }
 
-.map-overlay-top ion-chip {
-  background: rgba(255, 255, 255, 0.92);
-  color: #111827;
+.picker-gmaps-fab {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  z-index: 500;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  background: linear-gradient(145deg, #059669 0%, #10b981 55%, #34d399 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 8px 22px rgba(5, 150, 105, 0.38);
+  transition: transform 0.16s ease, filter 0.16s ease;
+
+  ion-icon {
+    font-size: 1.35rem;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.94);
+    filter: brightness(0.96);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .map-overlay-bottom {
@@ -336,33 +407,32 @@
   line-height: 1.35;
 }
 
-.coords {
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: 0.9;
-}
-
 .resolving {
   margin-top: 4px;
   font-size: 11px;
   color: #93c5fd;
 }
 
-.open-gmaps-from-center {
+.picker-confirm-btn {
+  margin-top: 10px;
+  min-height: 52px;
+  font-weight: 900;
+  font-size: 1rem;
+  --border-radius: 16px;
+  --box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 12px 28px rgba(37, 99, 235, 0.38);
+}
+
+.picker-my-location-btn {
   margin-top: 8px;
+  min-height: 46px;
+  font-weight: 800;
   --border-radius: 14px;
-}
-
-.map-actions-row {
-  margin-top: 8px;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.map-actions-row ion-button {
-  flex: 1;
-  --border-radius: 12px;
+  --background: rgba(255, 255, 255, 0.14);
+  --color: #f8fafc;
+  --border-color: rgba(255, 255, 255, 0.35);
+  --border-width: 1px;
 }
 
 .manual-note {
@@ -429,6 +499,10 @@
   opacity: 0.72;
   background: rgba(15, 23, 42, 0.72) !important;
   color: #94a3b8 !important;
+}
+
+:host ::ng-deep .leaflet-control-layers {
+  margin-top: 52px !important;
 }
 
 :host ::ng-deep .leaflet-control-zoom {

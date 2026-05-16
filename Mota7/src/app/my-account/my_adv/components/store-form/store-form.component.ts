@@ -32,6 +32,13 @@ import {
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import {
+  applyCoverageMultiEmitToAdForm,
+  ensureCoverageCityIdsForAdSubmit,
+  hydrateAdFormUserCityFromProfile,
+  loadUserGovernorateContextForAdForm,
+} from 'src/app/core/utils/ad-form-user-city.util';
+import { GovernorateService } from 'src/app/core/services/governorate.service';
 
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
@@ -77,8 +84,17 @@ export class StoreFormComponent implements OnInit {
   coverageCityIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
-    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
-    this.storeData.city = (ev.primaryCityDisplay || '').trim() || this.storeData.city;
+    if (!this.isEditMode) {
+      return;
+    }
+    const applied = applyCoverageMultiEmitToAdForm(ev, this.coverageCityIdsForAd, this.storeData.city);
+    const ids = applied.coverageCityIds;
+    this.coverageCityIdsForAd = ids.length > 1 ? [ids[0]!] : ids;
+    const disp = String(applied.cityDisplay ?? '').trim();
+    this.storeData.city =
+      this.coverageCityIdsForAd.length === 1 && disp.includes('،')
+        ? (disp.split('،').map((s) => s.trim()).filter(Boolean).pop() ?? disp)
+        : disp || this.storeData.city;
   }
 
   private firestore = inject(Firestore);
@@ -90,6 +106,7 @@ export class StoreFormComponent implements OnInit {
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private govService = inject(GovernorateService);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -109,6 +126,7 @@ export class StoreFormComponent implements OnInit {
     if (this.editAdData) {
       this.isEditMode = true;
       this.fillFormForEdit();
+      await this.applyUserGovernorateContext();
     } else {
       await this.loadUserProfile();
     }
@@ -138,9 +156,22 @@ export class StoreFormComponent implements OnInit {
       lng: d.location?.lng || 0,
       city: d.city || ''
     };
-    this.coverageCityIdsForAd = uniqSortedCityIds(d.coverage_city_ids);
+    const coverageIds = uniqSortedCityIds(d.coverage_city_ids);
+    this.coverageCityIdsForAd = coverageIds.length ? [coverageIds[0]!] : [];
     const lid = d.logo_cloudinary_public_id;
     this.logoCloudinaryPublicId = typeof lid === 'string' && lid ? lid : null;
+  }
+
+  private async applyUserGovernorateContext(): Promise<void> {
+    const ctx = await loadUserGovernorateContextForAdForm(
+      this.auth,
+      this.firestore,
+      this.injector
+    );
+    this.userGovernorateId = ctx.userGovernorateId;
+    if (ctx.userCityId) {
+      this.userCityId = ctx.userCityId;
+    }
   }
 
   async loadUserProfile() {
@@ -159,13 +190,30 @@ export class StoreFormComponent implements OnInit {
         this.storeBadgeValidUntil = data['verification_valid_until'];
         this.storeData.contactPhone = data['phone'] || '';
         this.storeData.whatsappPhone = data['phone'] || '';
-        const gid = String(data['governorate_id'] ?? '').trim();
-        this.userGovernorateId = gid || null;
-        const cid = String(data['city_id'] ?? '').trim();
-        this.userCityId = cid || null;
-        this.storeData.city = data['city'] || '';
-        if (!this.isEditMode && this.userCityId) {
-          this.coverageCityIdsForAd = [this.userCityId];
+        const geo = await hydrateAdFormUserCityFromProfile(
+          this.govService,
+          data as Record<string, unknown>,
+          this.isEditMode
+        );
+        this.userGovernorateId = geo.userGovernorateId;
+        this.userCityId = geo.userCityId;
+        this.storeData.city = geo.cityDisplay || this.storeData.city;
+        this.coverageCityIdsForAd = geo.coverageCityIds;
+
+        const resolved = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+          isEditMode: false,
+          userGovernorateId: this.userGovernorateId,
+          userCityId: this.userCityId,
+          cityDisplay: this.storeData.city,
+          coverageCityIds: this.coverageCityIdsForAd,
+        });
+        this.userCityId = resolved.userCityId;
+        this.coverageCityIdsForAd = resolved.coverageCityIds;
+        if (resolved.coverageCityIds.length && !this.storeData.city.trim() && this.userGovernorateId && this.userCityId) {
+          const cityDoc = await this.govService.getCityById(this.userGovernorateId, this.userCityId);
+          if (cityDoc?.name) {
+            this.storeData.city = cityDoc.name;
+          }
         }
       }
     }
@@ -268,13 +316,24 @@ export class StoreFormComponent implements OnInit {
       this.presentToast('يرجى إكمال البيانات الأساسية');
       return;
     }
-    if (!this.coverageCityIdsForAd?.length) {
-      if (!this.isEditMode && this.userCityId) {
-        this.coverageCityIdsForAd = [this.userCityId];
-      }
+    const resolvedCity = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+      isEditMode: this.isEditMode,
+      userGovernorateId: this.userGovernorateId,
+      userCityId: this.userCityId,
+      cityDisplay: this.storeData.city,
+      coverageCityIds: this.coverageCityIdsForAd,
+    });
+    this.userCityId = resolvedCity.userCityId;
+    this.coverageCityIdsForAd = resolvedCity.coverageCityIds;
+    if (this.isEditMode && this.coverageCityIdsForAd.length > 1) {
+      this.coverageCityIdsForAd = [this.coverageCityIdsForAd[0]!];
     }
-    if (!this.coverageCityIdsForAd?.length) {
-      this.presentToast('يرجى تحديد المناطق / المدن التي يخدمها متجرك ضمن محافظتك');
+    if (!this.coverageCityIdsForAd.length) {
+      this.presentToast(
+        this.isEditMode
+          ? 'يرجى اختيار مدينة المتجر'
+          : 'تعذّر تحديد مدينة حسابك — تأكد من إكمال المدينة في الملف الشخصي'
+      );
       return;
     }
 

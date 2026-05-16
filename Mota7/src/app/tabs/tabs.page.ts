@@ -22,6 +22,7 @@ import {
   constructOutline,
   listOutline,
   bookOutline,
+  chevronBackOutline,
   logoWhatsapp,
 } from 'ionicons/icons';
 import { ModalController, NavController } from '@ionic/angular';
@@ -51,7 +52,7 @@ const QUICK_OTHER_TILES: ReadonlyArray<{ img: string; label: string; presetId: s
   { img: 'assets/order/Plasterer.png', label: 'محارة', presetId: 'plastering' },
   { img: 'assets/order/Conditioning.png', label: 'صيانة تكييفات', presetId: 'ac-maintenance' },
   { img: 'assets/order/Receiver.png', label: 'دش ورسيفر', presetId: 'satellite-installation' },
-  { img: 'assets/order/Washing.png', label: 'صيانة غسالات وثلاجات', presetId: 'appliance-maintenance' },
+  { img: 'assets/order/Washing.png', label: 'صيانة غسالات', presetId: 'washing-machine-maintenance' },
 ];
 
 @Component({
@@ -72,6 +73,7 @@ export class TabsPage implements OnInit {
 
   isServiceModalOpen: boolean = false;
   isAppTutorialOpen = false;
+  isRequestTutorialOpen = false;
   isLoggedIn: boolean = false;
   /** تنقل بعد اكتمال إغلاق المودال (يمنع بقاء الطبقة فوق الصفحة الجديدة) */
   private pendingNavigation: string | null = null;
@@ -102,6 +104,7 @@ export class TabsPage implements OnInit {
       'construct-outline': constructOutline,
       'list-outline': listOutline,
       'book-outline': bookOutline,
+      'chevron-back-outline': chevronBackOutline,
       'logo-whatsapp': logoWhatsapp,
     });
   }
@@ -129,6 +132,13 @@ export class TabsPage implements OnInit {
 
   openAppTutorial(): void {
     this.isAppTutorialOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  openRequestServiceTutorial(ev?: Event): void {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    this.isRequestTutorialOpen = true;
     this.cdr.markForCheck();
   }
 
@@ -174,19 +184,7 @@ export class TabsPage implements OnInit {
     } else if (openSelection) {
       this.ngZone.run(() => void this.presentServiceSelectionFlow());
     } else if (url) {
-      this.ngZone.run(() => {
-        void (async () => {
-          /**
-           * «نشر إعلان» من المودال: نضع تبويب «حسابي» تحت add-ad-type ليعود المستخدم للحساب لا لإدارة الإعلانات.
-           */
-          if (url === '/add-ad-type') {
-            await this.navCtrl.navigateRoot('/tabs/my-account', { animated: false });
-            await this.navCtrl.navigateForward('/add-ad-type', { animated: true });
-          } else {
-            await this.navCtrl.navigateRoot(url, { animated: true });
-          }
-        })();
-      });
+      this.ngZone.run(() => void this.executePostIntroNavigation(url));
     }
     this.cdr.markForCheck();
   }
@@ -215,8 +213,12 @@ export class TabsPage implements OnInit {
 
   onQuickOtherPreset(presetId: string): void {
     const item = OTHER_SERVICES_DATA.items.find((i) => i.id === presetId);
-    const nameAr = item?.nameAr ?? '';
-    this.closeIntroAndOpenOrder('other', { initialSubServiceNameAr: nameAr });
+    const tile = this.quickOtherTiles.find((t) => t.presetId === presetId);
+    const nameAr = item?.nameAr ?? tile?.label ?? '';
+    this.closeIntroAndOpenOrder('other', {
+      initialSubServiceId: presetId,
+      initialSubServiceNameAr: nameAr,
+    });
   }
 
   onQuickOtherMore(): void {
@@ -238,6 +240,21 @@ export class TabsPage implements OnInit {
     this.cdr.markForCheck();
   }
 
+  /** من شريط التبويب «إضافة إعلان» — نفس مسار «نشر إعلان» السابق. */
+  openAddAdvertisement(): void {
+    this.pendingNavigation = null;
+    this.openServiceSelectionAfterIntroDismiss = false;
+    this.pendingQuickServiceModal = null;
+    if (this.isServiceModalOpen) {
+      const loggedIn = !!this.auth.currentUser || this.isLoggedIn;
+      this.pendingNavigation = loggedIn ? '/add-ad-type' : '/register';
+      this.isServiceModalOpen = false;
+      this.cdr.markForCheck();
+      return;
+    }
+    void this.navigateToAdvertiseFlow();
+  }
+
   goToAdvertiseNow() {
     const loggedIn = !!this.auth.currentUser || this.isLoggedIn;
     this.pendingNavigation = loggedIn ? '/add-ad-type' : '/register';
@@ -245,6 +262,21 @@ export class TabsPage implements OnInit {
     this.pendingQuickServiceModal = null;
     this.isServiceModalOpen = false;
     this.cdr.markForCheck();
+  }
+
+  private navigateToAdvertiseFlow(): void {
+    const loggedIn = !!this.auth.currentUser || this.isLoggedIn;
+    const url = loggedIn ? '/add-ad-type' : '/register';
+    this.ngZone.run(() => void this.executePostIntroNavigation(url));
+  }
+
+  private async executePostIntroNavigation(url: string): Promise<void> {
+    if (url === '/add-ad-type') {
+      await this.navCtrl.navigateRoot('/tabs/my-account', { animated: false });
+      await this.navCtrl.navigateForward('/add-ad-type', { animated: true });
+    } else {
+      await this.navCtrl.navigateRoot(url, { animated: true });
+    }
   }
 
   private blurActiveElement(): void {

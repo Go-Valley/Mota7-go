@@ -173,6 +173,12 @@ export class EditProfilePage implements OnInit, OnDestroy, ViewWillLeave {
     this.blurActiveFocus();
     this.selectedCityGeo = ev;
     this.userData.city = ev.cityNameAr || '';
+    this.profileGeoSeed = { governorateId: ev.governorateId, cityId: ev.cityId };
+    this.loadedGeoFields = {
+      governorate_id: ev.governorateId,
+      city_id: ev.cityId,
+      governorate_name_ar: ev.governorateNameAr || '',
+    };
   }
 
   onFullNameBeforeInput(ev: InputEvent): void {

@@ -1,0 +1,10 @@
+/**
+ * مفاتيح التفعيل في نماذج «إضافة إعلان»
+ * scaleX(-1) يعكس اتجاه الشريط في واجهة RTL دون عكس قيمة ngModel
+ */
+.mota7-toggle-status {
+  --handle-background: #ffffff;
+  --track-background: #eb445a !important;
+  --track-background-checked: #2dd36f !important;
+  transform: scaleX(-1);
+}

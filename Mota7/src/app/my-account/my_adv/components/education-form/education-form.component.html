@@ -85,6 +85,7 @@
           fieldLabel="مناطق الخدمة"
           placeholder="اضغط لاختيار المدن"
           [displaySummary]="eduData.city"
+          [seedCoverageCityIds]="coverageCityIdsForAd"
           [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
           [maxScrollHeight]="'min(260px, 38vh)'"
           (coverageMultiChange)="onCoverageAreas($event)">
@@ -93,7 +94,7 @@
     </div>
 
     <ion-button expand="block" class="submit-orange-btn" (click)="saveEduAd()">
-      {{ isEditMode ? 'تحديث الإعلان التعليمي' : 'نشر الإعلان التعليمي' }}
+      {{ isEditMode ? 'حفظ التعديلات' : 'نشر الإعلان التعليمي' }}
     </ion-button>
   </div>
 </ion-content>

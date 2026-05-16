@@ -1,3 +1,5 @@
+@use './shared/auth-submit-btn';
+
 // --- Animations ---
 @keyframes pulse-soft {
   0% { transform: scale(1) translateY(0); opacity: 1; }
@@ -93,15 +95,12 @@
   a { color: #FF6B00; font-weight: 700; text-decoration: none; font-size: 14px; cursor: pointer; }
 }
 
-// --- الأزرار ---
-.main-login-btn {
-  --background: #FF6B00;
-  --border-radius: 18px;
-  --box-shadow: 0 8px 25px rgba(255, 107, 0, 0.25);
-  height: 60px;
-  font-weight: 800;
-  font-size: 1.1rem;
+.actions-section {
   margin-top: 10px;
+
+  .submit-btn-shell {
+    margin-bottom: 4px;
+  }
 }
 
 .register-hint {

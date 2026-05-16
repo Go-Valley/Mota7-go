@@ -108,15 +108,20 @@
         </button>
       </div>
 
-      <div class="search-empty" *ngIf="searchText && (searchResults$ | async)?.length === 0">
+      <div class="search-loading" *ngIf="isSearchActive() && isLoadingSearch && searchList.length === 0">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>جاري البحث...</p>
+      </div>
+
+      <div class="search-empty" *ngIf="showSearchEmptyState()">
         <ion-icon name="alert-circle-outline"></ion-icon>
         <p>لا توجد نتائج مطابقة لبحثك</p>
       </div>
     </div>
 
-    <app-banners *ngIf="!selectedCategory"></app-banners>
+    <app-banners *ngIf="!selectedCategory && !isSearchActive()"></app-banners>
 
-    <div class="section-header" [class.selected-header]="selectedCategory">
+    <div class="section-header" [class.selected-header]="selectedCategory" *ngIf="!isSearchActive() || selectedCategory">
       <h3 *ngIf="!selectedCategory">بتدور على ايه ؟</h3>
       <div class="underline" *ngIf="!selectedCategory"></div>
     </div>
@@ -156,7 +161,7 @@
       <button type="button" class="store-tab" *ngFor="let item of storeTypes; trackBy: trackByItemId" [class.active]="selectedStoreType === item.id" (click)="selectStoreType(item.id)">{{ item.nameAr }}<span class="tab-count">({{ storeTypeTabCounts[item.id] ?? 0 }})</span></button>
     </div>
 
-    <div class="search-results" *ngIf="!selectedCategory && searchText" (click)="$event.stopPropagation()">
+    <div class="search-results" *ngIf="!selectedCategory && isSearchActive()" (click)="$event.stopPropagation()">
       <div class="ads-display-container">
         <ng-container *ngFor="let ad of searchList; trackBy: trackByAdId">
           <ng-container [ngSwitch]="ad.ad_type">
@@ -175,7 +180,7 @@
     </div>
 
     <ion-infinite-scroll
-      *ngIf="!selectedCategory && searchText"
+      *ngIf="!selectedCategory && isSearchActive()"
       threshold="100px"
       (ionInfinite)="loadMoreSearch($event)"
       [disabled]="!searchHasMore">
@@ -183,7 +188,7 @@
       </ion-infinite-scroll-content>
     </ion-infinite-scroll>
 
-    <div class="services-grid" *ngIf="!selectedCategory && (!searchText || !(searchResults$ | async)?.length)">
+    <div class="services-grid" *ngIf="!selectedCategory && !isSearchActive()">
       <ng-container *ngIf="(categories$ | async) as categories; else defaultView">
         <div class="service-card" *ngFor="let category of categories" (click)="openService(category)">
           <div class="icon-circle">

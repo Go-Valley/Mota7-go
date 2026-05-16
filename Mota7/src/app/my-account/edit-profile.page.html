@@ -60,7 +60,7 @@
 
       <ion-label class="input-label">المدينة</ion-label>
       <app-governorate-city-selector
-        variant="signupSingle"
+        variant="profileSingle"
         fieldLabel="المدينة"
         placeholder="اضغط لاختيار المحافظة ثم المدينة"
         [displaySummary]="userData.city"
@@ -82,15 +82,21 @@
         </ion-button>
       </div>
 
-      <ion-button
-        expand="block"
-        class="save-btn"
-        [disabled]="!acct.accountUsable()"
-        (click)="saveProfile()"
-      >
-        <ion-icon name="save-outline" slot="end"></ion-icon>
-        حفظ التعديلات
-      </ion-button>
+      <div class="submit-btn-shell submit-btn-shell--save profile-save-shell">
+        <ion-button
+          expand="block"
+          class="submit-btn submit-btn--save"
+          [disabled]="!acct.accountUsable()"
+          (click)="saveProfile()"
+        >
+          <span class="submit-btn__inner">
+            <span class="submit-btn__icon" aria-hidden="true">
+              <ion-icon name="save-outline"></ion-icon>
+            </span>
+            <span class="submit-btn__label">حفظ التعديلات</span>
+          </span>
+        </ion-button>
+      </div>
     </div>
   </div>
 </ion-content>

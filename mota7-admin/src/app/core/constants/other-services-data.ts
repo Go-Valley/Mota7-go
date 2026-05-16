@@ -8,7 +8,8 @@ export const OTHER_SERVICES_DATA = {
     type: "crafts",
     items: [
       { id: "ac-maintenance", nameAr: "صيانة تكييفات", nameEn: "AC Maintenance" },
-      { id: "appliance-maintenance", nameAr: "صيانة غسالات وثلاجات", nameEn: "Washing Machine and Refrigerator Maintenance" },
+      { id: "washing-machine-maintenance", nameAr: "صيانة غسالات", nameEn: "Washing Machine Maintenance" },
+      { id: "refrigerator-maintenance", nameAr: "صيانة ثلاجات", nameEn: "Refrigerator Maintenance" },
       { id: "cameras-electronics", nameAr: "كاميرات واليكترونيات", nameEn: "Cameras and Electronics" },
       { id: "satellite-installation", nameAr: "صيانة دش ورسيفر", nameEn: "Satellite and Receiver Maintenance" },
       { id: "electrician", nameAr: "كهربائي", nameEn: "Electrician" },

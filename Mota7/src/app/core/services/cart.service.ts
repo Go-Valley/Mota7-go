@@ -236,6 +236,35 @@ export class CartService {
     this.persist();
   }
 
+  /** نسخة من محتوى العربة الحالي (لاستعادتها بعد تعديل طلب من «طلباتي») */
+  snapshotLines(): CartLine[] {
+    return this.lines().map((l) => ({ ...l }));
+  }
+
+  restoreLinesSnapshot(lines: readonly CartLine[]): void {
+    const next: CartLine[] = [];
+    for (const l of lines) {
+      const price = coerceOrderLinePrice(l.unitPrice);
+      if (!(price > 0) || !l.adId?.trim() || !l.title?.trim()) {
+        continue;
+      }
+      next.push({
+        lineId: l.lineId || newLineId(),
+        adId: l.adId,
+        title: l.title,
+        shortNote: l.shortNote || l.title,
+        unitPrice: price,
+        sellerName: l.sellerName || 'متاح',
+        sellerPhone: l.sellerPhone || '',
+        locationLabel: normalizeSellerCityLikeProductFeedCard(l.locationLabel),
+        condition: l.condition?.trim() || 'غير محدد',
+        quantity: cartLineQty(l),
+      });
+    }
+    this.lines.set(mergeLinesByAdId(next));
+    this.persist();
+  }
+
   /** تعبئة العربة من بيانات مستند الطلب لتعديلها في صفحة التأكيد */
   replaceLinesFromOrderSnapshot(
     items: readonly {

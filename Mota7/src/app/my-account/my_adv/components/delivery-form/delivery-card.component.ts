@@ -16,11 +16,23 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ModalController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { 
-  trashOutline, createOutline, locationOutline, checkmarkCircle, 
-  call, logoWhatsapp, alertCircleOutline, carOutline, 
-  airplaneOutline, timeOutline, shieldCheckmarkOutline, shieldCheckmark,
-  bicycleOutline, busOutline, keyOutline
+import {
+  trashOutline,
+  createOutline,
+  locationOutline,
+  checkmarkCircle,
+  call,
+  logoWhatsapp,
+  alertCircleOutline,
+  carOutline,
+  shieldCheckmarkOutline,
+  shieldCheckmark,
+  bicycleOutline,
+  busOutline,
+  airplaneOutline,
+  keyOutline,
+  checkmarkDoneCircle,
+  closeCircle,
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { DELIVERY_CATEGORY } from '../../../../core/constants/delivery-data';
@@ -59,11 +71,23 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
   private destroyRef = inject(DestroyRef);
 
   constructor() {
-    addIcons({ 
-      trashOutline, createOutline, locationOutline, checkmarkCircle, 
-      call, logoWhatsapp, alertCircleOutline, carOutline, 
-      airplaneOutline, timeOutline, shieldCheckmarkOutline, shieldCheckmark,
-      bicycleOutline, busOutline, keyOutline
+    addIcons({
+      trashOutline,
+      createOutline,
+      locationOutline,
+      checkmarkCircle,
+      call,
+      logoWhatsapp,
+      alertCircleOutline,
+      carOutline,
+      shieldCheckmarkOutline,
+      shieldCheckmark,
+      bicycleOutline,
+      busOutline,
+      airplaneOutline,
+      keyOutline,
+      checkmarkDoneCircle,
+      closeCircle,
     });
   }
 
@@ -107,10 +131,6 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
     return this.ad?.category_id === 'private-car';
   }
 
-  get useTwoRowChipLayout(): boolean {
-    return this.showTravelChip && this.showRentChip;
-  }
-
   getCategoryName(categoryId: string): string {
     const category = this.deliveryItems.find(item => item.id === categoryId);
     return category ? category.nameAr : 'خدمة توصيل';
@@ -122,6 +142,10 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
     if (category.icon === 'bicycle') return 'bicycle-outline';
     if (category.icon === 'bus') return 'bus-outline';
     return 'car-outline';
+  }
+
+  toggleAvailability(): void {
+    void this.toggleStatus('is_available');
   }
 
   async toggleStatus(field: string) {

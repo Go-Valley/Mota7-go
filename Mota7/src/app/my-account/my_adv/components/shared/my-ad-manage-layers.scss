@@ -266,16 +266,106 @@
     }
   }
 
-  /* تفاعلية شبيهة بالرئيسية لشرائح التوصيل */
-  .info-chips .grid-item.status-toggle {
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
   .meta-grid-modern .grid-item.status-toggle,
   .info-grid .grid-item.status-toggle {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* خدمات (نقل / تعليم / أخرى): زر «غير متاح» بارز ويوحي بإمكانية الضغط */
+  &.home-premium--delivery,
+  &.home-premium--education,
+  &.home-premium--other {
+    .meta-grid-modern.delivery-extra-chips {
+      margin-top: 7px;
+    }
+
+    &.is-unavailable {
+      opacity: 1 !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+      pointer-events: auto !important;
+
+      &::before,
+      &::after {
+        opacity: 0.22;
+      }
+
+      .status-header,
+      .title-and-badge-row,
+      .vehicle-title-header,
+      .service-title-header,
+      .main-info-row,
+      app-ad-card-engagement-row,
+      .meta-grid-modern .grid-item.city-box,
+      .info-grid .grid-item.city-box {
+        opacity: 0.68;
+        filter: grayscale(0.1) saturate(0.9);
+      }
+    }
+
+    .meta-grid-modern:not(.delivery-extra-chips) .grid-item.status-toggle.inactive,
+    .info-grid .grid-item.status-toggle.inactive {
+      position: relative;
+      z-index: 4;
+      flex: 1.2;
+      min-height: 46px;
+      padding: 9px 8px;
+      font-weight: 800;
+      font-size: 0.76rem;
+      background: linear-gradient(165deg, #fffbeb 0%, #fecaca 42%, #f87171 100%);
+      color: #7f1d1d;
+      border: 2px solid #ef4444;
+      box-shadow:
+        0 2px 0 rgba(255, 255, 255, 0.88) inset,
+        0 6px 18px rgba(239, 68, 68, 0.34),
+        0 0 0 4px rgba(254, 226, 226, 0.92);
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        filter 0.16s ease;
+
+      ion-icon {
+        font-size: 19px;
+        color: #b91c1c;
+        filter: drop-shadow(0 1px 3px rgba(127, 29, 29, 0.28));
+      }
+
+      &:active {
+        transform: scale(0.97);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.78) inset,
+          0 3px 10px rgba(239, 68, 68, 0.3),
+          0 0 0 3px rgba(254, 202, 202, 0.8);
+      }
+
+      &:focus-visible {
+        outline: none;
+        box-shadow:
+          0 2px 0 rgba(255, 255, 255, 0.88) inset,
+          0 6px 18px rgba(239, 68, 68, 0.34),
+          0 0 0 4px rgba(254, 226, 226, 0.92),
+          0 0 0 3px rgba(99, 102, 241, 0.55);
+      }
+    }
+
+    &.is-unavailable .meta-grid-modern:not(.delivery-extra-chips) .grid-item.status-toggle.inactive,
+    &.is-unavailable .info-grid .grid-item.status-toggle.inactive {
+      opacity: 1 !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &.home-premium--delivery,
+    &.home-premium--education,
+    &.home-premium--other {
+      .meta-grid-modern:not(.delivery-extra-chips) .grid-item.status-toggle.inactive,
+      .info-grid .grid-item.status-toggle.inactive {
+        animation: my-ad-unavailable-cta-pulse 2.5s ease-in-out infinite;
+      }
+    }
   }
 
   /* بطاقة المتجر — نفس فكرة صف اللوجو في الرئيسية */
@@ -298,54 +388,23 @@
       padding: 8px 0 4px;
     }
 
+    .store-contact-actions.contact-buttons-row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
     .store-logo-row {
       display: flex;
       flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 12px;
       width: 100%;
-      max-width: 320px;
-    }
-
-    .store-contact-btn {
-      flex-shrink: 0;
-      width: 44px;
-      height: 44px;
-      border: none;
-      border-radius: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition:
-        transform 0.16s ease,
-        filter 0.16s ease;
-
-      ion-icon {
-        font-size: 22px;
-        color: #fff;
-      }
-
-      &:active {
-        transform: scale(0.94);
-        filter: brightness(0.96);
-      }
-    }
-
-    .store-contact-btn--call {
-      background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.28) inset,
-        0 6px 18px rgba(37, 99, 235, 0.28);
-    }
-
-    .store-contact-btn--whatsapp {
-      background: linear-gradient(145deg, #22c55e 0%, #15803d 100%);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.28) inset,
-        0 6px 18px rgba(22, 163, 74, 0.28);
     }
 
     .store-circle {
@@ -384,13 +443,23 @@
     .store-circle .verification-badge-wrap {
       position: absolute;
       z-index: 2;
-      bottom: 4px;
-      inset-inline-end: 4px;
+      top: 96%;
+      right: -15px;
+      left: auto;
+      bottom: auto;
+      transform: translateY(-50%);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 5px;
+      border-radius: 999px;
       pointer-events: none;
       line-height: 0;
+
+      ::ng-deep .verify-tier-img {
+        max-height: 24px;
+        filter: drop-shadow(0 1px 4px rgba(180, 83, 9, 0.28));
+      }
     }
 
     .store-name-premium {
@@ -403,5 +472,22 @@
       max-width: 100%;
       padding: 0 8px;
     }
+  }
+}
+
+@keyframes my-ad-unavailable-cta-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.88) inset,
+      0 6px 18px rgba(239, 68, 68, 0.34),
+      0 0 0 4px rgba(254, 226, 226, 0.92);
+  }
+
+  50% {
+    box-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.88) inset,
+      0 8px 22px rgba(239, 68, 68, 0.42),
+      0 0 0 6px rgba(254, 202, 202, 0.98);
   }
 }

@@ -30,6 +30,14 @@ import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutlin
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import { mota7GpsDisabledAlertOptions } from 'src/app/core/utils/mota7-location-gps-alert.util';
+import {
+  applyCoverageMultiEmitToAdForm,
+  ensureCoverageCityIdsForAdSubmit,
+  hydrateAdFormUserCityFromProfile,
+  loadUserGovernorateContextForAdForm,
+} from 'src/app/core/utils/ad-form-user-city.util';
+import { GovernorateService } from 'src/app/core/services/governorate.service';
 
 @Component({
   selector: 'app-delivery-form',
@@ -64,11 +72,17 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
 
   /** محافظة المستخدم ومناطق تغطية الإعلان */
   userGovernorateId: string | null = null;
+  userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
-    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
-    this.deliveryData.city = (ev.primaryCityDisplay || '').trim() || this.deliveryData.city;
+    const applied = applyCoverageMultiEmitToAdForm(
+      ev,
+      this.coverageCityIdsForAd,
+      this.deliveryData.city
+    );
+    this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.deliveryData.city = applied.cityDisplay;
   }
 
   private firestore = inject(Firestore);
@@ -84,6 +98,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private govService = inject(GovernorateService);
   private locationListenerHandles: PluginListenerHandle[] = [];
   private locationResumeRetryInFlight = false;
 
@@ -98,8 +113,21 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
 
     if (this.editAdData) {
       this.initEditData(this.editAdData);
+      await this.applyUserGovernorateContext();
     } else {
       await this.loadUserProfile();
+    }
+  }
+
+  private async applyUserGovernorateContext(): Promise<void> {
+    const ctx = await loadUserGovernorateContextForAdForm(
+      this.auth,
+      this.firestore,
+      this.injector
+    );
+    this.userGovernorateId = ctx.userGovernorateId;
+    if (ctx.userCityId) {
+      this.userCityId = ctx.userCityId;
     }
   }
 
@@ -138,8 +166,15 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         const data = userDoc.data();
         this.deliveryData.contactPhone = data['phone'] || '';
         this.deliveryData.whatsappPhone = data['phone'] || '';
-        this.userGovernorateId = String(data['governorate_id'] ?? '').trim() || null;
-        this.deliveryData.city = data['city'] || '';
+        const geo = await hydrateAdFormUserCityFromProfile(
+          this.govService,
+          data as Record<string, unknown>,
+          this.isEditMode
+        );
+        this.userGovernorateId = geo.userGovernorateId;
+        this.userCityId = geo.userCityId;
+        this.deliveryData.city = geo.cityDisplay || this.deliveryData.city;
+        this.coverageCityIdsForAd = geo.coverageCityIds;
         this.deliveryData.driverName = data['fullName'] || '';
         // جلب حالة التوثيق من حساب المستخدم لتعيينها للإعلان
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
@@ -204,24 +239,11 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   }
 
   private async presentGpsEnableAlert(): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: 'تنبيه الموقع',
-      message: 'عفوا, تأكد من تفعيل ال gps في هاتفك',
-      mode: 'ios',
-      buttons: [
-        {
-          text: 'إلغاء',
-          role: 'cancel'
-        },
-        {
-          text: 'تفعيل',
-          role: 'confirm',
-          handler: () => {
-            void this.openLocationSettings();
-          }
-        }
-      ]
-    });
+    const alert = await this.alertCtrl.create(
+      mota7GpsDisabledAlertOptions(() => {
+        void this.openLocationSettings();
+      })
+    );
     await alert.present();
   }
 
@@ -298,7 +320,16 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       this.presentToast('يرجى اختيار نوع الخدمة');
       return;
     }
-    if (!this.coverageCityIdsForAd?.length) {
+    const resolvedCity = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+      isEditMode: this.isEditMode,
+      userGovernorateId: this.userGovernorateId,
+      userCityId: this.userCityId,
+      cityDisplay: this.deliveryData.city,
+      coverageCityIds: this.coverageCityIdsForAd,
+    });
+    this.userCityId = resolvedCity.userCityId;
+    this.coverageCityIdsForAd = resolvedCity.coverageCityIds;
+    if (!this.coverageCityIdsForAd.length) {
       this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
       return;
     }

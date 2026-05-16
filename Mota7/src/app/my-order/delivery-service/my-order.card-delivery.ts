@@ -9,11 +9,10 @@ import {
   Output,
   EventEmitter,
   EnvironmentInjector,
+  ChangeDetectorRef,
   runInInjectionContext
 } from '@angular/core';
 import { Firestore, doc, deleteDoc, getDoc, Timestamp, updateDoc } from '@angular/fire/firestore';
-import { Capacitor } from '@capacitor/core';
-import { Geolocation } from '@capacitor/geolocation';
 import { addIcons } from 'ionicons';
 import { AlertController, ModalController, ToastController } from '@ionic/angular';
 import {
@@ -34,6 +33,11 @@ import {
   completeAcceptedOrderWhenWindowElapsed
 } from '../../core/utils/order-lifecycle.firestore';
 import { presentTrackingMapModal } from './destination-map-picker/destination-map-picker.presenter';
+import { resolveOrderOriginLocationDisplay } from '../../core/utils/mota7-reverse-geocode.util';
+import {
+  getMota7CurrentPosition,
+  mota7GeolocationFailureMessage,
+} from '../../core/utils/mota7-geolocation-position.util';
 
 @Component({
   selector: 'app-my-order-card-delivery',
@@ -48,6 +52,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
   remainingTime: string = '00:00';
   isVisible: boolean = true;
   isUpdatingLocation: boolean = false;
+  fromLocationDisplay = '';
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
   private firestore = inject(Firestore);
@@ -55,6 +60,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
   private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
   private presentingReRateProvider = false;
   private presentingCustomerProviderRatingModal = false;
   private suppressCustomerProviderRatingModal = false;
@@ -75,12 +81,25 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
 
   ngOnInit() {
     this.checkStatusAndTimer();
+    void this.refreshFromLocationDisplay();
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes['order']) {
+      void this.refreshFromLocationDisplay();
+    }
     if (changes['order'] && this.order && !changes['order'].firstChange) {
       this.checkStatusAndTimer();
     }
+  }
+
+  private async refreshFromLocationDisplay(): Promise<void> {
+    if (!this.order) {
+      this.fromLocationDisplay = '';
+      return;
+    }
+    this.fromLocationDisplay = await resolveOrderOriginLocationDisplay(this.order);
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy() {
@@ -412,46 +431,21 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
     if (this.isUpdatingLocation) return;
     this.isUpdatingLocation = true;
     try {
-      let pos: any;
-      if (Capacitor.isNativePlatform()) {
-        let perm = await Geolocation.checkPermissions();
-        if (perm.location !== 'granted') {
-          perm = await Geolocation.requestPermissions();
-        }
-        if (perm.location === 'granted') {
-          pos = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 15000
-          });
-        }
-      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        pos = await new Promise<any>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve(p),
-            reject,
-            { enableHighAccuracy: true, timeout: 15000 }
-          );
-        });
-      }
-
-      if (pos) {
-        const { latitude, longitude } = pos.coords;
-        await runInInjectionContext(this.injector, () =>
-          updateDoc(doc(this.firestore, 'orders', this.order.id), {
-            lat: latitude,
-            lng: longitude,
-            location_name: 'تم التحديد عبر GPS'
-          })
-        );
-        this.order.lat = latitude;
-        this.order.lng = longitude;
-        await this.presentToast('تم تفعيل موقعك بنجاح');
-      } else {
-        await this.presentToast('فشل الحصول على الموقع، تأكد من تفعيل الـ GPS');
-      }
+      const pos = await getMota7CurrentPosition();
+      const { latitude, longitude } = pos.coords;
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'orders', this.order.id), {
+          lat: latitude,
+          lng: longitude,
+          location_name: 'تم التحديد عبر GPS',
+        })
+      );
+      this.order.lat = latitude;
+      this.order.lng = longitude;
+      await this.presentToast('تم تفعيل موقعك بنجاح');
     } catch (e) {
-      console.error('activateCustomerLocation error:', e);
-      await this.presentToast('حدث خطأ أثناء تفعيل الموقع');
+      console.warn('activateCustomerLocation:', e);
+      await this.presentToast(mota7GeolocationFailureMessage(e));
     } finally {
       this.isUpdatingLocation = false;
     }

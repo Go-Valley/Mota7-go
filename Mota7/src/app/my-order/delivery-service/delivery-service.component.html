@@ -26,16 +26,15 @@
 
       <div class="input-group">
         <label class="main-label">من : (نقطة الانطلاق) <span>*</span></label>
-        <ion-input
-          #inputFromLocation
-          [ngModel]="orderData.fromLocation"
-          (ionInput)="onDeliveryFreeTextInput($event, 'fromLocation')"
-          placeholder="المكان الحالي">
-        </ion-input>
-        
-        <ion-button expand="block" fill="outline" [class.location-success]="orderData.lat !== 0" class="mota7-location-btn" (click)="getCurrentLocation(true)">
+        <ion-button
+          expand="block"
+          fill="outline"
+          [class.location-success]="orderData.lat !== 0"
+          class="mota7-location-btn"
+          (click)="getCurrentLocation(false)"
+        >
           <ion-icon [name]="orderData.lat !== 0 ? 'checkmark-circle' : 'location-outline'" slot="start"></ion-icon>
-          {{ (orderData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد مكانك الحالي' }}
+          {{ (orderData.lat !== 0) ? 'تم تحديد موقعك بنجاح' : 'اضغط لتحديد موقعك الحالي' }}
         </ion-button>
       </div>
 

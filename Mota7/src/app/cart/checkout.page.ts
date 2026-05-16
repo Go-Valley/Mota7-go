@@ -184,6 +184,8 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   private lastHydratedEditOrderId: string | null = null;
   /** يمنع طلبّي تحميل متزامنين لنفس التعديل */
   private hydrationInFlightOrderId: string | null = null;
+  /** محتوى سلة المشتريات قبل فتح تعديل «طلباتي» — تُستعاد بعد الحفظ أو الإلغاء */
+  private cartSnapshotBeforeEdit: CartLine[] | null = null;
 
   readonly isEditingOrder = computed(() => this.editingFirestoreId() != null);
 
@@ -271,6 +273,9 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   ionViewWillLeave(): void {
     this.hardwareBackSub?.unsubscribe();
     this.hardwareBackSub = undefined;
+    if (this.editingFirestoreId()) {
+      this.discardEditOrderCartOverlay();
+    }
     this.persistGuestBuyerDraftIfApplicable();
   }
 
@@ -443,6 +448,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   private async refreshEditingStateFromRoute(): Promise<void> {
     const editIdRaw = this.route.snapshot.queryParamMap.get('editOrder')?.trim() ?? '';
     if (!editIdRaw || editIdRaw === SHOPPING_DELIVERY_CHARGES_DOC_ID) {
+      this.discardEditOrderCartOverlay();
       this.editingFirestoreId.set(null);
       this.lastHydratedEditOrderId = null;
       this.cdr.markForCheck();
@@ -467,6 +473,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       );
 
       if (!snap.exists()) {
+        this.discardEditOrderCartOverlay();
         this.editingFirestoreId.set(null);
         this.lastHydratedEditOrderId = null;
         await this.showToast('تعذر تحميل الطلب');
@@ -478,6 +485,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
       const st = normalizeShoppingOrderStatusKey(d['status']);
 
       if (st !== 'pending') {
+        this.discardEditOrderCartOverlay();
         this.editingFirestoreId.set(null);
         this.lastHydratedEditOrderId = null;
         await this.showToast('لا يمكن تعديل هذا الطلب في هذه الحالة');
@@ -493,6 +501,9 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
         return;
       }
 
+      if (this.cartSnapshotBeforeEdit === null) {
+        this.cartSnapshotBeforeEdit = this.cart.snapshotLines();
+      }
       this.cart.replaceLinesFromOrderSnapshot(rebuilt);
 
       this.name =
@@ -513,6 +524,7 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
     } catch (e) {
       console.warn('[checkout] edit load:', e);
       await this.showToast('تعذر تحميل بيانات التعديل');
+      this.discardEditOrderCartOverlay();
       this.editingFirestoreId.set(null);
       this.lastHydratedEditOrderId = null;
       this.cdr.markForCheck();
@@ -579,7 +591,25 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   }
 
   goBack(): void {
-    this.navCtrl.back();
+    this.discardEditOrderCartOverlay();
+    void this.navCtrl.back();
+  }
+
+  /** إعادة سلة المشتريات كما كانت قبل فتح تعديل الطلب */
+  private discardEditOrderCartOverlay(): void {
+    if (this.cartSnapshotBeforeEdit === null) {
+      return;
+    }
+    this.cart.restoreLinesSnapshot(this.cartSnapshotBeforeEdit);
+    this.cartSnapshotBeforeEdit = null;
+  }
+
+  private finalizeCartAfterCheckout(wasEdit: boolean): void {
+    if (wasEdit) {
+      this.discardEditOrderCartOverlay();
+      return;
+    }
+    this.cart.clearCart();
   }
 
   onNameInput(ev: Event): void {
@@ -817,12 +847,13 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
 
       await loader.dismiss();
 
+      const wasEdit = !!editId;
       this.editingFirestoreId.set(null);
       this.lastHydratedEditOrderId = null;
       this.hydrationInFlightOrderId = null;
-      this.cart.clearCart();
+      this.finalizeCartAfterCheckout(wasEdit);
 
-      await this.showToast(editId ? 'تم حفظ تعديلات الطلب بنجاح' : 'تم تأكيد عملية الشراء بنجاح');
+      await this.showToast(wasEdit ? 'تم حفظ تعديلات الطلب بنجاح' : 'تم تأكيد عملية الشراء بنجاح');
       await this.navCtrl.navigateRoot('/tabs/cart', { animated: true });
     } catch (e) {
       await loader.dismiss();

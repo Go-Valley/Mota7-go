@@ -1,13 +1,13 @@
 <ion-modal
   [isOpen]="isOpen"
   [backdropDismiss]="true"
-  cssClass="app-tutorial-modal"
+  [cssClass]="modalCssClass"
   (didDismiss)="emitClose()"
 >
   <ng-template>
     <ion-header class="ion-no-border tutorial-mota7-header-wrap">
       <ion-toolbar mode="ios" class="mota7-header">
-        <ion-title class="mota7-title">ازاي تستخدم التطبيق</ion-title>
+        <ion-title class="mota7-title">{{ modalTitle }}</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="clear" class="tutorial-close-btn" (click)="emitClose()">
             إغلاق
@@ -18,249 +18,394 @@
 
     <ion-content class="tutorial-modal-content" scrollY="true">
       <div class="tutorial-scroll-inner">
-        <section class="tutorial-section" aria-labelledby="tutorial-s1">
-          <h2 id="tutorial-s1" class="tutorial-section-title tutorial-section-title--center-red">
-            ابدأ طلبك في ثوانٍ
-          </h2>
+        <ng-container *ngIf="mode === 'request'">
+          <p class="tutorial-lead">
+            دليل مختصر خطوة بخطوة لطلب أي خدمة من التطبيق — من اختيار النوع حتى التقييم بعد
+            الانتهاء.
+          </p>
+          <ng-container *ngTemplateOutlet="requestServiceGuide"></ng-container>
+        </ng-container>
 
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">الدخول لقائمة الطلبات</h3>
-            <p class="tutorial-step-text">
-              اضغط على زر &quot;طلب&quot; الموجود في المنتصف بالشريط السفلي للتطبيق.
+        <ng-container *ngIf="mode === 'provider'">
+          <p class="tutorial-lead tutorial-lead--provider">
+            دليل مختصر خطوة بخطوة لنشر متجرك أو منتجك أو خدمتك — واستقبال طلبات العملاء
+            ومتابعتها.
+          </p>
+          <ng-container *ngTemplateOutlet="providerGuide"></ng-container>
+        </ng-container>
+
+        <ng-container *ngIf="mode === 'full'">
+          <section class="tutorial-section" aria-labelledby="tutorial-s1">
+            <h2
+              id="tutorial-s1"
+              class="tutorial-section-title tutorial-section-title--center-red"
+            >
+              إزاي تطلب خدمة
+            </h2>
+            <p class="tutorial-section-intro">
+              اتبع الخطوات التالية علشان تطلب خدمة وتتابعها لحد ما تخلص.
             </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/1.jpg')"
-              loading="lazy"
-              alt="الدخول لقائمة الطلبات"
-            ></ion-img>
-          </article>
+            <ng-container *ngTemplateOutlet="requestServiceGuide"></ng-container>
+          </section>
 
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">اختيار &quot;الخدمة المطلوبة&quot;</h3>
-            <p class="tutorial-step-text">
-              من القائمة التي ستظهر لك , اختر ما تحتاجه من خدمات ( نقل وتوصيل - خدمات حرفية وصيانة - خدمات تعليمية )
+          <section
+            class="tutorial-section tutorial-section--spaced"
+            aria-labelledby="tutorial-s2"
+          >
+            <h2
+              id="tutorial-s2"
+              class="tutorial-section-title tutorial-section-title--center-red"
+            >
+              إزاي تعرض خدمتك وتستقبل طلبات العملاء
+            </h2>
+            <p class="tutorial-section-intro">
+              لو مقدم خدمة أو صاحب متجر، اتبع الخطوات دي علشان تنشر إعلانك وتستقبل الطلبات.
             </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/2.jpg')"
-              loading="lazy"
-              alt="طلب خدمة"
-            ></ion-img>
-          </article>
 
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">ملء تفاصيل طلبك</h3>
-            <p class="tutorial-step-text">
-              حدد تفاصيل الخدمة (مثل نوع المركبة، جهة الوصول)، واضغط على تأكيد الموقع لتحديد
-              مكانك بدقة.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/4.jpg')"
-              loading="lazy"
-              alt="تفاصيل الطلب وتأكيد الموقع"
-            ></ion-img>
-          </article>
+            <ng-container *ngTemplateOutlet="providerGuide"></ng-container>
+          </section>
 
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">تتبع حالة الطلب</h3>
-            <p class="tutorial-step-text">
-              لمتابعة طلبك الحالي، اضغط على زر &quot;طلب&quot;، ثم اضغط على &quot;عرض طلباتي&quot;.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/5.jpg')"
-              loading="lazy"
-              alt="عرض طلباتي"
-            ></ion-img>
-          </article>
+          <div class="tutorial-footer-cta-wrap">
+            <ion-button
+              expand="block"
+              mode="ios"
+              class="tutorial-admin-contact-btn"
+              (click)="openContactAdmin()"
+            >
+              للاستفسار — تواصل مع الإدارة
+            </ion-button>
+          </div>
+        </ng-container>
 
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">التواصل مع مقدم الخدمة</h3>
-            <p class="tutorial-step-text">
-              بمجرد قبول الطلب، يمكنك التواصل فوراً عبر الواتساب أو الاتصال، ومتابعة التحرك
-              لحظة بلحظة عبر زر &quot;تتبع&quot;.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/6.jpg')"
-              loading="lazy"
-              alt="التواصل مع مقدم الخدمة"
-            ></ion-img>
-            <ion-img
-              class="tutorial-shot tutorial-shot--tight-top"
-              [src]="assetUrl('assets/use/7.jpg')"
-              loading="lazy"
-              alt="تتبع الطلب"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">تقييم التجربة</h3>
-            <p class="tutorial-step-text">
-              بعد الانتهاء، لا تنسَ إضافة تعليقك وتقييمك لضمان الجودة.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/8.jpg')"
-              loading="lazy"
-              alt="تقييم التجربة"
-            ></ion-img>
-          </article>
-        </section>
-
-        <section class="tutorial-section tutorial-section--spaced" aria-labelledby="tutorial-s2">
-          <h2 id="tutorial-s2" class="tutorial-section-title tutorial-section-title--center-red">
-            انشر اعلانك و أستقبل الطلبات
-          </h2>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">اختيار &quot;نشر إعلان&quot;</h3>
-            <p class="tutorial-step-text">
-              من قائمة &quot;طلب&quot; في الشريط السفلي، اختر زر &quot;نشر إعلان&quot; لعرض خدمتك أو منتجك أو
-              متجرك بسهولة.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/9.jpg')"
-              loading="lazy"
-              alt="نشر إعلان"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">إنشاء حسابك</h3>
-            <p class="tutorial-step-text">
-              إن لم يكن لديك حساب بعد، اختر &quot;إنشاء حساب جديد&quot; من شاشة الحساب، ثم أدخل
-              بياناتك الأساسية (الاسم، الهاتف، المدينة) وأكمل التسجيل للوصول إلى لوحة نشر
-              الإعلانات وإدارتها.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/10.jpg')"
-              loading="lazy"
-              alt="إنشاء حساب"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">إدارة الإعلانات</h3>
-            <p class="tutorial-step-text">
-              من تبويب &quot;حسابي&quot;، اضغط &quot;إدارة إعلاناتي&quot; لعرض إعلاناتك الحالية، حالة كل
-              إعلان، وإمكانية التعديل أو التحديث عند الحاجة.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/11.jpg')"
-              loading="lazy"
-              alt="إدارة الإعلانات"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">إضافة إعلان جديد</h3>
-            <p class="tutorial-step-text">
-              داخل إدارة الإعلانات، اختر إضافة إعلان جديد واتبع الخطوات لبدء إدخال بيانات
-              عرضك بشكل منظم.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/12.jpg')"
-              loading="lazy"
-              alt="إضافة إعلان جديد"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">تحديد النشاط</h3>
-            <p class="tutorial-step-text">
-              اختر تصنيف إعلانك المراد نشره ( خدمة - منتج - متجر )  ليصل إعلانك لجميع المستخدمين.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/13.jpg')"
-              loading="lazy"
-              alt="تحديد النشاط"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">تفاصيل الإعلان</h3>
-            <p class="tutorial-step-text">
-              اكتب وصفاً واضحاً لخدمتك أو منتجك، أضف صوراً عند الحاجة، وحدد التفاصيل المهمة
-              للعميل وفقاً لما يطلبه النموذج, ثم اضغط ارسال الطلب.            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/14.jpg')"
-              loading="lazy"
-              alt="تفاصيل الإعلان"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">المتابعة</h3>
-            <p class="tutorial-step-text">
-              راجع حالة اعلانك والتفعيل ليظهر للمستخدمين, يمكنك طلب التفعيل بشكل فورى من خلال ارسال طلب تفعيل الاعلان.            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/15.jpg')"
-              loading="lazy"
-              alt="متابعة نشر الإعلان"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">استقبال الطلبات</h3>
-            <p class="tutorial-step-text">
-              يمكنك متابعة الطلبات الخاصة بالعملاء؛ راقبها من &quot;طلبات العملاء&quot;
-              أو اجعل التطبيق مفتوح دائما بالخلفية لتصلك فوراُ اشعارات الطلبات الجديدة حتى لا يفوتك أي طلب جديد.            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/16.jpg')"
-              loading="lazy"
-              alt="استقبال الطلبات"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">القبول والتواصل</h3>
-            <p class="tutorial-step-text">
-              راجع الطلبات المرسلة من العملاء, واضغط على &quot;قبول الطلب&quot;
-              لبدء التنسيق مع العميل.            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/17.jpg')"
-              loading="lazy"
-              alt="قبول الطلب والتواصل"
-            ></ion-img>
-          </article>
-
-          <article class="tutorial-step">
-            <h3 class="tutorial-step-title">التواصل المباشر</h3>
-            <p class="tutorial-step-text">
-              استخدم أزرار الاتصال أو واتساب المتاحة داخل الطلب للتواصل السريع، وتابع تنفيذ
-              الخدمة حتى إتمامها وتقييم التجربة من العميل.
-            </p>
-            <ion-img
-              class="tutorial-shot"
-              [src]="assetUrl('assets/use/18.jpg')"
-              loading="lazy"
-              alt="التواصل المباشر"
-            ></ion-img>
-          </article>
-        </section>
-
-        <div class="tutorial-footer-cta-wrap">
+        <div *ngIf="mode === 'request' || mode === 'provider'" class="tutorial-footer-cta-wrap">
           <ion-button
             expand="block"
             mode="ios"
             class="tutorial-admin-contact-btn"
             (click)="openContactAdmin()"
           >
-            للاستفسار - تواصل مع الادارة
+            محتاج مساعدة؟ تواصل مع الإدارة
           </ion-button>
         </div>
       </div>
     </ion-content>
   </ng-template>
 </ion-modal>
+
+<!-- ─── دليل طلب الخدمة ─── -->
+<ng-template #requestServiceGuide>
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">1</span>
+      <h3 class="tutorial-step-title">الدخول لقائمة الطلبات</h3>
+    </header>
+    <p class="tutorial-step-text">
+      اضغط على زر <strong>طلب خدمة</strong> في الشريط السفلي للتطبيق.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/1.jpg')"
+        loading="lazy"
+        alt="الدخول لقائمة الطلبات من الشريط السفلي"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">2</span>
+      <h3 class="tutorial-step-title">اختيار الخدمة المطلوبة</h3>
+    </header>
+    <p class="tutorial-step-text">
+      من القائمة اللي هتظهرلك، اختار الخدمة اللي محتاجها:
+      <strong>نقل وتوصيل</strong>، <strong>خدمات حرفية وصيانة</strong>، أو
+      <strong>خدمات تعليمية (دروس خصوصية)</strong>. اضغط <strong>المزيد</strong> لو عايز
+      تفاصيل أكتر عن الخدمات جوا كل قسم.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/2.jpg')"
+        loading="lazy"
+        alt="اختيار نوع الخدمة من القائمة"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">3</span>
+      <h3 class="tutorial-step-title">ملء تفاصيل الطلب</h3>
+    </header>
+    <p class="tutorial-step-text">
+      املأ النموذج بالبيانات المطلوبة. في خدمات النقل والتوصيل، اضغط
+      <strong>تأكيد الموقع</strong> لتحديد مكانك بدقة. اكتب المبلغ اللي حابب تدفعه،
+      اسمك، رقم تليفونك، والمدينة، وبعدها اضغط <strong>إرسال الطلب</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/4.jpg')"
+        loading="lazy"
+        alt="نموذج تفاصيل الطلب وتأكيد الموقع"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">4</span>
+      <h3 class="tutorial-step-title">تتبع حالة الطلب</h3>
+    </header>
+    <p class="tutorial-step-text">
+      علشان تتابع طلبك الحالي، اضغط <strong>طلب خدمة</strong> من الشريط السفلي، واختار
+      <strong>عرض طلباتي</strong> أسفل القائمة.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/5.jpg')"
+        loading="lazy"
+        alt="عرض طلباتي من قائمة طلب الخدمة"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">5</span>
+      <h3 class="tutorial-step-title">التواصل مع مقدم الخدمة</h3>
+    </header>
+    <p class="tutorial-step-text">
+      بمجرد قبول الطلب، هتقدر تتواصل فوراً مع مقدم الخدمة (اتصال أو واتساب)، وتتابع
+      التحرك لحظة بلحظة من خلال زر <strong>تتبع المسار</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/6.jpg')"
+        loading="lazy"
+        alt="التواصل مع مقدم الخدمة بعد قبول الطلب"
+      ></ion-img>
+    </figure>
+    <figure class="tutorial-shot-wrap tutorial-shot-wrap--tight">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/7.jpg')"
+        loading="lazy"
+        alt="تتبع مسار مقدم الخدمة"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge" aria-hidden="true">6</span>
+      <h3 class="tutorial-step-title">تقييم التجربة</h3>
+    </header>
+    <p class="tutorial-step-text">
+      بعد الانتهاء، متنساش تضيف تقييمك وتعليقك على الخدمة علشان نضمن الجودة لكل
+      المستخدمين.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/8.jpg')"
+        loading="lazy"
+        alt="تقييم الخدمة بعد إتمام الطلب"
+      ></ion-img>
+    </figure>
+  </article>
+</ng-template>
+
+<!-- ─── دليل نشر الخدمة واستقبال الطلبات ─── -->
+<ng-template #providerGuide>
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">1</span>
+      <h3 class="tutorial-step-title">اختيار «نشر إعلان»</h3>
+    </header>
+    <p class="tutorial-step-text">
+      اضغط على زر <strong>نشر إعلان</strong> في الشريط السفلي لعرض خدمتك أو منتجك أو
+      متجرك بسهولة.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/9.jpg')"
+        loading="lazy"
+        alt="زر نشر إعلان في الشريط السفلي"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">2</span>
+      <h3 class="tutorial-step-title">إنشاء حسابك</h3>
+    </header>
+    <p class="tutorial-step-text">
+      لو ماعندكش حساب، اختار <strong>إنشاء حساب جديد</strong> من زر <strong>حسابي</strong>.
+      أدخل بياناتك الأساسية (الاسم، الهاتف، المدينة) وبعدها اضغط <strong>تسجيل</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/10.jpg')"
+        loading="lazy"
+        alt="إنشاء حساب جديد"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">3</span>
+      <h3 class="tutorial-step-title">إدارة الإعلانات</h3>
+    </header>
+    <p class="tutorial-step-text">
+      من زر <strong>حسابي</strong>، اضغط <strong>إدارة إعلاناتي</strong> لإضافة إعلان
+      جديد، عرض إعلاناتك الحالية، حالة كل إعلان، والتعديل أو التحديث عند الحاجة.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/11.jpg')"
+        loading="lazy"
+        alt="إدارة إعلاناتي من حسابي"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">4</span>
+      <h3 class="tutorial-step-title">إضافة إعلان جديد</h3>
+    </header>
+    <p class="tutorial-step-text">
+      داخل <strong>إدارة إعلاناتي</strong>، اضغط <strong>إضافة إعلان جديد</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/12.jpg')"
+        loading="lazy"
+        alt="إضافة إعلان جديد"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">5</span>
+      <h3 class="tutorial-step-title">تحديد النشاط</h3>
+    </header>
+    <p class="tutorial-step-text">
+      اختار تصنيف إعلانك (خدمة — منتج — متجر) علشان يوصل إعلانك لكل المستخدمين.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/13.jpg')"
+        loading="lazy"
+        alt="اختيار تصنيف الإعلان"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">6</span>
+      <h3 class="tutorial-step-title">تفاصيل الإعلان</h3>
+    </header>
+    <p class="tutorial-step-text">
+      اكتب وصف واضح لخدمتك أو منتجك، أضف صور المنتج، وحدد التفاصيل المهمة للعميل
+      حسب ما يطلبه النموذج، ثم اضغط <strong>إرسال الطلب</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/14.jpg')"
+        loading="lazy"
+        alt="تعبئة تفاصيل الإعلان"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">7</span>
+      <h3 class="tutorial-step-title">المتابعة والتفعيل</h3>
+    </header>
+    <p class="tutorial-step-text">
+      راجع حالة إعلانك والتفعيل علشان يظهر للمستخدمين. تقدر تطلب التفعيل الفوري من
+      خلال <strong>إرسال طلب تفعيل الإعلان</strong>.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/15.jpg')"
+        loading="lazy"
+        alt="متابعة حالة الإعلان وطلب التفعيل"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">8</span>
+      <h3 class="tutorial-step-title">استقبال الطلبات</h3>
+    </header>
+    <p class="tutorial-step-text">
+      تابع طلبات العملاء من <strong>طلبات العملاء</strong>، أو خلّي التطبيق شغال في
+      الخلفية علشان توصلك إشعارات الطلبات الجديدة وميفوتكش أي طلب.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/16.jpg')"
+        loading="lazy"
+        alt="استقبال ومتابعة طلبات العملاء"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">9</span>
+      <h3 class="tutorial-step-title">القبول والتواصل</h3>
+    </header>
+    <p class="tutorial-step-text">
+      راجع الطلبات المرسلة من العملاء، واضغط <strong>قبول الطلب</strong> علشان تبدأ
+      التنسيق مع العميل.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/17.jpg')"
+        loading="lazy"
+        alt="قبول طلب العميل"
+      ></ion-img>
+    </figure>
+  </article>
+
+  <article class="tutorial-step">
+    <header class="tutorial-step-head">
+      <span class="tutorial-step-badge tutorial-step-badge--provider" aria-hidden="true">10</span>
+      <h3 class="tutorial-step-title">التواصل المباشر</h3>
+    </header>
+    <p class="tutorial-step-text">
+      استخدم أزرار الاتصال أو واتساب داخل الطلب للتواصل السريع، وتابع تنفيذ الخدمة
+      لحد الإتمام وتقييم العميل للتجربة.
+    </p>
+    <figure class="tutorial-shot-wrap">
+      <ion-img
+        class="tutorial-shot"
+        [src]="assetUrl('assets/use/18.jpg')"
+        loading="lazy"
+        alt="التواصل المباشر مع العميل"
+      ></ion-img>
+    </figure>
+  </article>
+</ng-template>

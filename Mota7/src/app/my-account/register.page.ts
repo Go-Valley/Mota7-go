@@ -36,15 +36,16 @@ import {
   type SingleCityEmit,
 } from '../shared/governorate-city-selector/governorate-city-selector.component';
 
-import { 
-  personAddOutline, 
-  personOutline, 
-  phonePortraitOutline, 
-  mailOutline, 
-  lockClosedOutline, 
-  shieldCheckmarkOutline, 
+import {
+  personAddOutline,
+  personOutline,
+  phonePortraitOutline,
+  mailOutline,
+  lockClosedOutline,
+  shieldCheckmarkOutline,
+  checkmarkCircleOutline,
   chevronForwardOutline,
-  locationOutline // أيقونة إضافية للمدينة
+  locationOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -87,15 +88,16 @@ export class RegisterPage implements OnInit, OnDestroy {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ 
-      personAddOutline, 
-      personOutline, 
-      phonePortraitOutline, 
-      mailOutline, 
-      lockClosedOutline, 
-      shieldCheckmarkOutline, 
+    addIcons({
+      personAddOutline,
+      personOutline,
+      phonePortraitOutline,
+      mailOutline,
+      lockClosedOutline,
+      shieldCheckmarkOutline,
+      checkmarkCircleOutline,
       chevronForwardOutline,
-      locationOutline
+      locationOutline,
     });
   }
 

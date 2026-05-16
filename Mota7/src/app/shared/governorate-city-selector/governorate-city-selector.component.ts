@@ -76,6 +76,8 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
   @Input() restrictGovernorateIds: string[] | null = null;
   /** تمييز اختيار أحادي موجود (تسجيل/ملف شخصي) بعد تحميل القائمة من Firebase */
   @Input() seedSingleSelection: { governorateId: string; cityId: string } | null = null;
+  /** مدن مُسبقة الاختيار (إعلانات: مدينة الحساب من التسجيل) */
+  @Input() seedCoverageCityIds: string[] | null = null;
   /** ارتفاع قائمة الداخل المنبثقة أو البطاقة */
   @Input() maxScrollHeight = '340px';
 
@@ -86,6 +88,10 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
   @Input() displaySummary = '';
   /** تعطيل التفاعل (عرض فقط) */
   @Input() disabled = false;
+  /** أقصى عدد مدن (مثلاً 1 للمتجر) — null = بدون حد */
+  @Input() maxCoverageCities: number | null = null;
+  /** إظهار «المحافظة — كل المدن» — false يخفيه (متجر) */
+  @Input() allowWholeGovernorate: boolean | null = null;
 
   @Output() hubSelectionChange = new EventEmitter<HubGeoSelectionEmit>();
   @Output() singleCityChange = new EventEmitter<SingleCityEmit>();
@@ -110,6 +116,10 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
 
   /** آخر شبكة مختارة لمزامنة خارجية */
   private lastHubPayload: HubGeoSelectionEmit | null = null;
+  private lastAppliedCoverageSeedKey = '';
+  /** منع إعادة فرض seed بعد اختيار المستخدم يدوياً (تعديل الملف / التسجيل) */
+  private lastAppliedSingleSeedKey = '';
+  private singleSelectionUserPicked = false;
 
   constructor() {
     addIcons({
@@ -145,7 +155,36 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
 
   ngOnChanges(ch: SimpleChanges): void {
     if (ch['restrictGovernorateIds'] || ch['variant'] || ch['seedSingleSelection']) {
+      if (ch['seedSingleSelection']) {
+        const prev = ch['seedSingleSelection'].previousValue as
+          | { governorateId: string; cityId: string }
+          | null
+          | undefined;
+        const cur = ch['seedSingleSelection'].currentValue as
+          | { governorateId: string; cityId: string }
+          | null
+          | undefined;
+        const prevKey = `${String(prev?.governorateId ?? '').trim()}|${String(prev?.cityId ?? '').trim()}`;
+        const curKey = `${String(cur?.governorateId ?? '').trim()}|${String(cur?.cityId ?? '').trim()}`;
+        if (curKey !== prevKey) {
+          this.lastAppliedSingleSeedKey = '';
+          const matchesCurrent =
+            `${this.singleGovId ?? ''}|${this.singleCityId ?? ''}` === curKey;
+          if (!matchesCurrent) {
+            this.singleSelectionUserPicked = false;
+          }
+        }
+      }
       this.applySeedSingleIfNeeded();
+    }
+    if (
+      ch['seedCoverageCityIds'] ||
+      ch['restrictGovernorateIds'] ||
+      ch['variant'] ||
+      ch['maxCoverageCities'] ||
+      ch['allowWholeGovernorate']
+    ) {
+      this.applySeedCoverageIfNeeded();
     }
   }
 
@@ -160,6 +199,10 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
 
   openSheet(): void {
     if (this.disabled) return;
+    this.expandGovernoratesForSheet();
+    if (this.variant === 'requestMultiNoWhole' && this.governoratesSnap.length === 1) {
+      this.expandedGovernorateIds.add(this.governoratesSnap[0]!.id);
+    }
     this.sheetOpen = true;
   }
 
@@ -167,8 +210,56 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     this.sheetOpen = false;
   }
 
+  confirmAndCloseSheet(): void {
+    if (this.disabled) return;
+    if (this.isModalMultiVariant()) {
+      void this.emitCoverageAggregate();
+    }
+    this.closeSheet();
+  }
+
   onSheetDidDismiss(): void {
     this.sheetOpen = false;
+    this.cityModalGov = null;
+    if (this.isModalMultiVariant() && this.variant !== 'requestMultiNoWhole') {
+      void this.emitCoverageAggregate();
+    }
+  }
+
+  governoratePickCount(govId: string): number {
+    if (this.pickWhole.get(govId)) {
+      const g = this.governoratesSnap.find((x) => x.id === govId);
+      return g?.cities?.length ?? 0;
+    }
+    return this.pickCities.get(govId)?.size ?? 0;
+  }
+
+  onCoverageCityRowClick(gov: GovWithCities, city: City, ev: Event): void {
+    if (this.disabled || this.variant !== 'coverageMultiRestricted') return;
+    ev.stopPropagation();
+    this.toggleCityCheckbox(gov, city, ev);
+  }
+
+  selectRequestCityInline(gov: GovWithCities, city: City, ev: Event): void {
+    if (this.disabled || this.variant !== 'requestMultiNoWhole') return;
+    ev.stopPropagation();
+    this.toggleCityCheckbox(gov, city, ev);
+    this.finishRequestCitySelection();
+  }
+
+  private expandGovernoratesForSheet(): void {
+    if (!this.isModalMultiVariant()) return;
+    const next = new Set(this.expandedGovernorateIds);
+    for (const g of this.governoratesSnap) {
+      if (this.governoratePickCount(g.id) > 0) {
+        next.add(g.id);
+      }
+    }
+    const only = this.restrictGovernorateIds;
+    if (only?.length === 1) {
+      next.add(String(only[0]).trim());
+    }
+    this.expandedGovernorateIds = next;
   }
 
   openCityPickerModal(g: GovWithCities): void {
@@ -206,18 +297,30 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     if (this.disabled || this.variant !== 'requestMultiNoWhole') return;
     ev?.stopPropagation?.();
     this.toggleCityCheckbox(gov, city, ev);
-    this.closeCityPickerModal();
+    this.finishRequestCitySelection();
+  }
+
+  /** طلب خدمة: بعد اختيار مدينة — إغلاق الورقة والعودة للنموذج مباشرة */
+  private finishRequestCitySelection(): void {
     const hasCity = [...this.pickCities.values()].some((s) => s && s.size > 0);
-    if (hasCity) {
-      this.closeSheet();
+    if (!hasCity) {
+      return;
     }
+    this.closeCityPickerModal();
+    this.closeSheet();
   }
 
   governorateShort(g: Governorate): string {
     return governorateDisplayShort(g?.name ?? '');
   }
 
+  isSingleCoverageCityMode(): boolean {
+    return this.variant === 'coverageMultiRestricted' && this.maxCoverageCities === 1;
+  }
+
   showWholeRow(_g: Governorate): boolean {
+    if (this.allowWholeGovernorate === false) return false;
+    if (this.isSingleCoverageCityMode()) return false;
     if (this.variant === 'requestMultiNoWhole') return false;
     if (this.variant === 'signupSingle' || this.variant === 'profileSingle') return false;
     /** تغطية إعلان: إن قُيدت لمحافظة واحدة اعرض «كل المحافظة المعروضة» */
@@ -270,6 +373,8 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     if (this.disabled) return;
     ev?.stopPropagation?.();
     if (this.variant === 'signupSingle' || this.variant === 'profileSingle') {
+      this.singleSelectionUserPicked = true;
+      this.lastAppliedSingleSeedKey = `${gov.id}|${city.id}`;
       this.singleGovId = gov.id;
       this.singleCityId = city.id;
       this.pickWhole.clear();
@@ -286,7 +391,7 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
       return;
     }
 
-    if (this.variant === 'requestMultiNoWhole') {
+    if (this.variant === 'requestMultiNoWhole' || this.isSingleCoverageCityMode()) {
       const alreadyChosen = !!this.pickCities.get(gov.id)?.has(city.id);
       this.pickWhole.clear();
       this.pickCities.clear();
@@ -351,18 +456,83 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
   handleGovernorateList(snapshot: GovWithCities[]): void {
     this.governoratesSnap = snapshot || [];
     this.applySeedSingleIfNeeded();
+    this.applySeedCoverageIfNeeded();
   }
 
   private applySeedSingleIfNeeded(): void {
     if (this.variant !== 'signupSingle' && this.variant !== 'profileSingle') return;
+    if (this.singleSelectionUserPicked) return;
+
     const seed = this.seedSingleSelection;
     const govId = String(seed?.governorateId ?? '').trim();
     const citId = String(seed?.cityId ?? '').trim();
     if (!govId || !citId || !this.governoratesSnap.length) return;
+
+    const seedKey = `${govId}|${citId}`;
+    if (seedKey === this.lastAppliedSingleSeedKey) return;
+
     const gov = this.governoratesSnap.find((g) => g.id === govId);
     if (!gov?.cities?.some((c) => c.id === citId)) return;
+
     this.singleGovId = govId;
     this.singleCityId = citId;
+    this.lastAppliedSingleSeedKey = seedKey;
+  }
+
+  private applySeedCoverageIfNeeded(): void {
+    if (!this.isModalMultiVariant()) return;
+    let want = (this.seedCoverageCityIds ?? [])
+      .map((id) => String(id).trim())
+      .filter(Boolean)
+      .sort();
+    if (this.isSingleCoverageCityMode() && want.length > 1) {
+      want = [want[0]!];
+    }
+    if (!want.length || !this.governoratesSnap.length) return;
+
+    const seedKey = want.join('|');
+    if (seedKey === this.lastAppliedCoverageSeedKey) return;
+
+    const wantSet = new Set(want);
+    this.pickWhole.clear();
+    this.pickCities.clear();
+
+    let matchedCityCount = 0;
+    for (const g of this.governoratesSnap) {
+      const cities = g.cities || [];
+      const matched = cities.filter((c) => wantSet.has(c.id));
+      if (!matched.length) continue;
+      if (this.isSingleCoverageCityMode()) {
+        this.pickCities.set(g.id, new Set([matched[0]!.id]));
+        matchedCityCount += 1;
+        continue;
+      }
+      matchedCityCount += matched.length;
+      if (matched.length === cities.length && this.showWholeRow(g)) {
+        this.pickWhole.set(g.id, true);
+      } else {
+        this.pickCities.set(g.id, new Set(matched.map((c) => c.id)));
+      }
+    }
+
+    /** لا تُرسل emit فارغاً — يمسح coverageCityIds في نموذج الإعلان قبل اكتمال التحميل */
+    if (matchedCityCount === 0) {
+      return;
+    }
+
+    const expanded = new Set(this.expandedGovernorateIds);
+    for (const g of this.governoratesSnap) {
+      if (this.governoratePickCount(g.id) > 0) {
+        expanded.add(g.id);
+      }
+    }
+    if (this.restrictGovernorateIds?.length === 1) {
+      expanded.add(String(this.restrictGovernorateIds[0]).trim());
+    }
+    this.expandedGovernorateIds = expanded;
+
+    this.lastAppliedCoverageSeedKey = seedKey;
+    void this.emitCoverageAggregate();
   }
 
   private async flatHubFromGovernorates$(): Promise<HubGeoSelectionEmit> {

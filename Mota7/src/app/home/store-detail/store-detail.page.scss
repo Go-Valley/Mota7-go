@@ -36,6 +36,8 @@
 }
 
 .store-detail-logo-ring {
+  position: relative;
+  z-index: 1;
   width: 112px;
   height: 112px;
   border-radius: 50%;
@@ -57,19 +59,16 @@
 
 .store-detail-verify {
   position: absolute;
-  bottom: 2px;
-  inset-inline-end: -4px;
+  z-index: 0;
+  top: 90%;
+  right: -21px;
+  left: auto;
+  bottom: auto;
+  transform: translateY(-50%);
   min-width: 30px;
   min-height: 30px;
-  padding: 2px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
-  border: 2px solid #fff;
-  background: #fff;
-  line-height: 0;
+  padding: 5px;
+  border-radius: 999px;
 
   ::ng-deep .verify-tier-img {
     max-height: 26px;

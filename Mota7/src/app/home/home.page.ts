@@ -63,6 +63,11 @@ import { CartService } from '../core/services/cart.service';
 import { GovernorateCitySelectorComponent, HubGeoSelectionEmit } from '../shared/governorate-city-selector/governorate-city-selector.component';
 import { adMatchesHomeGeoFilter } from '../core/utils/home-ad-city-filter.util';
 import { governorateDisplayShort } from '../core/utils/governorate-display-name.util';
+import {
+  buildHomeSearchTokens,
+  normalizeHomeSearchText,
+  scoreHomeAdSearchMatch,
+} from '../core/utils/home-ad-search.util';
 
 @Component({
   selector: 'app-home',
@@ -149,9 +154,14 @@ export class HomePage implements OnInit, OnDestroy {
   searchLastVisible: any = null;
   searchHasMore: boolean = true;
   isLoadingSearch: boolean = false;
-  searchResults$: Observable<any[]> | undefined;
-  searchText: string = ''; // سيتم ربطه بـ ngModel في الـ HTML
+  searchText: string = '';
+  private searchQueryRaw = '';
   private searchQueryTokens: string[] = [];
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchRequestSeq = 0;
+  private readonly searchPageSize = 40;
+  private readonly searchMinResultsTarget = 8;
+  private readonly searchMaxPagesPerQuery = 8;
   private readonly searchSynonymGroupsRaw: string[][] = [
     ['توصيل', 'نقل', 'مشوار', 'سواق', 'سائق', 'سياره', 'سيارة', 'تاكسي', 'تكسي', 'delivery', 'transport'],
     ['تعليم', 'تعليمي', 'مدرس', 'مدرسه', 'مدرسة', 'ماده', 'مادة', 'درس', 'دروس', 'education', 'teacher', 'tutor'],
@@ -233,9 +243,26 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
     this.taxonomySub?.unsubscribe();
     this.routerEventsSub?.unsubscribe();
     this.homeAdsRt.stop();
+  }
+
+  isSearchActive(): boolean {
+    return this.searchText.trim().length >= 1;
+  }
+
+  showSearchEmptyState(): boolean {
+    return (
+      this.isSearchActive() &&
+      !this.isLoadingSearch &&
+      !this.searchHasMore &&
+      this.searchList.length === 0
+    );
   }
 
   ngOnInit() {
@@ -369,8 +396,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.selectedCityLabel = this.formatHubCapsuleFromSelection(sel);
     this.tabCountsPoolCache = null;
     this.loadAdsForCategory(this.selectedCategory);
-    if (this.searchText.length >= 2) {
-      this.loadSearchResults();
+    if (this.isSearchActive()) {
+      void this.loadSearchResults();
     }
   }
 
@@ -405,8 +432,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.showCityPopover = false;
     this.tabCountsPoolCache = null;
     this.loadAdsForCategory(this.selectedCategory);
-    if (this.searchText.length >= 2) {
-      this.loadSearchResults();
+    if (this.isSearchActive()) {
+      void this.loadSearchResults();
     }
   }
 
@@ -627,23 +654,39 @@ export class HomePage implements OnInit, OnDestroy {
     await alert.present();
   }
 
-  // يتم استدعاء هذه الدالة من الـ (input) في الـ HTML
-  onSearchInput() {
-    if (this.searchText.trim().length >= 2) {
-      this.loadSearchResults();
-    } else {
-      this.searchResults$ = undefined;
-      this.searchList = [];
-      this.searchHasMore = true;
-      this.searchLastVisible = null;
+  onSearchInput(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
     }
+    const trimmed = this.searchText.trim();
+    if (!trimmed) {
+      this.resetSearchState();
+      return;
+    }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.searchDebounceTimer = null;
+      void this.loadSearchResults();
+    }, 160);
   }
 
-  clearSearch() {
+  clearSearch(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+    this.searchRequestSeq++;
     this.searchText = '';
-    this.searchResults$ = undefined;
+    this.resetSearchState();
+  }
+
+  private resetSearchState(): void {
+    this.searchQueryRaw = '';
     this.searchQueryTokens = [];
     this.searchHaystackCache.clear();
+    this.searchList = [];
+    this.searchHasMore = true;
+    this.searchLastVisible = null;
+    this.isLoadingSearch = false;
   }
 
   onGlobalClick() {
@@ -677,29 +720,39 @@ export class HomePage implements OnInit, OnDestroy {
     return value;
   }
 
-  private async loadSearchResults() {
+  private async loadSearchResults(): Promise<void> {
+    const trimmed = this.searchText.trim();
+    if (!trimmed) {
+      this.resetSearchState();
+      return;
+    }
+
+    const requestSeq = ++this.searchRequestSeq;
     this.searchList = [];
     this.searchLastVisible = null;
     this.searchHasMore = true;
     this.isLoadingSearch = false;
     this.searchHaystackCache.clear();
-    this.searchQueryTokens = this.tokenizeText(this.searchText);
-    await this.fetchSearchPageSearch();
+
+    const built = buildHomeSearchTokens(trimmed);
+    this.searchQueryRaw = built.raw;
+    this.searchQueryTokens = built.tokens;
+
+    let pagesFetched = 0;
+    while (this.searchHasMore && pagesFetched < this.searchMaxPagesPerQuery) {
+      await this.fetchSearchPageSearch();
+      pagesFetched++;
+      if (requestSeq !== this.searchRequestSeq) {
+        return;
+      }
+      if (this.searchList.length >= this.searchMinResultsTarget) {
+        break;
+      }
+    }
   }
 
   private normalizeText(input: any): string {
-    return (input ?? '').toString()
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u064B-\u065F]/g, '')
-      .replace(/[إأآا]/g, 'ا')
-      .replace(/ى/g, 'ي')
-      .replace(/ؤ/g, 'و')
-      .replace(/ئ/g, 'ي')
-      .replace(/ة/g, 'ه')
-      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return normalizeHomeSearchText(input);
   }
 
 
@@ -1143,31 +1196,6 @@ export class HomePage implements OnInit, OnDestroy {
     this.hasMore = false; // بما أننا جلبنا الكل في الـ Pool فلا نحتاج Infinite Scroll هنا
   }
 
-  private tokenizeText(text: string): string[] {
-    const normalized = this.normalizeText(text);
-    if (!normalized) return [];
-    const tokens = normalized
-      .split(' ')
-      .map((t) => t.trim())
-      .filter((t) => t.length >= 1);
-    return Array.from(new Set(tokens));
-  }
-
-  private expandTokenAlternatives(token: string): string[] {
-    const tk = this.normalizeText(token);
-    if (!tk) return [];
-    const expanded = new Set<string>([tk]);
-    for (const group of this.searchSynonymGroups) {
-      if (group.some((g) => g === tk || g.includes(tk) || tk.includes(g))) {
-        group.forEach((g) => expanded.add(g));
-      }
-    }
-    // صيغة مع/بدون "ال" التعريف
-    if (tk.startsWith('ال') && tk.length > 3) expanded.add(tk.slice(2));
-    if (!tk.startsWith('ال') && tk.length > 2) expanded.add(`ال${tk}`);
-    return Array.from(expanded);
-  }
-
   private getAdTypeLabel(adType: string): string {
     switch (adType) {
       case 'delivery':
@@ -1244,36 +1272,6 @@ export class HomePage implements OnInit, OnDestroy {
     return data.join(' ');
   }
 
-  private editDistance(a: string, b: string, maxDistance = 2): number {
-    if (a === b) return 0;
-    const al = a.length;
-    const bl = b.length;
-    if (Math.abs(al - bl) > maxDistance) return maxDistance + 1;
-    if (!al) return bl;
-    if (!bl) return al;
-
-    const prev = new Array<number>(bl + 1);
-    const curr = new Array<number>(bl + 1);
-    for (let j = 0; j <= bl; j++) prev[j] = j;
-
-    for (let i = 1; i <= al; i++) {
-      curr[0] = i;
-      let rowMin = curr[0];
-      for (let j = 1; j <= bl; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        curr[j] = Math.min(
-          prev[j] + 1,
-          curr[j - 1] + 1,
-          prev[j - 1] + cost
-        );
-        if (curr[j] < rowMin) rowMin = curr[j];
-      }
-      if (rowMin > maxDistance) return maxDistance + 1;
-      for (let j = 0; j <= bl; j++) prev[j] = curr[j];
-    }
-    return prev[bl];
-  }
-
   private getSearchIndexForAd(ad: any): { haystack: string; words: string[] } {
     const adId = String(ad?.id || ad?.ad_id || '');
     const cacheKey = adId || JSON.stringify([ad?.ad_type, ad?.owner_name, ad?.city, ad?.category_id]);
@@ -1287,70 +1285,16 @@ export class HomePage implements OnInit, OnDestroy {
     return payload;
   }
 
-  private tokenMatchScore(token: string, haystack: string, haystackWords: string[]): number {
-    if (!token) return 0;
-    const alternatives = this.expandTokenAlternatives(token);
-    let bestScore = 0;
-
-    for (const alt of alternatives) {
-      if (!alt) continue;
-      if (
-        haystack.includes(` ${alt} `) ||
-        haystack.startsWith(`${alt} `) ||
-        haystack.endsWith(` ${alt}`) ||
-        haystack === alt
-      ) {
-        bestScore = Math.max(bestScore, 120);
-      } else if (haystack.includes(alt)) {
-        bestScore = Math.max(bestScore, 95);
-      }
-
-      for (const word of haystackWords) {
-        if (!word) continue;
-        if (word === alt) {
-          bestScore = Math.max(bestScore, 125);
-          continue;
-        }
-        if (word.startsWith(alt) || alt.startsWith(word)) {
-          bestScore = Math.max(bestScore, 90);
-          continue;
-        }
-        if (word.includes(alt) || alt.includes(word)) {
-          bestScore = Math.max(bestScore, 70);
-          continue;
-        }
-        const distance = this.editDistance(alt, word, 2);
-        if (distance <= 1) {
-          bestScore = Math.max(bestScore, 65);
-        } else if (distance === 2 && alt.length >= 5 && word.length >= 5) {
-          bestScore = Math.max(bestScore, 45);
-        }
-      }
-    }
-
-    return bestScore;
-  }
-
-  private computeAdSearchScore(ad: any, tokens: string[]): number {
-    if (!tokens.length) return 0;
+  private computeAdSearchScore(ad: any): number {
+    if (!this.searchQueryRaw) return 0;
     const { haystack, words } = this.getSearchIndexForAd(ad);
-    if (!haystack) return 0;
-
-    let total = 0;
-    let matchedTokens = 0;
-    for (const token of tokens) {
-      const tokenScore = this.tokenMatchScore(token, haystack, words);
-      if (tokenScore > 0) {
-        matchedTokens++;
-        total += tokenScore;
-      }
-    }
-    if (matchedTokens === 0) return 0;
-
-    const coverage = matchedTokens / tokens.length;
-    if (coverage < 0.55) return 0;
-    const coverageBoost = coverage >= 1 ? 1.25 : coverage >= 0.8 ? 1.1 : 1;
-    return Math.round(total * coverageBoost);
+    return scoreHomeAdSearchMatch(
+      haystack,
+      words,
+      this.searchQueryRaw,
+      this.searchQueryTokens,
+      this.searchSynonymGroups
+    );
   }
 
   private getStaticName(id: string): string {
@@ -1374,7 +1318,7 @@ export class HomePage implements OnInit, OnDestroy {
       const snapshot = await runInInjectionContext(this.injector, () => {
         const adsRef = collection(this.firestore, 'ads');
         let qBase: any;
-        qBase = query(adsRef, orderBy('created_at', 'desc'), limit(20));
+        qBase = query(adsRef, orderBy('created_at', 'desc'), limit(this.searchPageSize));
         const qFinal = this.searchLastVisible ? query(qBase, startAfter(this.searchLastVisible)) : qBase;
         return getDocs(qFinal);
       });
@@ -1390,12 +1334,9 @@ export class HomePage implements OnInit, OnDestroy {
         const data: any = d.data() as any;
         return Object.assign({ id: d.id }, data || {});
       });
-      const queryTokens = this.searchQueryTokens.length
-        ? this.searchQueryTokens
-        : this.tokenizeText(this.searchText);
       const scored = pageAds
         .filter((ad: any) => ad.status === 'active' && this.isCityMatchAd(ad))
-        .map((ad: any) => ({ ad, score: this.computeAdSearchScore(ad, queryTokens) }))
+        .map((ad: any) => ({ ad, score: this.computeAdSearchScore(ad) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
         .map((x) => x.ad);
@@ -1407,7 +1348,7 @@ export class HomePage implements OnInit, OnDestroy {
         if (!id || !dedupMap.has(id)) dedupMap.set(id || JSON.stringify(ad), ad);
       }
       this.searchList = sortHomeFeedAdsForDisplay(Array.from(dedupMap.values()));
-      if (pageDocs.length < 20) this.searchHasMore = false;
+      if (pageDocs.length < this.searchPageSize) this.searchHasMore = false;
     } catch (err) {
       console.error('Error fetching search page:', err);
       this.searchHasMore = false;
@@ -1418,7 +1359,7 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   async loadMoreSearch(event: any) {
-    if (!this.searchText || this.searchText.trim().length < 2) {
+    if (!this.isSearchActive()) {
       if (event?.target) event.target.complete();
       return;
     }
@@ -1436,7 +1377,7 @@ export class HomePage implements OnInit, OnDestroy {
         this.fCache.removeHomeAdsSyncMeta(adType);
       }
       await this.refreshSectionTabCounts();
-    } else if (this.searchText.length >= 2) {
+    } else if (this.isSearchActive()) {
       await this.loadSearchResults();
     }
     event.target.complete();

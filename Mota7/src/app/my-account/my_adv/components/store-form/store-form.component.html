@@ -111,13 +111,17 @@
 
     <div class="form-card">
       <div class="field-box">
-        <ion-label class="bold-label geo-field-label">مناطق نشاط المتجر ضمن مدينتك:*</ion-label>
+        <ion-label class="bold-label geo-field-label">مدينة المتجر*</ion-label>
+        <p class="location-hint" *ngIf="isEditMode">اختر مدينة المتجر ضمن محافظتك</p>
         <app-governorate-city-selector
           variant="coverageMultiRestricted"
-          fieldLabel="مناطق النشاط"
-          placeholder="اختار المدن الي عايز تعرض فيها اعلانك"
+          fieldLabel="مدينة المتجر"
+          [placeholder]="isEditMode ? 'اضغط لاختيار مدينة المتجر' : 'مدينتك المسجّلة عند إنشاء الحساب'"
           [displaySummary]="storeData.city"
-          [disabled]="true"
+          [seedCoverageCityIds]="coverageCityIdsForAd"
+          [disabled]="!isEditMode"
+          [maxCoverageCities]="1"
+          [allowWholeGovernorate]="false"
           [restrictGovernorateIds]="userGovernorateId ? [userGovernorateId] : null"
           [maxScrollHeight]="'min(260px, 38vh)'"
           (coverageMultiChange)="onCoverageAreas($event)">
@@ -126,7 +130,7 @@
     </div>
 
     <ion-button expand="block" class="submit-orange-btn" (click)="saveStore()">
-      إطلاق المتجر الآن
+      {{ isEditMode ? 'حفظ التعديلات' : 'إطلاق المتجر الآن' }}
     </ion-button>
   </div>
 </ion-content>

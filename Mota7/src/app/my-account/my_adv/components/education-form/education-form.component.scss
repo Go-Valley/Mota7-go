@@ -1,3 +1,5 @@
+@use '../shared/my-ad-form-toggles';
+
 /* --- هيدر متاح الموحد --- */
 .mota7-header {
   --background: #ffffff;
@@ -12,13 +14,6 @@
   --color: #1a1a1a;
   width: 42px;
   height: 42px;
-}
-
-/* --- زر التفعيل الموحد --- */
-.mota7-toggle-status {
-  --handle-background: #ffffff;
-  --track-background: #eb445a !important;
-  --track-background-checked: #2dd36f !important;
 }
 
 .edu-wrapper {

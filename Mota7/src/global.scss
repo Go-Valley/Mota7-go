@@ -92,7 +92,7 @@ html.plt-ios.plt-capacitor ion-content.scroll-y {
 }
 
 /* ============================================
-   ion-tab-bar: البار العائم — 3 أزرار فقط
+   ion-tab-bar: البار العائم — 4 أزرار متساوية
    ============================================ */
 
 ion-tab-bar {
@@ -120,10 +120,26 @@ ion-tab-bar {
     0 0 0 0.5px rgba(0, 0, 0, 0.03) !important;
   display: flex !important;
   align-items: flex-end !important;
-  justify-content: space-around !important;
+  justify-content: space-between !important;
   overflow: visible !important;
   pointer-events: auto !important;
   touch-action: auto !important;
+}
+
+ion-tab-bar.mota7-tab-bar-four > ion-tab-button {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 25% !important;
+  margin: 0 !important;
+}
+
+ion-tab-bar.mota7-tab-bar-four > ion-tab-button::part(native) {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-inline: 2px !important;
 }
 
 /* ─── Side Tab Buttons (الرئيسية / حسابي) ─── */
@@ -137,7 +153,6 @@ ion-tab-bar ion-tab-button.tab-side {
   pointer-events: auto !important;
   touch-action: manipulation !important;
   cursor: pointer !important;
-  flex: 1;
 
   ion-icon {
     font-size: 1.5rem !important;
@@ -180,8 +195,9 @@ ion-tab-bar ion-tab-button.tab-side {
   }
 }
 
-/* ─── Center «طلب»: عمود + نص — لا ion-label (يُقصّ أحياناً داخل shadow) ─── */
-ion-tab-bar ion-tab-button.tab-order {
+/* ─── Center «طلب» / «إضافة إعلان»: عمود + نص — لا ion-label ─── */
+ion-tab-bar ion-tab-button.tab-order,
+ion-tab-bar ion-tab-button.tab-add-ad {
   --color: transparent !important;
   --color-selected: transparent !important;
   background: transparent !important;
@@ -192,20 +208,27 @@ ion-tab-bar ion-tab-button.tab-order {
   pointer-events: auto !important;
   touch-action: manipulation !important;
   cursor: pointer !important;
-  flex: 0 0 auto;
   padding: 0 !important;
-  margin: 0 8px;
+  margin: 0 !important;
+  transform: translate(
+    var(--mota7-center-actions-shift-x, 0px),
+    var(--mota7-center-actions-lift-y, 6px)
+  ) !important;
 }
 
-ion-tab-bar ion-tab-button.tab-order::part(native) {
+ion-tab-bar ion-tab-button.tab-order::part(native),
+ion-tab-bar ion-tab-button.tab-add-ad::part(native) {
   overflow: visible !important;
   background: transparent !important;
 }
 
-ion-tab-bar ion-tab-button.tab-order .tab-order-caption {
+ion-tab-bar ion-tab-button.tab-order .tab-order-caption,
+ion-tab-bar ion-tab-button.tab-add-ad .tab-order-caption {
   color: #c62828 !important;
   font-weight: 800 !important;
-  font-size: 0.73rem !important;
+  font-size: 0.62rem !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
 }
 
 /* تنسيق متاح العالمي للمودال المنبثق */
@@ -415,12 +438,70 @@ ion-modal.verification-modal::part(content) {
 }
 
 /* دليل استخدام التطبيق — 90% ارتفاع الشاشة */
-ion-modal.app-tutorial-modal {
+ion-modal.app-tutorial-modal,
+ion-modal.app-tutorial-modal--request,
+ion-modal.app-tutorial-modal--provider {
   --height: 90%;
   --max-height: 90%;
   --width: min(100%, 640px);
   --border-radius: 22px 22px 0 0;
   align-items: flex-end;
+}
+
+/* ==========================================================================
+   تنبيه تفعيل GPS (نماذج إعلان التوصيل وغيرها)
+   ========================================================================== */
+ion-alert.mota7-location-gps-alert {
+  --backdrop-opacity: 0.55;
+  --min-width: 300px;
+  --max-width: 400px;
+  --width: 92vw;
+  --border-radius: 20px;
+  direction: rtl;
+
+  &::part(backdrop) {
+    background: rgba(15, 23, 42, 0.48);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  .alert-wrapper.sc-ion-alert-ios,
+  .alert-wrapper {
+    border-radius: 20px !important;
+    background: #ffffff !important;
+  }
+
+  .alert-head.sc-ion-alert-ios,
+  .alert-head {
+    padding: 16px 16px 4px;
+    text-align: center;
+  }
+
+  .alert-title.sc-ion-alert-ios,
+  .alert-title {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    letter-spacing: 0;
+  }
+
+  .alert-message.sc-ion-alert-ios,
+  .alert-message {
+    padding: 6px 16px 14px !important;
+    color: #334155 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    line-height: 1.65 !important;
+    text-align: center !important;
+    direction: rtl !important;
+    unicode-bidi: plaintext !important;
+    white-space: normal !important;
+  }
+
+  .alert-button-group.sc-ion-alert-ios,
+  .alert-button-group {
+    border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
+  }
 }
 
 /* ==========================================================================

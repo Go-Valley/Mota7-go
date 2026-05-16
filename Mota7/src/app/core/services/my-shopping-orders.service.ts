@@ -248,9 +248,9 @@ export class MyShoppingOrdersService implements OnDestroy {
       return;
     }
     try {
-      const ref = doc(this.fs, SHOPPING_COLLECTION, orderId);
-      const unsub = runInInjectionContext(this.inj, () =>
-        onSnapshot(
+      const unsub = runInInjectionContext(this.inj, () => {
+        const ref = doc(this.fs, SHOPPING_COLLECTION, orderId);
+        return onSnapshot(
           ref,
           (snap) => {
             if (!snap.exists()) {
@@ -262,8 +262,8 @@ export class MyShoppingOrdersService implements OnDestroy {
           () => {
             /* تجاهل — قد تنعدم صلاحية القراءة مؤقتًا */
           }
-        )
-      );
+        );
+      });
       this.unsubById.set(orderId, unsub);
     } catch {
       /* ignore */

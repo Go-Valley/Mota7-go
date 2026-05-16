@@ -42,6 +42,7 @@ import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/g
 export class OtherServiceComponent implements OnInit {
 
   /** يُمرَّر من مودال التبويب عند اختيار فرع خدمة من الشبكة السريعة */
+  initialSubServiceId?: string;
   initialSubServiceNameAr?: string;
   /** عند true: قبول الطلب دون اختيار فرع (زر «المزيد» ضمن خدمات أخرى) */
   allowUnspecifiedService = false;
@@ -93,12 +94,7 @@ export class OtherServiceComponent implements OnInit {
         const items = (b?.otherItems ?? []).filter((i: any) => i?.id && i?.nameAr);
         if (items.length > 0) {
           this.otherItems = items as Array<{ id: string; nameAr: string; nameEn?: string }>;
-          if (this.initialSubServiceNameAr) {
-            const m = findMatchingNameArItem(this.otherItems, this.initialSubServiceNameAr);
-            if (m) {
-              this.orderData.subService = m.nameAr;
-            }
-          }
+          this.applyInitialSubServicePreset();
         }
       });
 
@@ -111,9 +107,21 @@ export class OtherServiceComponent implements OnInit {
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
 
+    this.applyInitialSubServicePreset();
+  }
+
+  /** مطابقة الفرع المسبق (معرّف Firestore أو اسم عربي) بعد تحميل القائمة */
+  private applyInitialSubServicePreset(): void {
+    if (this.initialSubServiceId) {
+      const byId = this.otherItems.find((i) => i.id === this.initialSubServiceId);
+      if (byId) {
+        this.orderData.subService = byId.nameAr;
+        return;
+      }
+    }
     if (this.initialSubServiceNameAr) {
       const m = findMatchingNameArItem(this.otherItems, this.initialSubServiceNameAr);
-      this.orderData.subService = m?.nameAr ?? '';
+      this.orderData.subService = m?.nameAr ?? this.initialSubServiceNameAr;
     }
   }
 

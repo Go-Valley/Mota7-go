@@ -10,11 +10,10 @@ import {
   SimpleChanges,
   CUSTOM_ELEMENTS_SCHEMA,
   EnvironmentInjector,
+  ChangeDetectorRef,
   runInInjectionContext
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Capacitor } from '@capacitor/core';
-import { Geolocation } from '@capacitor/geolocation';
 import { AlertController, IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { Firestore, doc, updateDoc, Timestamp, getDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
@@ -56,6 +55,11 @@ import {
   releaseProviderRatesCustomerRatingPromptReservation,
   reserveProviderRatesCustomerRatingPrompt,
 } from '../../provider-completion-notice-modal/provider-rates-customer-modal.presenter';
+import { resolveOrderOriginLocationDisplay } from 'src/app/core/utils/mota7-reverse-geocode.util';
+import {
+  getMota7CurrentPosition,
+  mota7GeolocationFailureMessage,
+} from 'src/app/core/utils/mota7-geolocation-position.util';
 
 @Component({
   selector: 'app-delivery-card',
@@ -77,6 +81,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
   private modalCtrl = inject(ModalController);
   private alertCtrl = inject(AlertController);
   private injector = inject(EnvironmentInjector);
+  private cdr = inject(ChangeDetectorRef);
 
   private watchId: any;
   providerId: string = '';
@@ -92,6 +97,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
   private acceptedEndTime: number = 0;
   private onCountdownDone: (() => void) | null = null;
   private presentingRateCustomer = false;
+  fromLocationDisplay = '';
 
   constructor() {
     addIcons({
@@ -129,9 +135,13 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
       this.startLiveTracking();
       this.startAcceptedWindowTimer();
     }
+    void this.refreshFromLocationDisplay();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['order']) {
+      void this.refreshFromLocationDisplay();
+    }
     if (
       changes['order'] &&
       !changes['order'].firstChange &&
@@ -139,6 +149,15 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     ) {
       void this.maybePresentProviderRatesCustomerModal();
     }
+  }
+
+  private async refreshFromLocationDisplay(): Promise<void> {
+    if (!this.order) {
+      this.fromLocationDisplay = '';
+      return;
+    }
+    this.fromLocationDisplay = await resolveOrderOriginLocationDisplay(this.order);
+    this.cdr.markForCheck();
   }
 
   private isAssignedProviderForOrder(): boolean {
@@ -467,61 +486,36 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     if (this.isUpdatingLocation) return;
     this.isUpdatingLocation = true;
     try {
-      let pos: any;
-      if (Capacitor.isNativePlatform()) {
-        let perm = await Geolocation.checkPermissions();
-        if (perm.location !== 'granted') {
-          perm = await Geolocation.requestPermissions();
-        }
-        if (perm.location === 'granted') {
-          pos = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 15000
-          });
-        }
-      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        pos = await new Promise<any>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (p) => resolve(p),
-            reject,
-            { enableHighAccuracy: true, timeout: 15000 }
-          );
-        });
+      const pos = await getMota7CurrentPosition();
+      const { latitude, longitude } = pos.coords;
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'orders', this.order.id), {
+          providerLat: latitude,
+          providerLng: longitude,
+          lastUpdate: Timestamp.now(),
+        })
+      );
+      this.order.providerLat = latitude;
+      this.order.providerLng = longitude;
+
+      if (!this.watchId) {
+        this.startLiveTracking();
       }
 
-      if (pos) {
-        const { latitude, longitude } = pos.coords;
-        await runInInjectionContext(this.injector, () =>
-          updateDoc(doc(this.firestore, 'orders', this.order.id), {
-            providerLat: latitude,
-            providerLng: longitude,
-            lastUpdate: Timestamp.now()
-          })
-        );
-        this.order.providerLat = latitude;
-        this.order.providerLng = longitude;
-        
-        // إذا لم يكن التتبع المباشر يعمل، نقوم بتفعيله
-        if (!this.watchId) {
-          this.startLiveTracking();
-        }
-        
-        const toast = await this.toastController.create({
-          message: 'تم تفعيل موقعك وإرساله للعميل',
-          duration: 2500,
-          color: 'success'
-        });
-        await toast.present();
-      } else {
-        const toast = await this.toastController.create({
-          message: 'فشل الحصول على الموقع، تأكد من تفعيل الـ GPS',
-          duration: 2500,
-          color: 'warning'
-        });
-        await toast.present();
-      }
+      const toast = await this.toastController.create({
+        message: 'تم تفعيل موقعك وإرساله للعميل',
+        duration: 2500,
+        color: 'success',
+      });
+      await toast.present();
     } catch (e) {
-      console.error('activateProviderLocation error:', e);
+      console.warn('activateProviderLocation:', e);
+      const toast = await this.toastController.create({
+        message: mota7GeolocationFailureMessage(e),
+        duration: 3200,
+        color: 'warning',
+      });
+      await toast.present();
     } finally {
       this.isUpdatingLocation = false;
     }

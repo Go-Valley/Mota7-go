@@ -89,9 +89,16 @@
       </div>
 
       <div class="actions-section">
-        <ion-button expand="block" class="main-login-btn" (click)="performRegister()">
-          تسجيل
-        </ion-button>
+        <div class="submit-btn-shell submit-btn-shell--signup">
+          <ion-button expand="block" class="submit-btn submit-btn--signup" (click)="performRegister()">
+            <span class="submit-btn__inner">
+              <span class="submit-btn__icon" aria-hidden="true">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+              </span>
+              <span class="submit-btn__label">تسجيل</span>
+            </span>
+          </ion-button>
+        </div>
         
         <div class="register-hint">
           <span>لديك حساب بالفعل؟</span>

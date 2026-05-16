@@ -52,6 +52,10 @@ import {
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import { presentDestinationMapPickerModal } from './destination-map-picker/destination-map-picker.presenter';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
+import {
+  isOriginLocationPlaceholder,
+  resolveHumanLocationLabel,
+} from '../../core/utils/mota7-reverse-geocode.util';
 
 @Component({
   selector: 'app-delivery-service',
@@ -68,7 +72,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
-  @ViewChild('inputFromLocation', { read: IonInput }) private inputFromLocation?: IonInput;
   @ViewChild('inputToLocation', { read: IonInput }) private inputToLocation?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
@@ -253,7 +256,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   /** مزامنة فورية مع ion-input — دمج detail + قيمة العنصر لدعم IME العربي على الموبايل */
   onDeliveryFreeTextInput(
     ev: Event,
-    field: 'customerName' | 'fromLocation' | 'toLocation' | 'shortNote'
+    field: 'customerName' | 'toLocation' | 'shortNote'
   ): void {
     const value = readIonTextInputValueFromEvent(ev);
     this.orderData[field] = value;
@@ -271,11 +274,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   /** قبل التحقق: سحب النص من الـ native input (إصلاح فراغ ngModel/detail على أندرويد) */
   private async syncFreeTextFieldsFromNativeInputs(): Promise<void> {
-    const pairs: Array<
-      [IonInput | undefined, 'customerName' | 'fromLocation' | 'toLocation']
-    > = [
+    const pairs: Array<[IonInput | undefined, 'customerName' | 'toLocation']> = [
       [this.inputCustomerName, 'customerName'],
-      [this.inputFromLocation, 'fromLocation'],
       [this.inputToLocation, 'toLocation'],
     ];
     for (const [cmp, key] of pairs) {
@@ -564,7 +564,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const lng = coordinates.coords.longitude;
     this.orderData.lat = lat;
     this.orderData.lng = lng;
-    this.orderData.fromLocation = `تم تحديد الموقع بنجاح — ${lat.toFixed(5)} ، ${lng.toFixed(5)}`;
+    loader.message = 'جاري تحديد العنوان...';
+    this.orderData.fromLocation = await resolveHumanLocationLabel(lat, lng);
     await loader.dismiss();
   }
 
@@ -906,7 +907,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         originLng: hasPreset ? 0 : this.orderData.lng,
         initialDestinationLat: hasPreset ? preset!.lat : 0,
         initialDestinationLng: hasPreset ? preset!.lng : 0,
-        initialDestinationText: hasPreset ? '' : this.orderData.fromLocation,
+        initialDestinationText: '',
         pickRole: 'origin',
         applyOriginCenterOnDismiss: true,
         accentOriginGpsPick: hasPreset,
@@ -914,9 +915,18 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       if (!selected || selected.pickKind !== 'origin') {
         return;
       }
-      this.orderData.fromLocation = normalizeUserFreeText(selected.fromLocation);
+      this.orderData.fromLocation = normalizeUserFreeText(selected.fromLocation) || '';
       this.orderData.lat = Number(selected.lat) || 0;
       this.orderData.lng = Number(selected.lng) || 0;
+      if (
+        hasOrderLocationCoordinates(this.orderData.lat, this.orderData.lng) &&
+        isOriginLocationPlaceholder(this.orderData.fromLocation)
+      ) {
+        this.orderData.fromLocation = await resolveHumanLocationLabel(
+          this.orderData.lat,
+          this.orderData.lng
+        );
+      }
       await this.clearLocationResumeListener();
       await this.presentLocationToast('تم تحديد نقطة الانطلاق من الخريطة بنجاح', 'success');
     } finally {
@@ -925,11 +935,9 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   }
 
   async pickToLocationFromMap(): Promise<void> {
-    await this.getCurrentLocation();
-
     if (!hasOrderLocationCoordinates(this.orderData.lat, this.orderData.lng)) {
       await this.presentLocationToast(
-        'فعّل موقعك أولاً لتتمكن من تحديد جهة الوصول على الخريطة',
+        'حدّد نقطة الانطلاق أولاً (اضغط «تحديد موقعك الحالي»)',
         'warning'
       );
       return;
@@ -964,7 +972,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     this.orderData.customerPhone = phoneSt.cleaned;
     this.phoneLiveWarning = phoneSt.warning;
     this.orderData.subService = (this.orderData.subService || '').trim();
-    this.orderData.fromLocation = normalizeUserFreeText(this.orderData.fromLocation);
     this.orderData.toLocation = normalizeUserFreeText(this.orderData.toLocation);
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
@@ -974,10 +981,13 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
     const customerName = this.orderData.customerName;
     const { customerPhone, lat, lng } = this.orderData;
-    const fromLocation = this.orderData.fromLocation;
     const toLocation = this.orderData.toLocation;
-    this.orderData.fromLocation = fromLocation;
     this.orderData.toLocation = toLocation;
+    let fromLocation = normalizeUserFreeText(this.orderData.fromLocation);
+    if (hasOrderLocationCoordinates(lat, lng) && isOriginLocationPlaceholder(fromLocation)) {
+      fromLocation = await resolveHumanLocationLabel(lat, lng, fromLocation);
+      this.orderData.fromLocation = fromLocation;
+    }
     if (toLocation && !this.hasDestinationCoordinates()) {
       await this.resolveDestinationCoordinatesFromText(toLocation);
     }
@@ -988,8 +998,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedVehicle ? 'غير محدد' : '');
     const subOk = !!subMatch || this.allowUnspecifiedVehicle;
 
-    const fromOk =
-      fromLocation.length > 0 || hasOrderLocationCoordinates(lat, lng);
+    const fromOk = hasOrderLocationCoordinates(lat, lng);
 
     const missingParts: string[] = [];
     if (!customerName) {
@@ -1008,7 +1017,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       missingParts.push('جهة الوصول');
     }
     if (!fromOk) {
-      missingParts.push('نقطة الانطلاق أو تفعيل «تحديد موقعك»');
+      missingParts.push('نقطة الانطلاق (اضغط «تحديد موقعك الحالي»)');
     }
 
     if (missingParts.length > 0) {

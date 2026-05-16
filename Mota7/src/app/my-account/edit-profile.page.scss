@@ -1,3 +1,5 @@
+@use './shared/auth-submit-btn';
+
 ion-toolbar.custom-header {
   --background: #ffffff;
   --padding-top: 10px;
@@ -123,9 +125,16 @@ ion-toolbar.custom-header {
       strong { color: #374151; font-weight: 800; }
     }
 
+    .profile-save-shell {
+      margin-top: 30px;
+    }
+
     .save-btn {
-      --background: #FF6B00; --border-radius: 20px; height: 60px;
-      margin-top: 30px; font-weight: 800; font-size: 1.1rem;
+      --background: #ff6b00;
+      --border-radius: 20px;
+      height: 56px;
+      font-weight: 800;
+      font-size: 1rem;
     }
   }
 }

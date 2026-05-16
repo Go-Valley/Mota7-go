@@ -1,6 +1,6 @@
 import { EnvironmentInjector, Injectable, inject, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, collectionData, doc, getDoc, query, where, orderBy } from '@angular/fire/firestore';
-import { Observable, of } from 'rxjs';
+import { Observable, firstValueFrom, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { Governorate, City, GovernorateWithCities } from '../models/governorate.model';
 import { FirestoreCacheService } from './firestore-cache.service';
@@ -116,6 +116,35 @@ export class GovernorateService {
   /**
    * جلب مدينة بالـ ID
    */
+  /**
+   * يطابق اسم المدينة العربي ضمن محافظة (عند غياب city_id في ملف المستخدم).
+   */
+  async resolveCityIdByGovernorateAndName(
+    governorateId: string,
+    cityNameAr: string
+  ): Promise<string | null> {
+    const gid = String(governorateId ?? '').trim();
+    const target = this.normalizeCityNameForMatch(cityNameAr);
+    if (!gid || !target) return null;
+    try {
+      const cities = await firstValueFrom(this.getCitiesByGovernorate(gid));
+      const hit = (cities ?? []).find(
+        (c) => c?.active !== false && this.normalizeCityNameForMatch(c.name) === target
+      );
+      return hit?.id ? String(hit.id).trim() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeCityNameForMatch(raw: unknown): string {
+    return String(raw ?? '')
+      .replace(/\u00A0/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
   async getCityById(governorateId: string, cityId: string): Promise<City | null> {
     try {
       const docSnap = await runInInjectionContext(this.envInjector, () => {

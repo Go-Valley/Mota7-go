@@ -12,12 +12,18 @@ import type { Subscription } from 'rxjs';
 import { HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY } from '../../core/utils/hardware-back-my-account.util';
 import { getDeliveryAdCurrentLocation } from '../../core/utils/delivery-ad-geolocation.util';
 import { addIcons } from 'ionicons';
-import { 
-  storefrontOutline, cartOutline, 
-  carOutline, schoolOutline, constructOutline, 
-  chevronBackOutline, chevronForwardOutline,
-  locationOutline // أضفت أيقونة الموقع لاستخدامها لاحقاً
+import {
+  storefrontOutline,
+  cartOutline,
+  carOutline,
+  schoolOutline,
+  constructOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
+  bookOutline,
+  locationOutline,
 } from 'ionicons/icons';
+import { AppTutorialModalComponent } from '../../shared/app-tutorial-modal/app-tutorial-modal.component';
 
 // استيراد المكونات
 import { StoreFormComponent } from './components/store-form/store-form.component';
@@ -34,9 +40,15 @@ import { AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE } from '../../core/utils/us
   templateUrl: './add-ad-type.page.html',
   styleUrls: ['./add-ad-type.page.scss'],
   standalone: true,
-  imports: [IonicModule,Mota7HeaderComponent, CommonModule]
+  imports: [
+    IonicModule,
+    Mota7HeaderComponent,
+    CommonModule,
+    AppTutorialModalComponent,
+  ],
 })
 export class AddAdTypePage implements ViewWillEnter, OnDestroy {
+  isProviderTutorialOpen = false;
   private acct = inject(UserAccountStatusService);
   private platform = inject(Platform);
   private hardwareBackSub?: Subscription;
@@ -55,8 +67,13 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
       'construct-outline': constructOutline, 
       'chevron-back-outline': chevronBackOutline, 
       'chevron-forward-outline': chevronForwardOutline,
-      'location-outline': locationOutline
+      'book-outline': bookOutline,
+      'location-outline': locationOutline,
     });
+  }
+
+  openProviderTutorial(): void {
+    this.isProviderTutorialOpen = true;
   }
 
   ngOnInit(): void {

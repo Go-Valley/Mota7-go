@@ -34,6 +34,7 @@ import {
   shoppingOrderStatusDescription,
   shoppingOrderStatusTitle,
 } from '../core/utils/shopping-order-status.util';
+import { shoppingPaymentMethodLabel } from '../core/utils/shopping-payment-label.util';
 import { HARDWARE_BACK_CART_CHECKOUT_PRIORITY } from '../core/utils/hardware-back-my-account.util';
 import type { Subscription } from 'rxjs';
 
@@ -276,16 +277,16 @@ export class CartPage implements ViewWillEnter, ViewWillLeave {
     return s || t || '—';
   }
 
-  /** مرجع يظهر رقم الهاتف بدل المعرف الطويل حيثما أمكن */
+  /** مرجع الطلب في الشريط العلوي — رقم الموبايل فقط */
   orderRefLabel(o: ShoppingOrderView): string {
     const phone = (o.buyerPhone || '').trim();
-    if (!phone) {
-      return o.id.length > 16 ? `${o.id.slice(0, 16)}…` : o.id;
+    if (phone) {
+      return phone;
     }
-    if (o.id.includes('_o_')) {
-      const tail = (o.id.split('_').pop() || '').slice(0, 8);
-      return tail ? `${phone} · ${tail}` : phone;
-    }
-    return phone;
+    return o.id.length > 16 ? `${o.id.slice(0, 16)}…` : o.id;
+  }
+
+  paymentMethodLabel(o: ShoppingOrderView): string {
+    return shoppingPaymentMethodLabel(o.paymentMethod);
   }
 }

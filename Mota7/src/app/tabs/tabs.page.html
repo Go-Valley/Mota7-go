@@ -1,17 +1,26 @@
 <ion-tabs>
-  <ion-tab-bar slot="bottom">
+  <ion-tab-bar slot="bottom" class="mota7-tab-bar-four">
 
     <ion-tab-button tab="my-account" class="tab-side">
       <ion-icon name="person-outline"></ion-icon>
       <ion-label>حسابي</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button class="tab-order" (click)="openServiceModal()" aria-label="طلب خدمة أو نشر إعلان">
+    <ion-tab-button class="tab-add-ad" (click)="openAddAdvertisement()" aria-label="إضافة إعلان">
+      <div class="tab-order-chip tab-add-ad-chip">
+        <div class="tab-order-chip-icon tab-add-ad-chip-icon" aria-hidden="true">
+          <ion-icon name="megaphone-outline"></ion-icon>
+        </div>
+        <span class="tab-order-caption">إضافة إعلان</span>
+      </div>
+    </ion-tab-button>
+
+    <ion-tab-button class="tab-order" (click)="openServiceModal()" aria-label="طلب خدمة">
       <div class="tab-order-chip">
         <div class="tab-order-chip-icon" aria-hidden="true">
           <span class="fab-plus">+</span>
         </div>
-        <span class="tab-order-caption">طلب</span>
+        <span class="tab-order-caption">طلب خدمة</span>
       </div>
     </ion-tab-button>
 
@@ -33,7 +42,7 @@
   <ng-template>
     <div class="service-modal-wrapper">
       <div class="service-modal-header">
-        <div class="service-modal-title">طلب خدمة / نشر إعلان</div>
+        <div class="service-modal-title">طلب خدمة</div>
         <button
           type="button"
           class="service-modal-close"
@@ -45,6 +54,22 @@
       </div>
 
       <div class="service-modal-body">
+        <button
+          type="button"
+          class="service-how-to-request-btn"
+          (click)="openRequestServiceTutorial($event)"
+          aria-label="ازاي تطلب خدمة — دليل خطوة بخطوة"
+        >
+          <span class="service-how-to-request-btn__glow" aria-hidden="true"></span>
+          <span class="service-how-to-request-btn__shine" aria-hidden="true"></span>
+          <ion-icon name="book-outline" class="service-how-to-request-btn__icon" aria-hidden="true"></ion-icon>
+          <span class="service-how-to-request-btn__text">
+            <span class="service-how-to-request-btn__label">ازاي تطلب خدمة</span>
+            <span class="service-how-to-request-btn__hint">دليل سريع خطوة بخطوة</span>
+          </span>
+          <ion-icon name="chevron-back-outline" class="service-how-to-request-btn__chev" aria-hidden="true"></ion-icon>
+        </button>
+
         <h2 class="service-modal-hero-question">محتاج تطلب ايه ؟</h2>
 
         <section class="service-quick-pick" aria-label="اختصارات طلب الخدمة">
@@ -106,31 +131,7 @@
 
         <div class="service-glow-divider" aria-hidden="true"></div>
 
-        <section class="service-section" aria-labelledby="modal-section-ad-heading">
-          <div class="section-head">
-            <span class="section-kicker">لأصحاب الأعمال</span>
-            <h2 class="section-title" id="modal-section-ad-heading">لو عايز تعرض إعلانك:</h2>
-          </div>
-          <p class="section-copy">خدمة، منتج، متجر.</p>
-          <p class="section-note">
-            افتح حساب جديد أو سجّل دخولك، وانشر إعلانك فورًا
-          </p>
-          <ion-button
-            expand="block"
-            class="service-cta service-cta--ad"
-            (click)="goToAdvertiseNow()"
-          >
-            <div class="service-cta__row">
-              <div class="service-cta__icon" aria-hidden="true">
-                <ion-icon name="megaphone-outline"></ion-icon>
-              </div>
-              <div class="service-cta__copy">
-                <span class="service-cta__title">نشر إعلان</span>
-                <span class="service-cta__sub">إعرض إعلانك بسهولة</span>
-              </div>
-            </div>
-          </ion-button>
-          <div class="service-inline-divider" role="presentation" aria-hidden="true"></div>
+        <section class="service-section" aria-label="طلباتي">
           <ion-button
             expand="block"
             class="service-cta service-cta--my-orders"
@@ -146,36 +147,6 @@
               </div>
             </div>
           </ion-button>
-          <ion-button
-            expand="block"
-            class="service-cta service-cta--tutorial-guide"
-            (click)="openAppTutorial()"
-          >
-            <div class="service-cta__row">
-              <div class="service-cta__icon" aria-hidden="true">
-                <ion-icon name="book-outline"></ion-icon>
-              </div>
-              <div class="service-cta__copy">
-                <span class="service-cta__title">طريقة الشرح والاستخدام</span>
-                <span class="service-cta__sub">دليل مصوّر للتطبيق</span>
-              </div>
-            </div>
-          </ion-button>
-          <ion-button
-            expand="block"
-            class="service-cta service-cta--mota7-service-group"
-            (click)="openMota7ServiceGroupInvite()"
-          >
-            <div class="service-cta__row">
-              <div class="service-cta__icon" aria-hidden="true">
-                <ion-icon name="logo-whatsapp"></ion-icon>
-              </div>
-              <div class="service-cta__copy service-cta__copy--stacked">
-                <span class="service-cta__title">الانضمام لمجتمع&quot;مُتاح&quot;</span>
-                <span class="service-cta__sub">انضم لمتابعة الطلبات والتحديثات</span>
-              </div>
-            </div>
-          </ion-button>
         </section>
       </div>
     </div>
@@ -185,4 +156,10 @@
 <app-tutorial-modal
   [isOpen]="isAppTutorialOpen"
   (closed)="isAppTutorialOpen = false"
+></app-tutorial-modal>
+
+<app-tutorial-modal
+  [isOpen]="isRequestTutorialOpen"
+  mode="request"
+  (closed)="isRequestTutorialOpen = false"
 ></app-tutorial-modal>

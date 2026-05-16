@@ -1,5 +1,45 @@
 import { ModalController } from '@ionic/angular';
+import type { OverlayEventDetail } from '@ionic/core';
 import { DestinationMapPickerModalComponent } from './destination-map-picker-modal.component';
+
+/** يمنع تكديس عدة مودالات خريطة عند الضغط المتكرر على «تتبع/تحديث المسار» */
+let activeMapModal: HTMLIonModalElement | null = null;
+/** عملية فتح واحدة جارية — الضغطات الإضافية تنتظرها بدل فتح مودال جديد */
+let mapModalOpInFlight: Promise<void> | null = null;
+
+async function dismissActiveMapModalIfAny(): Promise<void> {
+  if (!activeMapModal) {
+    return;
+  }
+  try {
+    await activeMapModal.dismiss(null, 'cancel');
+  } catch {
+    /* already dismissed */
+  }
+  activeMapModal = null;
+}
+
+async function presentExclusiveMapModal(
+  modalCtrl: ModalController,
+  create: () => Promise<HTMLIonModalElement>
+): Promise<HTMLIonModalElement> {
+  await dismissActiveMapModalIfAny();
+  const modal = await create();
+  activeMapModal = modal;
+  return modal;
+}
+
+async function awaitMapModalDismiss<T>(
+  modal: HTMLIonModalElement
+): Promise<OverlayEventDetail<T>> {
+  try {
+    return await modal.onDidDismiss<T>();
+  } finally {
+    if (activeMapModal === modal) {
+      activeMapModal = null;
+    }
+  }
+}
 
 export type DestinationMapPickerResult =
   | {
@@ -119,30 +159,45 @@ export async function presentTrackingMapModal(
   modalCtrl: ModalController,
   props: { order: Record<string, unknown> & { id?: string }; directionsRole: TrackingDirectionsRole }
 ): Promise<void> {
-  const { providerPoint, customerPoint, destinationPoint } = buildTrackingPointsFromOrder(props.order);
-  const modal = await modalCtrl.create({
-    component: DestinationMapPickerModalComponent,
-    componentProps: {
-      originLat: 0,
-      originLng: 0,
-      initialDestinationLat: 0,
-      initialDestinationLng: 0,
-      initialDestinationText: '',
-      mode: 'tracking' as const,
-      directionsRole: props.directionsRole,
-      trackingSessionId: `trk_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-      trackingOrderId: props.order?.id != null ? String(props.order.id) : '',
-      providerPoint,
-      customerPoint,
-      destinationPoint,
-    },
-    cssClass: 'mota7-destination-map-picker-modal',
-    showBackdrop: true,
-    backdropDismiss: false,
-    mode: 'ios',
-  });
-  await modal.present();
-  await modal.onDidDismiss();
+  if (mapModalOpInFlight) {
+    await mapModalOpInFlight;
+    return;
+  }
+
+  mapModalOpInFlight = (async () => {
+    const { providerPoint, customerPoint, destinationPoint } = buildTrackingPointsFromOrder(props.order);
+    const modal = await presentExclusiveMapModal(modalCtrl, () =>
+      modalCtrl.create({
+        component: DestinationMapPickerModalComponent,
+        componentProps: {
+          originLat: 0,
+          originLng: 0,
+          initialDestinationLat: 0,
+          initialDestinationLng: 0,
+          initialDestinationText: '',
+          mode: 'tracking' as const,
+          directionsRole: props.directionsRole,
+          trackingSessionId: `trk_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+          trackingOrderId: props.order?.id != null ? String(props.order.id) : '',
+          providerPoint,
+          customerPoint,
+          destinationPoint,
+        },
+        cssClass: 'mota7-destination-map-picker-modal',
+        showBackdrop: true,
+        backdropDismiss: false,
+        mode: 'ios',
+      })
+    );
+    await modal.present();
+    await awaitMapModalDismiss(modal);
+  })();
+
+  try {
+    await mapModalOpInFlight;
+  } finally {
+    mapModalOpInFlight = null;
+  }
 }
 
 export async function presentDestinationMapPickerModal(
@@ -168,31 +223,49 @@ export async function presentDestinationMapPickerModal(
     destinationPoint?: TrackerPoint | null;
   }
 ): Promise<DestinationMapPickerResult | null> {
-  const modal = await modalCtrl.create({
-    component: DestinationMapPickerModalComponent,
-    componentProps: {
-      originLat: props.originLat,
-      originLng: props.originLng,
-      initialDestinationLat: props.initialDestinationLat ?? 0,
-      initialDestinationLng: props.initialDestinationLng ?? 0,
-      initialDestinationText: props.initialDestinationText ?? '',
-      pickRole: props.pickRole ?? 'destination',
-      applyOriginCenterOnDismiss: props.applyOriginCenterOnDismiss ?? false,
-      accentOriginGpsPick: props.accentOriginGpsPick ?? false,
-      mode: props.mode ?? 'destination',
-      providerPoint: props.providerPoint ?? null,
-      customerPoint: props.customerPoint ?? null,
-      destinationPoint: props.destinationPoint ?? null,
-    },
-    cssClass: 'mota7-destination-map-picker-modal',
-    showBackdrop: true,
-    backdropDismiss: false,
-    mode: 'ios',
-  });
-  await modal.present();
-  const result = await modal.onDidDismiss<DestinationMapPickerResult>();
-  if (result.role !== 'confirm' || !result.data) {
+  if (mapModalOpInFlight) {
+    await mapModalOpInFlight;
     return null;
   }
-  return result.data;
+
+  let result: DestinationMapPickerResult | null = null;
+
+  mapModalOpInFlight = (async () => {
+    const modal = await presentExclusiveMapModal(modalCtrl, () =>
+      modalCtrl.create({
+        component: DestinationMapPickerModalComponent,
+        componentProps: {
+          originLat: props.originLat,
+          originLng: props.originLng,
+          initialDestinationLat: props.initialDestinationLat ?? 0,
+          initialDestinationLng: props.initialDestinationLng ?? 0,
+          initialDestinationText: props.initialDestinationText ?? '',
+          pickRole: props.pickRole ?? 'destination',
+          applyOriginCenterOnDismiss: props.applyOriginCenterOnDismiss ?? false,
+          accentOriginGpsPick: props.accentOriginGpsPick ?? false,
+          mode: props.mode ?? 'destination',
+          providerPoint: props.providerPoint ?? null,
+          customerPoint: props.customerPoint ?? null,
+          destinationPoint: props.destinationPoint ?? null,
+        },
+        cssClass: 'mota7-destination-map-picker-modal',
+        showBackdrop: true,
+        backdropDismiss: false,
+        mode: 'ios',
+      })
+    );
+    await modal.present();
+    const dismissed = await awaitMapModalDismiss<DestinationMapPickerResult>(modal);
+    if (dismissed.role === 'confirm' && dismissed.data) {
+      result = dismissed.data;
+    }
+  })();
+
+  try {
+    await mapModalOpInFlight;
+  } finally {
+    mapModalOpInFlight = null;
+  }
+
+  return result;
 }

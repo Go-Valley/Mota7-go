@@ -1,68 +1,100 @@
-<app-mota7-header 
-  title="إضافة إعلان" 
+<app-mota7-header
+  title="إضافة إعلان"
   [showBackButton]="true"
-  (backClick)="goBack()"> 
+  (backClick)="goBack()">
 </app-mota7-header>
 
 <ion-content>
   <div class="main-wrapper selection-container" dir="rtl">
+    <button
+      type="button"
+      class="add-ad-how-provider-btn"
+      (click)="openProviderTutorial()"
+      aria-label="ازاي تعرض متجرك أو منتجك أو خدمتك — دليل خطوة بخطوة"
+    >
+      <span class="add-ad-how-provider-btn__glow" aria-hidden="true"></span>
+      <span class="add-ad-how-provider-btn__shine" aria-hidden="true"></span>
+      <ion-icon name="book-outline" class="add-ad-how-provider-btn__icon" aria-hidden="true"></ion-icon>
+      <span class="add-ad-how-provider-btn__text">
+        <span class="add-ad-how-provider-btn__label">ازاي تعرض متجرك، منتجك أو خدمتك</span>
+        <span class="add-ad-how-provider-btn__hint">دليل نشر الإعلان واستقبال الطلبات</span>
+      </span>
+      <ion-icon name="chevron-back-outline" class="add-ad-how-provider-btn__chev" aria-hidden="true"></ion-icon>
+    </button>
+
     <p class="subtitle">اختر نوع الإعلان الذي ترغب في إضافته اليوم</p>
 
     <div class="types-grid">
-      
-      <div class="type-card" (click)="selectType('store')">
-        <div class="icon-box store">
+      <button type="button" class="type-card type-card--store" (click)="selectType('store')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box store">
           <ion-icon name="storefront-outline"></ion-icon>
-        </div>
-        <div class="text-box">
-          <h3>إضافة متجر</h3>
-          <p>عرض نشاطك التجاري في قسم المتاجر</p>
-        </div>
-        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
-      </div>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">إضافة متجر</span>
+          <span class="text-box__desc">عرض نشاطك التجاري في قسم المتاجر</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
 
-      <div class="type-card" (click)="selectType('product')">
-        <div class="icon-box product">
+      <button type="button" class="type-card type-card--product" (click)="selectType('product')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box product">
           <ion-icon name="cart-outline"></ion-icon>
-        </div>
-        <div class="text-box">
-          <h3>إضافة منتج</h3>
-          <p>بيع سيارة، عقار، موبايل، أو أي سلعة</p>
-        </div>
-        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
-      </div>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">إضافة منتج</span>
+          <span class="text-box__desc">بيع سيارة، عقار، موبايل، أو أي سلعة</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
 
-      <div class="type-card" (click)="selectType('delivery')">
-        <div class="icon-box delivery">
+      <button type="button" class="type-card type-card--delivery" (click)="selectType('delivery')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box delivery">
           <ion-icon name="car-outline"></ion-icon>
-        </div>
-        <div class="text-box">
-          <h3>خدمة نقل وتوصيل</h3>
-          <p>تاكسي، ملاكي، نقل بضائع، أو دليفري</p>
-        </div>
-        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
-      </div>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمة نقل وتوصيل</span>
+          <span class="text-box__desc">تاكسي، ملاكي، نقل بضائع، أو دليفري</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
 
-      <div class="type-card" (click)="selectType('education')">
-        <div class="icon-box education">
+      <button type="button" class="type-card type-card--education" (click)="selectType('education')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box education">
           <ion-icon name="school-outline"></ion-icon>
-        </div>
-        <div class="text-box">
-          <h3>خدمة تعليمية</h3>
-          <p>دروس خصوصية للمواد والمراحل المختلفة</p>
-        </div>
-        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
-      </div>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمة تعليمية</span>
+          <span class="text-box__desc">دروس خصوصية للمواد والمراحل المختلفة</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
 
-      <div class="type-card" (click)="selectType('other')">
-        <div class="icon-box other">
+      <button type="button" class="type-card type-card--other" (click)="selectType('other')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box other">
           <ion-icon name="construct-outline"></ion-icon>
-        </div>
-        <div class="text-box">
-          <h3>خدمات أخرى</h3>
-          <p>سباكة، نجارة، صيانة، أو حرف تقنية</p>
-        </div>
-        <ion-icon name="chevron-back-outline" class="arrow"></ion-icon>
-      </div>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمات أخرى</span>
+          <span class="text-box__desc">سباكة، نجارة، صيانة، أو حرف تقنية</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  </div>
+</ion-content>
 
-    </div> </div> </ion-content>
+<app-tutorial-modal
+  [isOpen]="isProviderTutorialOpen"
+  mode="provider"
+  (closed)="isProviderTutorialOpen = false"
+></app-tutorial-modal>

@@ -15,6 +15,8 @@ import {
 } from 'ionicons/icons';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 
+export type AppTutorialModalMode = 'full' | 'request' | 'provider';
+
 @Component({
   selector: 'app-tutorial-modal',
   templateUrl: './app-tutorial-modal.component.html',
@@ -24,6 +26,8 @@ import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 })
 export class AppTutorialModalComponent {
   @Input() isOpen = false;
+  /** full = الدليل الكامل | request | provider = قسم واحد فقط */
+  @Input() mode: AppTutorialModalMode = 'full';
   @Output() closed = new EventEmitter<void>();
 
   private readonly document = inject(DOCUMENT);
@@ -36,6 +40,26 @@ export class AppTutorialModalComponent {
       'close-outline': closeOutline,
       'logo-whatsapp': logoWhatsapp,
     });
+  }
+
+  get modalTitle(): string {
+    if (this.mode === 'request') {
+      return 'ازاي تطلب خدمة';
+    }
+    if (this.mode === 'provider') {
+      return 'ازاي تعرض إعلانك';
+    }
+    return 'ازاي تستخدم التطبيق';
+  }
+
+  get modalCssClass(): string {
+    if (this.mode === 'request') {
+      return 'app-tutorial-modal app-tutorial-modal--request';
+    }
+    if (this.mode === 'provider') {
+      return 'app-tutorial-modal app-tutorial-modal--provider';
+    }
+    return 'app-tutorial-modal';
   }
 
   assetUrl(relativePath: string): string {

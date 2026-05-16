@@ -22,17 +22,28 @@
   <app-ad-card-engagement-row [ad]="ad" [showServiceRating]="false"></app-ad-card-engagement-row>
 
   <div class="store-manage-body">
-    <div class="store-logo-row" dir="rtl">
+    <div class="contact-buttons-row store-contact-actions" *ngIf="hasStoreContact">
       <button
         type="button"
-        class="store-contact-btn store-contact-btn--call"
-        *ngIf="hasStoreContact"
+        class="action-btn call"
         (click)="contactAction('call', $event)"
-        aria-label="اتصال هاتفي"
+        title="اتصال"
+        aria-label="اتصال"
       >
-        <ion-icon name="call" aria-hidden="true"></ion-icon>
+        <ion-icon name="call"></ion-icon>
       </button>
+      <button
+        type="button"
+        class="action-btn whatsapp"
+        (click)="contactAction('whatsapp', $event)"
+        title="واتساب"
+        aria-label="واتساب"
+      >
+        <ion-icon name="logo-whatsapp"></ion-icon>
+      </button>
+    </div>
 
+    <div class="store-logo-row">
       <div class="store-circle">
         <div class="store-circle-frame">
           <img
@@ -53,16 +64,6 @@
           ></app-verification-badge>
         </div>
       </div>
-
-      <button
-        type="button"
-        class="store-contact-btn store-contact-btn--whatsapp"
-        *ngIf="hasStoreContact"
-        (click)="contactAction('whatsapp', $event)"
-        aria-label="واتساب"
-      >
-        <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
-      </button>
     </div>
 
     <div class="store-name-premium">{{ ad.store_name }}</div>

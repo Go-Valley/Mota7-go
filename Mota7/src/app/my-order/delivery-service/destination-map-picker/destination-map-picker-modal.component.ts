@@ -22,12 +22,18 @@ import { addIcons } from 'ionicons';
 import {
   closeOutline,
   carSportOutline,
+  checkmarkCircle,
   locateOutline,
   mapOutline,
   navigateOutline,
   personOutline,
 } from 'ionicons/icons';
-import { Mota7Location } from '../../../plugins/mota7-location.plugin';
+import {
+  formatNominatimAddress,
+  looksLikeCoordinateLabel,
+  resolveHumanLocationLabel,
+  type NominatimReversePayload,
+} from '../../../core/utils/mota7-reverse-geocode.util';
 
 export const MOTA7_MAPS_RETURN_MESSAGE = 'MOTA7_MAPS_RETURN' as const;
 
@@ -76,6 +82,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     addIcons({
       closeOutline,
       carSportOutline,
+      checkmarkCircle,
       navigateOutline,
       personOutline,
       mapOutline,
@@ -96,6 +103,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   private routeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private routeRequestGeneration = 0;
   private reverseGeocodeTimer: ReturnType<typeof setTimeout> | null = null;
+  private geocodeInFlight: Promise<void> | null = null;
   private waitingGoogleReturn = false;
   private onVisibilityChangeRef: (() => void) | null = null;
   private onWindowMessageBound = (ev: MessageEvent) => this.onTrackingWindowMessage(ev);
@@ -130,9 +138,12 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     const start = this.resolveStartPoint();
     this.selectedLat = start.lat;
     this.selectedLng = start.lng;
-    this.selectedAddress = this.hasOriginCoordinates()
-      ? this.formatLatLng(start.lat, start.lng)
-      : this.initialDestinationText || this.formatLatLng(start.lat, start.lng);
+    const presetText = (this.initialDestinationText || '').trim();
+    if (presetText && !looksLikeCoordinateLabel(presetText)) {
+      this.selectedAddress = presetText;
+    } else {
+      this.selectedAddress = 'جاري تحديد العنوان...';
+    }
 
     void this.setupVisibilityAndAppReturnForGoogle();
   }
@@ -211,31 +222,36 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       this.mode === 'destination' &&
       this.pickRole === 'origin'
     ) {
-      let lat = this.selectedLat;
-      let lng = this.selectedLng;
-      try {
-        if (this.map) {
-          const c = this.map.getCenter();
-          lat = c.lat;
-          lng = c.lng;
-        }
-      } catch {
-        /* keep selectedLat/Lng */
-      }
-      const locationLabel =
-        (this.selectedAddress || '').trim() || this.formatLatLng(lat, lng);
-      void this.modalCtrl.dismiss(
-        {
-          pickKind: 'origin' as const,
-          fromLocation: locationLabel,
-          lat,
-          lng,
-        },
-        'confirm'
-      );
+      void this.dismissWithOriginCenterApply();
       return;
     }
     void this.modalCtrl.dismiss(null, 'cancel');
+  }
+
+  private async dismissWithOriginCenterApply(): Promise<void> {
+    let lat = this.selectedLat;
+    let lng = this.selectedLng;
+    try {
+      if (this.map) {
+        const c = this.map.getCenter();
+        lat = c.lat;
+        lng = c.lng;
+        this.selectedLat = lat;
+        this.selectedLng = lng;
+      }
+    } catch {
+      /* keep selectedLat/Lng */
+    }
+    const locationLabel = await resolveHumanLocationLabel(lat, lng, this.selectedAddress);
+    void this.modalCtrl.dismiss(
+      {
+        pickKind: 'origin' as const,
+        fromLocation: locationLabel,
+        lat,
+        lng,
+      },
+      'confirm'
+    );
   }
 
   async moveToMyLocation(): Promise<void> {
@@ -259,9 +275,21 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     }
   }
 
-  confirmSelection(): void {
-    const locationLabel =
-      (this.selectedAddress || '').trim() || this.formatLatLng(this.selectedLat, this.selectedLng);
+  async confirmSelection(): Promise<void> {
+    if (this.map) {
+      try {
+        const c = this.map.getCenter();
+        this.selectedLat = c.lat;
+        this.selectedLng = c.lng;
+      } catch {
+        /* keep */
+      }
+    }
+    const locationLabel = await resolveHumanLocationLabel(
+      this.selectedLat,
+      this.selectedLng,
+      this.selectedAddress
+    );
     if (this.pickRole === 'origin') {
       void this.modalCtrl.dismiss(
         {
@@ -286,19 +314,27 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   }
 
   private resolveStartPoint(): { lat: number; lng: number } {
-    const hasOrigin = this.hasOriginCoordinates();
-    if (hasOrigin) {
-      return { lat: this.originLat, lng: this.originLng };
-    }
-
     const hasInitialDestination =
       Number.isFinite(this.initialDestinationLat) &&
       Number.isFinite(this.initialDestinationLng) &&
       !(this.initialDestinationLat === 0 && this.initialDestinationLng === 0);
+
+    if (this.pickRole === 'destination') {
+      if (hasInitialDestination) {
+        return { lat: this.initialDestinationLat, lng: this.initialDestinationLng };
+      }
+      if (this.hasOriginCoordinates()) {
+        return { lat: this.originLat, lng: this.originLng };
+      }
+      return { lat: 25.4374, lng: 30.5465 };
+    }
+
+    if (this.hasOriginCoordinates()) {
+      return { lat: this.originLat, lng: this.originLng };
+    }
     if (hasInitialDestination) {
       return { lat: this.initialDestinationLat, lng: this.initialDestinationLng };
     }
-
     return { lat: 25.4374, lng: 30.5465 };
   }
 
@@ -417,7 +453,9 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       const center = this.map.getCenter();
       this.selectedLat = center.lat;
       this.selectedLng = center.lng;
-      this.selectedAddress = this.formatLatLng(center.lat, center.lng);
+      if (!this.selectedAddress || looksLikeCoordinateLabel(this.selectedAddress)) {
+        this.selectedAddress = 'جاري تحديد العنوان...';
+      }
       this.queueReverseGeocode();
     });
   }
@@ -836,28 +874,6 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
 
   async openGoogleMapsMobile(): Promise<void> {
     try {
-      if (this.mode === 'destination' && Capacitor.getPlatform() === 'android') {
-        const picked = await Mota7Location.pickLocationOnNativeMap({
-          lat: this.selectedLat,
-          lng: this.selectedLng,
-          title: this.pickRole === 'origin' ? 'تحديد نقطة الانطلاق' : 'تحديد جهة الوصول',
-        });
-        const pLat = Number((picked as { lat?: number })?.lat);
-        const pLng = Number((picked as { lng?: number })?.lng);
-        if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
-          this.selectedLat = pLat;
-          this.selectedLng = pLng;
-          const pAddr = String((picked as { address?: string })?.address ?? '').trim();
-          this.selectedAddress = pAddr || this.formatLatLng(pLat, pLng);
-          this.panTo(pLat, pLng, 16);
-          if (!pAddr) {
-            void this.reverseGeocodeCenter();
-          }
-          await this.presentToast('تم التقاط موقع جهة الوصول بنجاح', 'success');
-        }
-        return;
-      }
-
       let url = '';
       if (this.mode === 'tracking') {
         url = this.buildTrackingGoogleMapsUrl();
@@ -932,7 +948,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     }
     this.selectedLat = point.lat;
     this.selectedLng = point.lng;
-    this.selectedAddress = this.formatLatLng(point.lat, point.lng);
+    this.selectedAddress = 'جاري تحديد العنوان...';
     this.panTo(point.lat, point.lng, 16);
     void this.reverseGeocodeCenter();
   }
@@ -1008,34 +1024,48 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   }
 
   private async reverseGeocodeCenter(): Promise<void> {
+    if (this.geocodeInFlight) {
+      await this.geocodeInFlight;
+      return;
+    }
+    this.geocodeInFlight = this.runReverseGeocode();
+    try {
+      await this.geocodeInFlight;
+    } finally {
+      this.geocodeInFlight = null;
+    }
+  }
+
+  private async runReverseGeocode(): Promise<void> {
     this.resolvingAddress = true;
+    this.cdr.markForCheck();
     try {
       const url =
         'https://nominatim.openstreetmap.org/reverse?format=jsonv2' +
         `&lat=${encodeURIComponent(String(this.selectedLat))}` +
-        `&lon=${encodeURIComponent(String(this.selectedLng))}`;
+        `&lon=${encodeURIComponent(String(this.selectedLng))}` +
+        '&zoom=18&addressdetails=1';
       const res = await fetch(url, {
         headers: {
-          'Accept-Language': 'ar',
+          'Accept-Language': 'ar,en',
         },
       });
       if (!res.ok) {
         return;
       }
-      const data = (await res.json()) as { display_name?: string };
-      const displayName = String(data?.display_name ?? '').trim();
-      if (displayName) {
-        this.selectedAddress = displayName;
+      const data = (await res.json()) as NominatimReversePayload;
+      const formatted = formatNominatimAddress(data);
+      if (formatted) {
+        this.selectedAddress = formatted;
+      } else if (looksLikeCoordinateLabel(this.selectedAddress)) {
+        this.selectedAddress = 'موقع محدد — حرّك الخريطة لتحسين العنوان';
       }
     } catch {
-      /* keep coordinate label */
+      /* keep last readable label */
     } finally {
       this.resolvingAddress = false;
+      this.cdr.markForCheck();
     }
-  }
-
-  private formatLatLng(lat: number, lng: number): string {
-    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
 
   private async presentToast(
@@ -1057,7 +1087,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
    * بدل الخروج من شاشة الطلبات خلفه.
    */
   private registerHardwareBackToDismiss(): void {
-    if (!Capacitor.isNativePlatform() || this.hardwareBackSub) {
+    if (this.hardwareBackSub) {
       return;
     }
     this.hardwareBackSub = this.platform.backButton.subscribeWithPriority(10001, () => {

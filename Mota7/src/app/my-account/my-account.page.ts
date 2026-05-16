@@ -28,7 +28,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Auth, authState, signOut } from '@angular/fire/auth';
 import { Observable, Subscription } from 'rxjs';
 import { 
-  personAddOutline, chatbubbleEllipsesOutline, documentTextOutline,
+  personAddOutline, logInOutline, chatbubbleEllipsesOutline, documentTextOutline,
   callOutline, logoWhatsapp, chevronBackOutline, personOutline,
   megaphoneOutline, peopleOutline, logOutOutline, createOutline, locationOutline,
   closeOutline,
@@ -131,6 +131,7 @@ export class MyAccountPage implements OnInit, OnDestroy {
   ) { 
     addIcons({
       'person-add-outline': personAddOutline,
+      'log-in-outline': logInOutline,
       'chatbubble-ellipses-outline': chatbubbleEllipsesOutline,
       'document-text-outline': documentTextOutline,
       'call-outline': callOutline,

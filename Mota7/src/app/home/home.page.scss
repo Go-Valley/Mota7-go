@@ -278,6 +278,7 @@
     }
   }
 
+  .search-loading,
   .search-empty {
     display: flex;
     align-items: center;
@@ -290,6 +291,17 @@
     ion-icon {
       color: #1a1a2e;
       font-size: 20px;
+    }
+  }
+
+  .search-loading {
+    color: #64748b;
+    font-weight: 600;
+
+    ion-spinner {
+      width: 22px;
+      height: 22px;
+      --color: #f16305;
     }
   }
 }

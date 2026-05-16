@@ -33,6 +33,13 @@ import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscript
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import {
+  applyCoverageMultiEmitToAdForm,
+  ensureCoverageCityIdsForAdSubmit,
+  hydrateAdFormUserCityFromProfile,
+  loadUserGovernorateContextForAdForm,
+} from 'src/app/core/utils/ad-form-user-city.util';
+import { GovernorateService } from 'src/app/core/services/governorate.service';
 
 @Component({
   selector: 'app-product-form',
@@ -93,14 +100,20 @@ export class ProductFormComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private govService = inject(GovernorateService);
 
   userGovernorateId: string | null = null;
   userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
-    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
-    this.productData.city = (ev.primaryCityDisplay || '').trim() || this.productData.city;
+    const applied = applyCoverageMultiEmitToAdForm(
+      ev,
+      this.coverageCityIdsForAd,
+      this.productData.city
+    );
+    this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.productData.city = applied.cityDisplay;
   }
 
   private currentStore: any = null; 
@@ -129,8 +142,21 @@ export class ProductFormComponent implements OnInit {
     if (this.editAdData) {
       this.isEditMode = true;
       this.fillFormForEdit();
+      await this.applyUserGovernorateContext();
     } else {
       await this.loadUserProfile();
+    }
+  }
+
+  private async applyUserGovernorateContext(): Promise<void> {
+    const ctx = await loadUserGovernorateContextForAdForm(
+      this.auth,
+      this.firestore,
+      this.injector
+    );
+    this.userGovernorateId = ctx.userGovernorateId;
+    if (ctx.userCityId) {
+      this.userCityId = ctx.userCityId;
     }
   }
 
@@ -190,14 +216,15 @@ export class ProductFormComponent implements OnInit {
           this.fetchedOwnerName = data['fullName'] || data['name'] || 'مستخدم متاح';
           this.productData.contactPhone = data['phone'] || '';
           this.productData.whatsappPhone = data['phone'] || '';
-          const gid = String(data['governorate_id'] ?? '').trim();
-          this.userGovernorateId = gid || null;
-          const cid = String(data['city_id'] ?? '').trim();
-          this.userCityId = cid || null;
-          this.productData.city = data['city'] || '';
-          if (!this.isEditMode && this.userCityId) {
-            this.coverageCityIdsForAd = [this.userCityId];
-          }
+          const geo = await hydrateAdFormUserCityFromProfile(
+            this.govService,
+            data as Record<string, unknown>,
+            this.isEditMode
+          );
+          this.userGovernorateId = geo.userGovernorateId;
+          this.userCityId = geo.userCityId;
+          this.productData.city = geo.cityDisplay || this.productData.city;
+          this.coverageCityIdsForAd = geo.coverageCityIds;
           this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
         }
       } catch (e) {
@@ -486,12 +513,16 @@ async saveProduct(isStoreProduct: boolean = false) {
     this.presentToast('يرجى إكمال الحقول الإجبارية');
     return;
   }
-  if (!this.coverageCityIdsForAd?.length) {
-    if (!this.isEditMode && this.userCityId) {
-      this.coverageCityIdsForAd = [this.userCityId];
-    }
-  }
-  if (!this.coverageCityIdsForAd?.length) {
+  const resolvedCity = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+    isEditMode: this.isEditMode,
+    userGovernorateId: this.userGovernorateId,
+    userCityId: this.userCityId,
+    cityDisplay: this.productData.city,
+    coverageCityIds: this.coverageCityIdsForAd,
+  });
+  this.userCityId = resolvedCity.userCityId;
+  this.coverageCityIdsForAd = resolvedCity.coverageCityIds;
+  if (!this.coverageCityIdsForAd.length) {
     this.presentToast('يرجى تحديد المناطق / المدن التي يغطيها إعلان المنتج ضمن محافظتك');
     return;
   }

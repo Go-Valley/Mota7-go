@@ -25,6 +25,13 @@ import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmar
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import {
+  applyCoverageMultiEmitToAdForm,
+  ensureCoverageCityIdsForAdSubmit,
+  hydrateAdFormUserCityFromProfile,
+  loadUserGovernorateContextForAdForm,
+} from 'src/app/core/utils/ad-form-user-city.util';
+import { GovernorateService } from 'src/app/core/services/governorate.service';
 
 @Component({
   selector: 'app-other-services-form',
@@ -53,11 +60,17 @@ export class OtherServicesFormComponent implements OnInit {
   };
 
   userGovernorateId: string | null = null;
+  userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
-    this.coverageCityIdsForAd = uniqSortedCityIds(ev.cityIds ?? []);
-    this.serviceData.city = (ev.primaryCityDisplay || '').trim() || this.serviceData.city;
+    const applied = applyCoverageMultiEmitToAdForm(
+      ev,
+      this.coverageCityIdsForAd,
+      this.serviceData.city
+    );
+    this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.serviceData.city = applied.cityDisplay;
   }
 
   private firestore = inject(Firestore);
@@ -68,6 +81,7 @@ export class OtherServicesFormComponent implements OnInit {
   private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
+  private govService = inject(GovernorateService);
 
   constructor(
     private loadingCtrl: LoadingController,
@@ -87,9 +101,22 @@ export class OtherServicesFormComponent implements OnInit {
     if (this.editAdData) {
       this.isEditMode = true;
       this.loadExistingAdData(this.editAdData);
+      await this.applyUserGovernorateContext();
     } else {
       // تحميل بيانات البروفايل فور فتح الصفحة
       await this.loadUserProfile();
+    }
+  }
+
+  private async applyUserGovernorateContext(): Promise<void> {
+    const ctx = await loadUserGovernorateContextForAdForm(
+      this.auth,
+      this.firestore,
+      this.injector
+    );
+    this.userGovernorateId = ctx.userGovernorateId;
+    if (ctx.userCityId) {
+      this.userCityId = ctx.userCityId;
     }
   }
 
@@ -124,11 +151,17 @@ export class OtherServicesFormComponent implements OnInit {
           const data = userDoc.data();
           this.serviceData.contactPhone = data['phone'] || '';
           this.serviceData.whatsappPhone = data['phone'] || '';
-          this.serviceData.city = data['city'] || '';
           this.serviceData.providerName = data['fullName'] || data['name'] || '';
           this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
-          const gid = String(data['governorate_id'] ?? '').trim();
-          this.userGovernorateId = gid || null;
+          const geo = await hydrateAdFormUserCityFromProfile(
+            this.govService,
+            data as Record<string, unknown>,
+            this.isEditMode
+          );
+          this.userGovernorateId = geo.userGovernorateId;
+          this.userCityId = geo.userCityId;
+          this.serviceData.city = geo.cityDisplay || this.serviceData.city;
+          this.coverageCityIdsForAd = geo.coverageCityIds;
           return data;
         }
       } catch (e) {
@@ -149,7 +182,16 @@ async saveServiceAd() {
     this.presentToast('يرجى اختيار نوع الخدمة');
     return;
   }
-  if (!this.coverageCityIdsForAd?.length) {
+  const resolvedCity = await ensureCoverageCityIdsForAdSubmit(this.govService, {
+    isEditMode: this.isEditMode,
+    userGovernorateId: this.userGovernorateId,
+    userCityId: this.userCityId,
+    cityDisplay: this.serviceData.city,
+    coverageCityIds: this.coverageCityIdsForAd,
+  });
+  this.userCityId = resolvedCity.userCityId;
+  this.coverageCityIdsForAd = resolvedCity.coverageCityIds;
+  if (!this.coverageCityIdsForAd.length) {
     this.presentToast('يرجى تحديد المناطق / المدن التي تخدمها ضمن محافظتك');
     return;
   }
