@@ -4,10 +4,14 @@
  */
 import express from 'express';
 import cors from 'cors';
+import { createRequire } from 'module';
 import criteria from './config/recipient-criteria.cjs';
 import { initFirestore } from './lib/firestore-client.cjs';
 import { notifyOrderCreated } from './lib/notify-order-created.cjs';
 import { processOrderCreatedJobs } from './lib/process-spark-jobs.cjs';
+
+const require = createRequire(import.meta.url);
+const { verifyFcmAuth } = require('./lib/fcm-rest.cjs');
 
 const app = express();
 // Capacitor / ionic serve (http://localhost, https://localhost) + Render health checks
@@ -27,6 +31,12 @@ let db;
 try {
   db = initFirestore();
   console.log('[init] Firestore ready, project', criteria.projectId);
+  try {
+    await verifyFcmAuth();
+    console.log('[init] FCM OAuth token OK');
+  } catch (e) {
+    console.error('[init] FCM auth check failed:', e?.message || e);
+  }
   if (criteria.testOverride.enabled) {
     console.warn(
       '[init] TEST OVERRIDE ON — only phones:',

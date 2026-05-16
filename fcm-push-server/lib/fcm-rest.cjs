@@ -17,7 +17,19 @@ function getCredentials() {
   if (!raw || !String(raw).trim()) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is required');
   }
-  return JSON.parse(String(raw));
+  const cred = JSON.parse(String(raw));
+  if (cred.private_key && typeof cred.private_key === 'string') {
+    cred.private_key = cred.private_key.replace(/\\n/g, '\n');
+  }
+  return cred;
+}
+
+/** google-auth-library: JWT client returns { token }, GoogleAuth.getAccessToken() returns string */
+function extractAccessToken(result) {
+  if (!result) return null;
+  if (typeof result === 'string') return result;
+  if (typeof result === 'object' && typeof result.token === 'string') return result.token;
+  return null;
 }
 
 async function getAccessToken() {
@@ -29,8 +41,7 @@ async function getAccessToken() {
       scopes: [FCM_SCOPE],
     });
   }
-  const client = await authClient.getClient();
-  const token = await client.getAccessToken();
+  const token = extractAccessToken(await authClient.getAccessToken());
   if (!token) throw new Error('Failed to obtain FCM access token');
   return token;
 }
@@ -148,4 +159,18 @@ async function sendToTokens(tokens, notification, data) {
   return results;
 }
 
-module.exports = { sendToDeviceToken, sendToTopic, sendToTokens, sendFcmMessage };
+async function verifyFcmAuth() {
+  const token = await getAccessToken();
+  if (!token.startsWith('ya')) {
+    throw new Error('Unexpected access token format');
+  }
+  return { projectId, tokenLength: token.length };
+}
+
+module.exports = {
+  sendToDeviceToken,
+  sendToTopic,
+  sendToTokens,
+  sendFcmMessage,
+  verifyFcmAuth,
+};

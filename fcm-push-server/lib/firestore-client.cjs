@@ -10,7 +10,11 @@ function parseServiceAccountJson() {
   if (!raw || !String(raw).trim()) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is required');
   }
-  return JSON.parse(String(raw));
+  const cred = JSON.parse(String(raw));
+  if (cred.private_key && typeof cred.private_key === 'string') {
+    cred.private_key = cred.private_key.replace(/\\n/g, '\n');
+  }
+  return cred;
 }
 
 function initFirestore() {
