@@ -3,7 +3,7 @@
  * يُستدعى من GitHub Actions باستخدام firebase-admin وحساب خدمة.
  */
 
-const admin = require('firebase-admin');
+const admin = require('../functions/require-firebase-admin.cjs');
 const {
   notifyOrderCreated,
   notifyOrderCompleted,
