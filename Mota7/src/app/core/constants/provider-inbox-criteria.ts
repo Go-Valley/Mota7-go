@@ -5,7 +5,7 @@
 export const PROVIDER_INBOX_CRITERIA = {
   /** قبل الإنتاج: enabled: false */
   testOverride: {
-    enabled: true,
+    enabled: false,
     providerPhones: ['01019661891', '01220883999', '01147773365'],
   },
 
