@@ -13,7 +13,7 @@ module.exports = {
   testOverride: {
     /** true = يرسل فقط لـ providerPhones (للاختبار). قبل المتجر: false */
     enabled: process.env.FCM_TEST_OVERRIDE === '0' ? false : true,
-    providerPhones: ['01019661891'],
+    providerPhones: ['01019661891', '01220883999'],
   },
 
   /** serviceType على الطلب → ad_type في ads */
