@@ -1,0 +1,11 @@
+# Deploy this folder as a Render Web Service (Node).
+# In Render: New > Blueprint, or connect repo with Root Directory = fcm-push-server.
+# Add env vars from env.sample.txt in the dashboard (secrets).
+
+services:
+  - type: web
+    name: mota7-fcm-push-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free

@@ -363,4 +363,10 @@ async function runSparkFcmOnce() {
   return { ordNew, shopNew, ordDone, jobs, ordJobs };
 }
 
-module.exports = { runSparkFcmOnce, substantiveJsonFromAd, markerOrdNew, markerShopNew };
+module.exports = {
+  runSparkFcmOnce,
+  processOrderCreatedJobs,
+  substantiveJsonFromAd,
+  markerOrdNew,
+  markerShopNew,
+};

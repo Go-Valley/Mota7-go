@@ -8,6 +8,9 @@ export const environment = {
   appStoreUrl: '',
   /** وسيط حذف Cloudinary (HTTPS فقط للمتاجر). مثال: https://اسم-الخدمة.onrender.com */
   cloudinaryDeleteProxyUrl: 'https://mota7-go.onrender.com',
+  /** بعد نشر fcm-push-server على Render — مثال: https://mota7-fcm-push.onrender.com */
+  fcmPushServerUrl: 'https://mota7-fcm-push.onrender.com',
+  fcmPushApiKey: '1ba7454cf75a9f75186a74da67d0332e',
   ntfy: {
     enabled: true,
     baseUrl: 'https://ntfy.sh',
