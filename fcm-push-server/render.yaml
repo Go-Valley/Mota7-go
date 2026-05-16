@@ -1,12 +1,9 @@
-# Deploy this folder as a Render Web Service (Node).
-# In Render: New > Blueprint, or connect repo with Root Directory = fcm-push-server.
-# Add env vars from env.sample.txt in the dashboard (secrets).
+# Root Directory = fcm-push-server
 
 services:
   - type: web
     name: mota7-fcm-push-server
     runtime: node
-    # functions/*.cjs يُحمَّل من مجلد الأخ — ثبّت تبعياته أيضاً
-    buildCommand: npm install && npm install --prefix ../firebase/functions
+    buildCommand: npm install
     startCommand: npm start
     plan: free

@@ -3,8 +3,6 @@
  */
 
 const admin = require('./require-firebase-admin.cjs');
-const criteria = require('./recipient-criteria.cjs');
-const { isSupportedServiceOrderType } = require('./service-order-types.cjs');
 const { collectMatchedProviderPhones } = require('./resolve-provider-phones.cjs');
 const {
   getMota7TokensForPhones,
@@ -29,15 +27,6 @@ function shortOrderPreview(o) {
     return (p.join(' — ') || 'طلب خدمة').slice(0, 120);
   }
   return 'طلب خدمة جديد';
-}
-
-/** @param {string} serviceType */
-function orderPushTitle(serviceType) {
-  const st = String(serviceType || '').trim().toLowerCase();
-  if (st === 'delivery') return 'Mota7: new delivery order';
-  if (st === 'education') return 'Mota7: new education order';
-  if (st === 'other') return 'Mota7: new service order';
-  return 'Mota7: new order';
 }
 
 /** @param {Record<string,unknown>} ad */
@@ -69,14 +58,7 @@ function shortAdPreview(ad) {
  * @param {Record<string, unknown>} order
  */
 async function notifyOrderCreated(orderId, order) {
-  if (criteria.order.requireStatusPending && String(order.status || '') !== 'pending') {
-    return;
-  }
-
-  const serviceType = String(order.serviceType || '')
-    .trim()
-    .toLowerCase();
-
+  if (String(order.status || '') !== 'pending') return;
   const db = admin.firestore();
   const preview = shortOrderPreview(order);
   const orderBodySuffix =
@@ -88,17 +70,9 @@ async function notifyOrderCreated(orderId, order) {
     {
       kind: 'order_new',
       order_id: orderId,
-      service_type: serviceType,
+      service_type: String(order.serviceType || ''),
     }
   );
-
-  if (!isSupportedServiceOrderType(serviceType)) {
-    console.warn('[notifyOrderCreated] unsupported serviceType — skip provider FCM', {
-      orderId,
-      serviceType,
-    });
-    return;
-  }
 
   const phones = await collectMatchedProviderPhones(db, order);
   const list = [...phones];
@@ -110,13 +84,13 @@ async function notifyOrderCreated(orderId, order) {
   await messagingSendMulticastChunked(
     tokens,
     {
-      title: orderPushTitle(serviceType),
+      title: 'Mota7: new order',
       body: `${preview}\n${orderBodySuffix}`,
     },
     {
       kind: 'order_new',
       order_id: orderId,
-      service_type: serviceType,
+      service_type: String(order.serviceType || ''),
     }
   );
 }

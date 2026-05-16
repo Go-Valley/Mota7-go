@@ -3,7 +3,7 @@
  * يُستدعى من GitHub Actions باستخدام firebase-admin وحساب خدمة.
  */
 
-const admin = require('../functions/require-firebase-admin.cjs');
+const admin = require('firebase-admin');
 const {
   notifyOrderCreated,
   notifyOrderCompleted,
@@ -363,10 +363,4 @@ async function runSparkFcmOnce() {
   return { ordNew, shopNew, ordDone, jobs, ordJobs };
 }
 
-module.exports = {
-  runSparkFcmOnce,
-  processOrderCreatedJobs,
-  substantiveJsonFromAd,
-  markerOrdNew,
-  markerShopNew,
-};
+module.exports = { runSparkFcmOnce, substantiveJsonFromAd, markerOrdNew, markerShopNew };

@@ -6,11 +6,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "postinstall": "npm install --prefix ../firebase/functions --omit=dev"
+    "start": "node server.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
-    "firebase-admin": "^12.6.0"
+    "firebase-admin": "^12.6.0",
+    "google-auth-library": "^9.15.1"
   }
 }
