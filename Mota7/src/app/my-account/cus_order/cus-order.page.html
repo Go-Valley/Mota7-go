@@ -28,7 +28,7 @@
 <div *ngFor="let order of inbox.orders(); trackBy: trackByOrderId" class="order-wrapper">
           
         <app-delivery-card 
-          *ngIf="order.serviceType === 'delivery'"
+          *ngIf="order['serviceType'] === 'delivery'"
           [order]="order"
           (acceptOrder)="onAcceptOrder(order.id)"
           (ignoreOrder)="inbox.ignoreLocally(order.id)"
@@ -36,7 +36,7 @@
         </app-delivery-card>
 
         <app-educational-card 
-          *ngIf="order.serviceType === 'education'"
+          *ngIf="order['serviceType'] === 'education'"
           [order]="order"
           (acceptOrder)="onAcceptOrder(order.id)"
           (ignoreOrder)="inbox.ignoreLocally(order.id)"
@@ -44,14 +44,14 @@
         </app-educational-card>
 
 <app-other-services-card 
-  *ngIf="order.serviceType === 'other'"
+  *ngIf="order['serviceType'] === 'other'"
   [order]="order"
   (acceptOrder)="onAcceptOrder(order.id)"
   (ignoreOrder)="inbox.ignoreLocally(order.id)"
   (finishOrder)="finishFromCard(order.id)">
 </app-other-services-card>
 
-        <div class="tracking-active-msg" *ngIf="order.status === 'accepted'">
+        <div class="tracking-active-msg" *ngIf="order['status'] === 'accepted'">
           <ion-icon name="bicycle-outline"></ion-icon>
           <span>جاري مشاركة الطلب .. يمكنك التواصل مع العميل</span>
         </div>

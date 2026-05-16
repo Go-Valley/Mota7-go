@@ -1,10 +1,9 @@
 import { Injectable, inject, EnvironmentInjector, runInInjectionContext, NgZone, signal } from '@angular/core';
-import { Auth, onAuthStateChanged } from '@angular/fire/auth';
+import { Auth, onAuthStateChanged, type User } from '@angular/fire/auth';
 import {
   Firestore,
   collection,
   doc,
-  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -18,18 +17,22 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { ToastController } from '@ionic/angular';
 import { Haptics } from '@capacitor/haptics';
-import { deliveryOrderMatches, educationOrderMatches, otherOrderMatches } from '../utils/service-order-coverage-match.util';
-import { normalizeAdTypeValue } from '../utils/duplicate-ad.util';
-import { orderHiddenFromProviderInbox, orderNeedsFinalizeAfterArchive } from '../utils/order-lifecycle.util';
+import { PROVIDER_INBOX_CRITERIA } from '../constants/provider-inbox-criteria';
+import { orderNeedsFinalizeAfterArchive } from '../utils/order-lifecycle.util';
 import {
   finalizeOrderRemovedFromUi,
   purgeFirestoreOrdersPastExpiresAt,
 } from '../utils/order-lifecycle.firestore';
 import { isNtfyOrdersPipelineActive } from '../utils/ntfy-orders-policy.util';
+import {
+  isOrderVisibleInProviderInbox,
+  type ProviderInboxMatchContext,
+  type ProviderInboxOrder,
+} from '../utils/provider-inbox-match.util';
+import { normalizeProviderPhoneForLookup } from '../utils/provider-phone-normalize.util';
 
 /**
- * صندوق «طلبات العملاء» عبر الاستماع المستمر لـ Firestore أثناء الجلسة —
- * لا يعتمد على فتح صفحة cus-order حتى يصل التحديث فوراً في الواجهة عند وصول المستند.
+ * طلبات العملاء: يقرأ من orders ويعرض فقط ما يطابق معايير fcm-push-server.
  */
 @Injectable({ providedIn: 'root' })
 export class ProviderOrdersInboxService {
@@ -39,7 +42,7 @@ export class ProviderOrdersInboxService {
   private readonly zone = inject(NgZone);
   private readonly toastCtrl = inject(ToastController);
 
-  readonly orders = signal<any[]>([]);
+  readonly orders = signal<ProviderInboxOrder[]>([]);
   readonly isTracking = signal(false);
   readonly inboxBannerText = signal('');
   readonly userId = signal('');
@@ -48,9 +51,7 @@ export class ProviderOrdersInboxService {
   private unsubOrders: (() => void) | null = null;
   private ordersRealtimeReady = false;
   private providerPhone = '';
-  private providerAdsDelivery: Record<string, unknown>[] = [];
-  private providerAdsEducation: Record<string, unknown>[] = [];
-  private providerAdsOther: Record<string, unknown>[] = [];
+  private providerAds: Record<string, unknown>[] = [];
 
   start(): void {
     if (this.started) {
@@ -65,9 +66,7 @@ export class ProviderOrdersInboxService {
         this.userId.set('');
         this.ordersRealtimeReady = false;
         this.providerPhone = '';
-        this.providerAdsDelivery = [];
-        this.providerAdsEducation = [];
-        this.providerAdsOther = [];
+        this.providerAds = [];
 
         if (!user) {
           return;
@@ -75,18 +74,20 @@ export class ProviderOrdersInboxService {
 
         const uid = user.email ? user.email.split('@')[0] : user.uid;
         this.userId.set(uid);
-        void this.reloadProviderAdsAndAttach(uid);
+        this.providerPhone = this.phoneFromAuthUser(user, uid);
+        void this.reloadAdsAndListen();
       });
     });
   }
 
-  /** عند فتح صفحة «طلبات العملاء»: تحديث إعلانات المزود وإعادة ربط الاستماع لتطبيق الفلتر فوراً */
   async refreshAdsForCurrentUser(): Promise<void> {
+    const user = this.auth.currentUser;
     const uid = this.userId();
-    if (!uid) {
+    if (!user || !uid) {
       return;
     }
-    await this.loadProviderAds(uid);
+    this.providerPhone = this.phoneFromAuthUser(user, uid);
+    await this.loadProviderAds();
     this.attachOrdersListener();
   }
 
@@ -113,6 +114,28 @@ export class ProviderOrdersInboxService {
     }
   }
 
+  orderVisibleToProvider(order: ProviderInboxOrder): boolean {
+    return isOrderVisibleInProviderInbox(order, this.matchContext());
+  }
+
+  private matchContext(): ProviderInboxMatchContext {
+    return {
+      userId: this.userId(),
+      providerPhone: this.providerPhone,
+      providerAds: this.providerAds,
+    };
+  }
+
+  private phoneFromAuthUser(user: User, uid: string): string {
+    if (user.email?.endsWith('@mota7.com')) {
+      const fromEmail = normalizeProviderPhoneForLookup(user.email.replace('@mota7.com', ''));
+      if (fromEmail) {
+        return fromEmail;
+      }
+    }
+    return normalizeProviderPhoneForLookup(uid);
+  }
+
   private detachOrdersListener(): void {
     if (this.unsubOrders) {
       this.unsubOrders();
@@ -120,93 +143,34 @@ export class ProviderOrdersInboxService {
     }
   }
 
-  private async reloadProviderAdsAndAttach(uid: string): Promise<void> {
-    await this.loadProviderAds(uid);
+  private async reloadAdsAndListen(): Promise<void> {
+    await this.loadProviderAds();
     this.attachOrdersListener();
   }
 
-  private async loadProviderAds(uid: string): Promise<void> {
-    this.providerAdsDelivery = [];
-    this.providerAdsEducation = [];
-    this.providerAdsOther = [];
-    this.providerPhone = '';
+  /** إعلانات المزود المتاحة — نفس شروط fcm-push-server (is_available + ad_type لاحقاً في المطابقة) */
+  private async loadProviderAds(): Promise<void> {
+    this.providerAds = [];
+    if (!this.providerPhone) {
+      return;
+    }
 
     try {
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', uid))
-      );
-      if (!userDoc.exists()) {
-        return;
+      const constraints = [where('owner_phone', '==', this.providerPhone)];
+      if (PROVIDER_INBOX_CRITERIA.providerAdQuery.requireIsAvailable) {
+        constraints.push(where('is_available', '==', true));
       }
-      const data = userDoc.data();
-      this.providerPhone = data['phone'] || '';
+      const requiredStatus = PROVIDER_INBOX_CRITERIA.providerAdQuery.requireAdStatus;
+      if (typeof requiredStatus === 'string' && requiredStatus.trim()) {
+        constraints.push(where('status', '==', requiredStatus.trim()));
+      }
 
-      const adsSnap = await runInInjectionContext(this.injector, () =>
-        getDocs(
-          query(
-            collection(this.firestore, 'ads'),
-            where('owner_phone', '==', this.providerPhone),
-            where('is_available', '==', true)
-          )
-        )
-      );
-
-      adsSnap.forEach((d) => {
-        const ad = d.data() as Record<string, unknown>;
-        const rawType = String(ad['ad_type'] ?? '').trim();
-        const t = normalizeAdTypeValue(rawType);
-        if (t === 'delivery') {
-          this.providerAdsDelivery.push(ad);
-        } else if (t === 'education') {
-          this.providerAdsEducation.push(ad);
-        } else if (t === 'other') {
-          this.providerAdsOther.push(ad);
-        }
-      });
+      const adsQuery = query(collection(this.firestore, 'ads'), ...constraints);
+      const snap = await runInInjectionContext(this.injector, () => getDocs(adsQuery));
+      this.providerAds = snap.docs.map((d) => d.data() as Record<string, unknown>);
     } catch (e) {
       console.error('[ProviderOrdersInbox] loadProviderAds', e);
     }
-  }
-
-  private pendingMatchesProvider(order: any): boolean {
-    const st = String(order.serviceType || '').trim();
-    if (st === 'delivery') {
-      return this.providerAdsDelivery.some((ad) => deliveryOrderMatches(order, ad));
-    }
-    if (st === 'education') {
-      return this.providerAdsEducation.some((ad) => educationOrderMatches(order, ad));
-    }
-    if (st === 'other') {
-      return this.providerAdsOther.some((ad) => otherOrderMatches(order, ad));
-    }
-    return false;
-  }
-
-  private passesInboxFilter(order: any): boolean {
-    if (orderHiddenFromProviderInbox(order)) {
-      return false;
-    }
-
-    const uid = this.userId();
-    if (order.providerId === uid) {
-      return true;
-    }
-
-    const ignoredAt = order.ignoredBy?.[uid];
-    if (ignoredAt) {
-      const ignoredTime = ignoredAt.toMillis ? ignoredAt.toMillis() : ignoredAt;
-      const elapsed = Date.now() - ignoredTime;
-      return elapsed < 10 * 60 * 1000;
-    }
-
-    if (order.status === 'pending') {
-      return this.pendingMatchesProvider(order);
-    }
-    return false;
-  }
-
-  orderVisibleToProvider(order: any): boolean {
-    return this.passesInboxFilter(order);
   }
 
   private attachOrdersListener(): void {
@@ -214,13 +178,15 @@ export class ProviderOrdersInboxService {
     this.ordersRealtimeReady = false;
 
     this.unsubOrders = runInInjectionContext(this.injector, () => {
-      const ordersRef = collection(this.firestore, 'orders');
-      const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(30));
+      const q = query(collection(this.firestore, 'orders'), orderBy('createdAt', 'desc'), limit(50));
 
       return onSnapshot(q, (snapshot) => {
         this.zone.run(() => {
-          // Firestore `data()` spread is not widened here; without a cast TS infers `{ id: string }` only.
-          const allOrders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as { id: string } & Record<string, unknown>));
+          const ctx = this.matchContext();
+          const allOrders: ProviderInboxOrder[] = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }));
 
           for (const o of allOrders) {
             if (orderNeedsFinalizeAfterArchive(o)) {
@@ -228,21 +194,21 @@ export class ProviderOrdersInboxService {
             }
           }
 
-          const filtered = allOrders.filter((order) => this.passesInboxFilter(order));
+          const filtered = allOrders.filter((order) => isOrderVisibleInProviderInbox(order, ctx));
           this.orders.set(filtered);
 
           this.isTracking.set(
-            filtered.some((o) => o['status'] === 'accepted' && o['providerId'] === this.userId())
+            filtered.some((o) => o['status'] === 'accepted' && o['providerId'] === ctx.userId)
           );
 
           if (!snapshot.metadata.hasPendingWrites && this.ordersRealtimeReady) {
             for (const c of snapshot.docChanges()) {
-              const data = c.doc.data() as any;
-              if (data.status !== 'pending') {
+              const data = c.doc.data();
+              if (data['status'] !== 'pending') {
                 continue;
               }
-              const ord = { id: c.doc.id, ...data };
-              if (!this.orderVisibleToProvider(ord)) {
+              const ord: ProviderInboxOrder = { id: c.doc.id, ...data };
+              if (!isOrderVisibleInProviderInbox(ord, ctx)) {
                 continue;
               }
               if (c.type === 'added' || c.type === 'modified') {
@@ -258,10 +224,6 @@ export class ProviderOrdersInboxService {
     });
   }
 
-  /**
-   * طلب جديد للمزود: مع مسار ntfy/FCM يكون الصوت (talap) من قناة الإشعارات فقط — لا playAlert.
-   * في المقدّمة (native): Toast نصّي فقط؛ في الخلفية لا Toast (يكفي FCM/الشريط عند العودة).
-   */
   private async onProviderInboxNewOrderSignal(): Promise<void> {
     if (!isNtfyOrdersPipelineActive()) {
       this.playAlert();
