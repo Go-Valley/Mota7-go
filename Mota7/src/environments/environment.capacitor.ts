@@ -14,7 +14,7 @@ export const environment = {
    * هذا يمنع مشاكل 10.0.2.2 (الخاص بالمحاكي فقط) ويجعل الحذف يعمل في APK التجريبي.
    */
   cloudinaryDeleteProxyUrl: 'https://mota7-go.onrender.com',
-  fcmPushServerUrl: 'https://mota7-fcm-push.onrender.com',
+  fcmPushServerUrl: 'https://mota7-fcm-push-server.onrender.com',
   fcmPushApiKey: '1ba7454cf75a9f75186a74da67d0332e',
   ntfy: {
     enabled: true,

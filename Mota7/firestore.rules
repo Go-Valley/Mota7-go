@@ -371,7 +371,10 @@ service cloud.firestore {
           )
         )
         || (
-          request.resource.data.keys().hasOnly(['kind', 'order_id', 'requestedAt'])
+          (
+            request.resource.data.keys().hasOnly(['kind', 'order_id', 'requestedAt'])
+            || request.resource.data.keys().hasOnly(['kind', 'order_id', 'service_type', 'requestedAt'])
+          )
           && request.resource.data.kind == 'order_created'
           && request.resource.data.order_id is string
           && request.resource.data.order_id.size() >= 5

@@ -3,12 +3,21 @@
  * https://firebase.google.com/docs/reference/fcm/rest
  */
 import express from 'express';
+import cors from 'cors';
 import criteria from './config/recipient-criteria.cjs';
 import { initFirestore } from './lib/firestore-client.cjs';
 import { notifyOrderCreated } from './lib/notify-order-created.cjs';
 import { processOrderCreatedJobs } from './lib/process-spark-jobs.cjs';
 
 const app = express();
+// Capacitor / ionic serve (http://localhost, https://localhost) + Render health checks
+app.use(
+  cors({
+    origin: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key'],
+  })
+);
 app.use(express.json({ limit: '32kb' }));
 
 const API_KEY = String(process.env.FCM_PUSH_API_KEY || '').trim();

@@ -20,17 +20,11 @@ export class SparkOrderFcmJobService {
       return Promise.resolve();
     }
 
-    const tasks: Promise<void>[] = [
-      addDoc(collection(this.firestore, 'spark_fcm_jobs'), {
-        kind: 'order_created',
-        order_id: oid,
-        service_type: st,
-        requestedAt: serverTimestamp(),
-      }).then(() => undefined),
-    ];
-
     const baseUrl = String(environment.fcmPushServerUrl || '').trim().replace(/\/$/, '');
     const apiKey = String(environment.fcmPushApiKey || '').trim();
+
+    const tasks: Promise<void>[] = [];
+
     if (baseUrl && apiKey) {
       tasks.push(
         fetch(`${baseUrl}/notify/order-created`, {
@@ -42,9 +36,25 @@ export class SparkOrderFcmJobService {
           body: JSON.stringify({ orderId: oid, serviceType: st }),
         })
           .then(() => undefined)
-          .catch(() => undefined)
+          .catch((err) => {
+            console.warn('[FCM push] Render notify failed', err);
+          })
       );
     }
+
+    // احتياطي — يجب أن تطابق الحقول firestore.rules (kind, order_id, requestedAt [, service_type])
+    tasks.push(
+      addDoc(collection(this.firestore, 'spark_fcm_jobs'), {
+        kind: 'order_created',
+        order_id: oid,
+        service_type: st,
+        requestedAt: serverTimestamp(),
+      })
+        .then(() => undefined)
+        .catch((err) => {
+          console.warn('[FCM push] spark_fcm_jobs write failed', err);
+        })
+    );
 
     return Promise.all(tasks).then(() => undefined);
   }
