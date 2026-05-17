@@ -29,8 +29,13 @@ export function deriveValleyCanonCity(raw: unknown): string {
   return 'الخارجة';
 }
 
+const DELIVERY_SCOPE_MARKER = '__SCOPE__';
+const EDUCATION_SCOPE_MARKER = '+SCOPE__';
+
 export function inferDeliveryServiceFromMatchKey(fullKeyNorm: string): string {
   if (!fullKeyNorm) return '';
+  const scopeIx = fullKeyNorm.indexOf(DELIVERY_SCOPE_MARKER);
+  if (scopeIx > 0) return fullKeyNorm.slice(0, scopeIx);
   const ix = fullKeyNorm.lastIndexOf('_');
   if (ix <= 0) return fullKeyNorm;
   return fullKeyNorm.slice(0, ix);
@@ -38,9 +43,27 @@ export function inferDeliveryServiceFromMatchKey(fullKeyNorm: string): string {
 
 export function inferEduSubjectFromMatchKey(fullKeyNorm: string): string {
   if (!fullKeyNorm) return '';
+  const scopeIx = fullKeyNorm.indexOf(EDUCATION_SCOPE_MARKER);
+  if (scopeIx > 0) return fullKeyNorm.slice(0, scopeIx);
   const ix = fullKeyNorm.lastIndexOf('+');
   if (ix <= 0) return fullKeyNorm;
   return fullKeyNorm.slice(0, ix);
+}
+
+/** للمطابقة مع الإعلان: IDs محفوظة أو مستنتجة من حقل city */
+export function orderCoverageCityIdsForMatch(order: Record<string, unknown>): string[] {
+  const stored = uniqSortedCityIds(order['order_coverage_city_ids']);
+  if (stored.length) return stored;
+  return valleyCityDocIdsFromDisplay(order['city']);
+}
+
+export function valleyCityDocIdsFromDisplay(cityRaw: unknown): string[] {
+  const n = normTxt(String(cityRaw ?? ''));
+  if (!n) return [];
+  const ids: string[] = [];
+  if (n.includes(normTxt('داخل'))) ids.push('dakhla');
+  if (n.includes(normTxt('خارج'))) ids.push('kharga');
+  return uniqSortedCityIds(ids);
 }
 
 /** يُقطع طرف المفتاح المفترَض لهيئة نوعخدمه_مدينه أو نوع+مدينه */
@@ -103,7 +126,7 @@ function matchKeyedService(
   svcAd: typeof deliverySvcNorm
 ): boolean {
   const adCov = uniqSortedCityIds(ad['coverage_city_ids']);
-  const oCov = uniqSortedCityIds(order['order_coverage_city_ids']);
+  const oCov = orderCoverageCityIdsForMatch(order);
 
   const oKey = normTxt(String(order[orderKeyField] ?? '').trim());
   const adKey = normTxt(String(ad[orderKeyField] ?? '').trim());
@@ -118,8 +141,7 @@ function matchKeyedService(
   const ads = svcAd(ad);
   if (!os || !ads || os !== ads) return false;
 
-  if (oCov.length === 0) {
-    /** طلب لم يكتب له IDs؛ يبقى التوافق بمفتاح التطابق إن حُفِظ متطابقاً */
+  if (!oCov.length) {
     return !!(oKey && adKey && oKey === adKey);
   }
 

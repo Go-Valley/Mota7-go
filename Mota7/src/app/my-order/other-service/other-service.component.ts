@@ -31,6 +31,12 @@ import {
   writeGuestOrderContact,
 } from '../../core/utils/guest-order-contact-storage.util';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateService } from '../../core/services/governorate.service';
+import {
+  applyServiceRequestCoverageFromUserDoc,
+  finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromUserDoc,
+} from '../../core/utils/service-request-user-city.util';
 
 @Component({
   selector: 'app-other-service',
@@ -67,6 +73,7 @@ export class OtherServiceComponent implements OnInit {
   private injector = inject(Injector);
   private orderPush = inject(ServiceOrderPushService);
   private taxonomy = inject(AppTaxonomyService);
+  private govService = inject(GovernorateService);
   private destroyRef = inject(DestroyRef);
 
   orderData = {
@@ -208,10 +215,15 @@ export class OtherServiceComponent implements OnInit {
           const data = userDoc.data();
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
-          const profileCity = String(data['city'] ?? '').trim();
-          if (profileCity && !this.requestCoverageCityIds.length) {
-            this.orderData.city = profileCity;
-          }
+          const hydration = await hydrateServiceRequestCoverageFromUserDoc(
+            this.govService,
+            data
+          );
+          applyServiceRequestCoverageFromUserDoc(hydration, {
+            requestCoverageCityIds: this.requestCoverageCityIds,
+            requestCoverageArabic: this.requestCoverageArabic,
+            orderCity: this.orderData.city,
+          });
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -238,9 +250,13 @@ export class OtherServiceComponent implements OnInit {
     this.orderData.subService = (this.orderData.subService || '').trim();
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const coverage = finalizeServiceRequestCoverageForSubmit({
+      requestCoverageCityIds: this.requestCoverageCityIds,
+      requestCoverageArabic: this.requestCoverageArabic,
+      orderCityDisplay: this.orderData.city,
+    });
+    const covIds = coverage.covIds;
     const prefilledCity = this.orderData.city;
-
-    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
@@ -288,13 +304,10 @@ export class OtherServiceComponent implements OnInit {
     this.orderData.subService = canonicalSub;
     const subService = canonicalSub;
 
-    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
-    const city =
-      cityDisplayTokens.join('، ') ||
-      String(this.orderData.city || '').trim();
+    const city = coverage.cityDisplay;
     const scopeSig = covIds.join('__');
     const other_service_token =
-      subService === 'غير محدد' ? '' : String(subService);
+      subService === 'غير محدد' ? '' : subService;
     const other_match_key =
       scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
 

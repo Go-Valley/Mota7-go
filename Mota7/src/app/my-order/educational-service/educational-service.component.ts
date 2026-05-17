@@ -32,6 +32,12 @@ import {
 } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
+import { GovernorateService } from '../../core/services/governorate.service';
+import {
+  applyServiceRequestCoverageFromUserDoc,
+  finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromUserDoc,
+} from '../../core/utils/service-request-user-city.util';
 
 @Component({
   selector: 'app-educational-service',
@@ -59,6 +65,7 @@ export class EducationalServiceComponent implements OnInit {
   private injector = inject(Injector);
   private orderPush = inject(ServiceOrderPushService);
   private taxonomy = inject(AppTaxonomyService);
+  private govService = inject(GovernorateService);
   private destroyRef = inject(DestroyRef);
 
   orderData = {
@@ -198,10 +205,15 @@ export class EducationalServiceComponent implements OnInit {
           const data = userDoc.data();
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
-          const profileCity = String(data['city'] ?? '').trim();
-          if (profileCity && !this.requestCoverageCityIds.length) {
-            this.orderData.city = profileCity;
-          }
+          const hydration = await hydrateServiceRequestCoverageFromUserDoc(
+            this.govService,
+            data
+          );
+          applyServiceRequestCoverageFromUserDoc(hydration, {
+            requestCoverageCityIds: this.requestCoverageCityIds,
+            requestCoverageArabic: this.requestCoverageArabic,
+            orderCity: this.orderData.city,
+          });
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -247,9 +259,13 @@ export class EducationalServiceComponent implements OnInit {
     this.orderData.subject = (this.orderData.subject || '').trim();
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const coverage = finalizeServiceRequestCoverageForSubmit({
+      requestCoverageCityIds: this.requestCoverageCityIds,
+      requestCoverageArabic: this.requestCoverageArabic,
+      orderCityDisplay: this.orderData.city,
+    });
+    const covIds = coverage.covIds;
     const prefilledCity = this.orderData.city;
-
-    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
@@ -294,10 +310,7 @@ export class EducationalServiceComponent implements OnInit {
       return;
     }
 
-    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
-    const city =
-      cityDisplayTokens.join('، ') ||
-      String(this.orderData.city || '').trim();
+    const city = coverage.cityDisplay;
     const scopeSig = covIds.join('__');
     const education_subject_token =
       `${stage}+${canonicalSubject}`;
@@ -428,9 +441,13 @@ export class EducationalServiceComponent implements OnInit {
     this.phoneLiveWarning = phoneSt.warning;
     this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
     this.orderData.city = (this.orderData.city || '').trim();
+    const coverage = finalizeServiceRequestCoverageForSubmit({
+      requestCoverageCityIds: this.requestCoverageCityIds,
+      requestCoverageArabic: this.requestCoverageArabic,
+      orderCityDisplay: this.orderData.city,
+    });
+    const covIds = coverage.covIds;
     const prefilledCity = this.orderData.city;
-
-    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const customerName = this.orderData.customerName;
     const { customerPhone, shortNote } = this.orderData;
@@ -459,10 +476,7 @@ export class EducationalServiceComponent implements OnInit {
     const stage = 'دروس خصوصية';
     const stageId = 'hub-general';
     const subject = 'غير محدد';
-    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
-    const city =
-      cityDisplayTokens.join('، ') ||
-      String(this.orderData.city || '').trim();
+    const city = coverage.cityDisplay;
     const scopeSig = covIds.join('__');
     const education_subject_token = `${stage}+${subject}`;
     const education_match_key =

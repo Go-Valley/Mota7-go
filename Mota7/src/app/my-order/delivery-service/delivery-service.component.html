@@ -120,6 +120,7 @@
           fieldLabel="اختر مكان تواجدك"
           placeholder="اضغط لاختيار مكان تواجدك"
           [displaySummary]="orderData.city"
+          [seedCoverageCityIds]="requestCoverageCityIds"
           [maxScrollHeight]="'min(260px, 42vh)'"
           (coverageMultiChange)="onRequestCoverage($event)">
         </app-governorate-city-selector>

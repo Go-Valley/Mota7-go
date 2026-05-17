@@ -55,6 +55,12 @@ import {
   isOriginLocationPlaceholder,
   resolveHumanLocationLabel,
 } from '../../core/utils/mota7-reverse-geocode.util';
+import { GovernorateService } from '../../core/services/governorate.service';
+import {
+  applyServiceRequestCoverageFromUserDoc,
+  finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromUserDoc,
+} from '../../core/utils/service-request-user-city.util';
 
 @Component({
   selector: 'app-delivery-service',
@@ -101,6 +107,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   private auth = inject(Auth);
   private orderPush = inject(ServiceOrderPushService);
   private taxonomy = inject(AppTaxonomyService);
+  private govService = inject(GovernorateService);
   private toastCtrl = inject(ToastController);
   private destroyRef = inject(DestroyRef);
 
@@ -381,10 +388,15 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
           const data = userDoc.data();
           this.orderData.customerName = data['fullName'] || '';
           this.orderData.customerPhone = data['phone'] || '';
-          const profileCity = String(data['city'] ?? '').trim();
-          if (profileCity && !this.requestCoverageCityIds.length) {
-            this.orderData.city = profileCity;
-          }
+          const hydration = await hydrateServiceRequestCoverageFromUserDoc(
+            this.govService,
+            data
+          );
+          applyServiceRequestCoverageFromUserDoc(hydration, {
+            requestCoverageCityIds: this.requestCoverageCityIds,
+            requestCoverageArabic: this.requestCoverageArabic,
+            orderCity: this.orderData.city,
+          });
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -975,6 +987,12 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     this.orderData.city = (this.orderData.city || '').trim();
     this.orderData.price = this.normalizePrice(this.orderData.price);
     this.priceLiveWarning = null;
+    const coverage = finalizeServiceRequestCoverageForSubmit({
+      requestCoverageCityIds: this.requestCoverageCityIds,
+      requestCoverageArabic: this.requestCoverageArabic,
+      orderCityDisplay: this.orderData.city,
+    });
+    const covIds = coverage.covIds;
     const prefilledCity = this.orderData.city;
 
     const customerName = this.orderData.customerName;
@@ -989,8 +1007,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     if (toLocation && !this.hasDestinationCoordinates()) {
       await this.resolveDestinationCoordinatesFromText(toLocation);
     }
-
-    const covIds = [...new Set(this.requestCoverageCityIds.map((x) => String(x).trim()).filter(Boolean))].sort();
 
     const subMatch = findMatchingNameArItem(this.deliveryItems, this.orderData.subService);
     const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedVehicle ? 'غير محدد' : '');
@@ -1042,9 +1058,8 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
     const subService = canonicalSub;
 
-    const cityDisplayTokens = [...new Set(this.requestCoverageArabic.map((x) => String(x).trim()).filter(Boolean))];
-    const city = cityDisplayTokens.join('، ') || (this.orderData.city || '').trim();
-    const delivery_service_token = subService === 'غير محدد' ? '' : String(subService);
+    const city = coverage.cityDisplay;
+    const delivery_service_token = subService === 'غير محدد' ? '' : subService;
     const scopeSig = covIds.join('__');
     const delivery_match_key =
       scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
