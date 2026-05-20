@@ -39,6 +39,14 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import {
+  type AdminAdOwnerContext,
+  adFormOwnerUserDocId,
+  adFormPendingSuccessMessage,
+  adFormSuccessNavigateAfterSave,
+  loadAdFormOwnerUserDoc,
+  resolveAdFormSubmitOwner,
+} from 'src/app/core/utils/admin-ad-owner-context.util';
 import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
@@ -55,7 +63,8 @@ import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota
   ],
 })
 export class ProductFormComponent implements OnInit {
-  @Input() editAdData: any; 
+  @Input() editAdData: any;
+  @Input() adminOwnerContext: AdminAdOwnerContext | null = null; 
   @ViewChild('inputShortDesc', { read: IonInput }) private inputShortDesc?: IonInput;
   @ViewChild('inputFullDetails', { read: IonTextarea }) private inputFullDetails?: IonTextarea;
   @ViewChild('inputPrice', { read: IonInput }) private inputPrice?: IonInput;
@@ -170,7 +179,8 @@ export class ProductFormComponent implements OnInit {
     const ctx = await loadUserGovernorateContextForAdForm(
       this.auth,
       this.firestore,
-      this.injector
+      this.injector,
+      adFormOwnerUserDocId(this.auth, this.adminOwnerContext)
     );
     this.userGovernorateId = ctx.userGovernorateId;
     if (ctx.userCityId) {
@@ -222,19 +232,21 @@ export class ProductFormComponent implements OnInit {
   }
 
   async loadUserProfile() {
-    const user = this.auth.currentUser;
-    if (user && user.email) {
-      const userKey = user.email.split('@')[0];
+    const userKey = adFormOwnerUserDocId(this.auth, this.adminOwnerContext);
+    if (userKey) {
       try {
-        const userDoc = await runInInjectionContext(this.injector, () =>
-          getDoc(doc(this.firestore, 'users', userKey))
+        const data = await loadAdFormOwnerUserDoc(
+          this.firestore,
+          this.injector,
+          userKey
         );
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          // جلب الاسم من fullName أو name كما في بياناتك
-          this.fetchedOwnerName = data['fullName'] || data['name'] || 'مستخدم متاح';
-          this.productData.contactPhone = data['phone'] || '';
-          this.productData.whatsappPhone = data['phone'] || '';
+        if (data) {
+          this.fetchedOwnerName =
+            String(data['fullName'] ?? data['name'] ?? '').trim() ||
+            String(this.adminOwnerContext?.ownerFullName ?? '').trim() ||
+            'مستخدم متاح';
+          this.productData.contactPhone = String(data['phone'] ?? '').trim();
+          this.productData.whatsappPhone = this.productData.contactPhone;
           const geo = await hydrateAdFormUserCityFromProfile(
             this.govService,
             data as Record<string, unknown>,
@@ -249,6 +261,8 @@ export class ProductFormComponent implements OnInit {
       } catch (e) {
         console.error("Error loading profile:", e);
       }
+    } else if (this.adminOwnerContext?.ownerFullName) {
+      this.fetchedOwnerName = this.adminOwnerContext.ownerFullName;
     }
   }
 
@@ -525,8 +539,11 @@ export class ProductFormComponent implements OnInit {
   }
 
   async onAddProductClick() {
-    const user = this.auth.currentUser;
-    if (!user) { this.presentToast('يرجى تسجيل الدخول أولاً'); return; }
+    const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+    if (!owner.canSubmit) {
+      this.presentToast('يرجى تسجيل الدخول أولاً');
+      return;
+    }
     const stores = await this.getUserStores();
     if (stores.length > 0) {
       await this.presentStoresChoice(stores);
@@ -573,8 +590,8 @@ async saveProduct(isStoreProduct: boolean = false) {
   this.priceInputStr = priceNorm;
   this.priceLiveWarning = null;
 
-  const user = this.auth.currentUser;
-  if (!user) {
+  const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+  if (!owner.canSubmit) {
     this.presentToast('يرجى تسجيل الدخول أولاً');
     return;
   }
@@ -594,7 +611,7 @@ async saveProduct(isStoreProduct: boolean = false) {
     await runInInjectionContext(this.injector, async () => {
       const adPayload: any = {
         ad_id: adId,
-        userId: user.uid,
+        userId: owner.uid,
         owner_name: this.fetchedOwnerName,
         owner_phone: this.productData.contactPhone,
         category_id: this.productData.main_cat_id,
@@ -673,18 +690,20 @@ async saveProduct(isStoreProduct: boolean = false) {
     });
 
     await loader.dismiss();
-    this.presentToast(this.isEditMode ? 'تم التحديث بنجاح' : 'تم الإرسال للمراجعة');
+    this.presentToast(
+      adFormPendingSuccessMessage(this.isEditMode, this.adminOwnerContext)
+    );
     await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
     
-    if (ntfySnapshot) {
+    if (ntfySnapshot && owner.uid) {
       if (this.isEditMode) {
-        void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+        void this.newAdNtfy.notifyAfterAdUpdated(owner.uid, ntfySnapshot);
       } else {
-        void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+        void this.newAdNtfy.notifyAfterNewAdSubmitted(owner.uid, ntfySnapshot);
       }
     }
     if (!this.isEditMode) {
-      this.navCtrl.navigateRoot('/my-ads');
+      adFormSuccessNavigateAfterSave(this.navCtrl, this.adminOwnerContext);
     }
 
   } catch (e) {

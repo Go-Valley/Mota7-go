@@ -260,6 +260,15 @@
       }
     }
 
+    .user-add-ad-btn {
+      margin-top: 12px;
+      --border-radius: 14px;
+      font-weight: 800;
+      font-size: 0.88rem;
+      --background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      --box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    }
+
     .user-card-metrics {
       margin-top: 12px;
       display: flex;

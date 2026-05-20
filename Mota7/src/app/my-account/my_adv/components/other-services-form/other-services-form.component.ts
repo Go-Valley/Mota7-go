@@ -32,6 +32,14 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import {
+  type AdminAdOwnerContext,
+  adFormOwnerUserDocId,
+  adFormPendingSuccessMessage,
+  adFormSuccessNavigateAfterSave,
+  loadAdFormOwnerUserDoc,
+  resolveAdFormSubmitOwner,
+} from 'src/app/core/utils/admin-ad-owner-context.util';
 import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
@@ -48,7 +56,8 @@ import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota
   ],
 })
 export class OtherServicesFormComponent implements OnInit {
-  @Input() editAdData: any; 
+  @Input() editAdData: any;
+  @Input() adminOwnerContext: AdminAdOwnerContext | null = null; 
   categories: any[] = [...OTHER_SERVICES_DATA.items];
   isEditMode = false;
   currentAdId: string | null = null;
@@ -126,7 +135,8 @@ export class OtherServicesFormComponent implements OnInit {
     const ctx = await loadUserGovernorateContextForAdForm(
       this.auth,
       this.firestore,
-      this.injector
+      this.injector,
+      adFormOwnerUserDocId(this.auth, this.adminOwnerContext)
     );
     this.userGovernorateId = ctx.userGovernorateId;
     if (ctx.userCityId) {
@@ -155,18 +165,21 @@ export class OtherServicesFormComponent implements OnInit {
   }
 
   async loadUserProfile() {
-    const user = this.auth.currentUser;
-    if (user && user.email) {
-      const userKey = user.email.split('@')[0];
+    const userKey = adFormOwnerUserDocId(this.auth, this.adminOwnerContext);
+    if (userKey) {
       try {
-        const userDoc = await runInInjectionContext(this.injector, () =>
-          getDoc(doc(this.firestore, 'users', userKey))
+        const data = await loadAdFormOwnerUserDoc(
+          this.firestore,
+          this.injector,
+          userKey
         );
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          this.serviceData.contactPhone = data['phone'] || '';
-          this.serviceData.whatsappPhone = data['phone'] || '';
-          this.serviceData.providerName = data['fullName'] || data['name'] || '';
+        if (data) {
+          this.serviceData.contactPhone = String(data['phone'] ?? '').trim();
+          this.serviceData.whatsappPhone = this.serviceData.contactPhone;
+          this.serviceData.providerName =
+            String(data['fullName'] ?? data['name'] ?? '').trim() ||
+            String(this.adminOwnerContext?.ownerFullName ?? '').trim() ||
+            '';
           this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
           const geo = await hydrateAdFormUserCityFromProfile(
             this.govService,
@@ -245,8 +258,8 @@ async saveServiceAd() {
   await loader.present();
 
   try {
-    const user = this.auth.currentUser;
-    if (!user) {
+    const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+    if (!owner.canSubmit) {
       await loader.dismiss();
       this.presentToast('يجب تسجيل الدخول أولاً');
       return;
@@ -302,7 +315,7 @@ async saveServiceAd() {
       const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
       const adPayload: any = {
         ad_id: adId,
-        userId: user.uid,
+        userId: owner.uid,
         owner_phone: this.serviceData.contactPhone,
         owner_name: nameToSave,
         ad_type: 'other',
@@ -362,17 +375,19 @@ async saveServiceAd() {
 
     await loader.dismiss();
     await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
-    this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال طلبك للمراجعة بنجاح');
+    this.presentToast(
+      adFormPendingSuccessMessage(this.isEditMode, this.adminOwnerContext)
+    );
 
-    if (ntfySnapshot) {
+    if (ntfySnapshot && owner.uid) {
       if (this.isEditMode) {
-        void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+        void this.newAdNtfy.notifyAfterAdUpdated(owner.uid, ntfySnapshot);
       } else {
-        void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+        void this.newAdNtfy.notifyAfterNewAdSubmitted(owner.uid, ntfySnapshot);
       }
     }
     if (!this.isEditMode) {
-      this.navCtrl.navigateRoot('/my-ads');
+      adFormSuccessNavigateAfterSave(this.navCtrl, this.adminOwnerContext);
     }
 
   } catch (e) {

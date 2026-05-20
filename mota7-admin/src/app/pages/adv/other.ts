@@ -10,6 +10,7 @@ import {
   ellipsisVerticalOutline, calendarOutline
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { buildAdminAdWhatsappMessage } from '../../core/utils/admin-ad-whatsapp-message.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import {
@@ -81,9 +82,8 @@ export class OtherCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const adName = this.ad.details?.service_name || this.getCategoryName();
-      const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`;
-      openWhatsappNative(phone, msg);
+      const adLabel = this.ad.details?.service_name || this.getCategoryName();
+      openWhatsappNative(phone, buildAdminAdWhatsappMessage(adLabel));
     }
   }
 

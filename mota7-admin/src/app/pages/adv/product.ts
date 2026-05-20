@@ -9,6 +9,7 @@ import {
   pricetagOutline
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { buildAdminAdWhatsappMessage } from '../../core/utils/admin-ad-whatsapp-message.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { PRODUCTS_CATEGORY } from '@mota7-app/core/constants/products-data';
@@ -140,9 +141,9 @@ export class ProductCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const adName = this.ad.details?.title || this.ad.details?.short_desc || 'منتج متاح';
-      const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`;
-      openWhatsappNative(phone, msg);
+      const adLabel =
+        this.ad.details?.title || this.ad.details?.short_desc || 'منتج متاح';
+      openWhatsappNative(phone, buildAdminAdWhatsappMessage(adLabel));
     }
   }
 

@@ -21,7 +21,14 @@
     "lib": ["es2018", "dom"],
     "skipLibCheck": true,
     "paths": {
-      "@mota7-app/*": ["../Mota7/src/app/*"]
+      "@mota7-app/*": ["../Mota7/src/app/*"],
+      "src/app/*": ["../Mota7/src/app/*"],
+      "src/environments/*": ["../Mota7/src/environments/*"],
+      "@angular/*": ["./node_modules/@angular/*"],
+      "@angular/fire/*": ["./node_modules/@angular/fire/*"],
+      "@ionic/angular": ["./node_modules/@ionic/angular"],
+      "@ionic/angular/*": ["./node_modules/@ionic/angular/*"],
+      "@capacitor/*": ["./node_modules/@capacitor/*"]
     },
     "useDefineForClassFields": false
   },

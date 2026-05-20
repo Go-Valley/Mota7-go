@@ -12,6 +12,7 @@ import { EDUCATION_CATEGORY } from '../../core/constants/educational-data';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
 import { extractEducationStageArFromPlusMatchKey } from '@mota7-app/core/utils/other-category-display.util';
+import { buildAdminAdWhatsappMessage } from '../../core/utils/admin-ad-whatsapp-message.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { manualSortLevel1to5 } from '../../core/utils/admin-ad-manual-sort.util';
@@ -78,9 +79,9 @@ export class EducationCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const adTitle = this.ad.details?.subject || this.getStageName(this.ad.category_id);
-      const msg = `السلام عليكم.. بتواصل مع حضرتك بخصوص إعلانك على تطبيق متاح (${adTitle})`;
-      openWhatsappNative(phone, msg);
+      const adLabel =
+        this.ad.details?.subject || this.getStageName(this.ad.category_id);
+      openWhatsappNative(phone, buildAdminAdWhatsappMessage(adLabel));
     }
   }
 

@@ -16,6 +16,7 @@ import {
   locationOutline,
 } from 'ionicons/icons';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { buildAdminStoreAdWhatsappMessage } from '../../core/utils/admin-ad-whatsapp-message.util';
 import { openWhatsappNative } from '../../core/utils/whatsapp-open.util';
 import { STORES_CATEGORIES_DATA } from '@mota7-app/core/constants/stores-data';
 import { AppTaxonomyService } from '@mota7-app/core/services/app-taxonomy.service';
@@ -109,8 +110,7 @@ export class StoreCard implements OnInit {
     if (type === 'call') {
       window.open(`tel:${phone}`, '_system');
     } else {
-      const adName = this.ad.details?.store_name || 'المتجر';
-      const msg = `السلام عليكم .. بتواصل مع حضرتك بخصوص اعلانك (${adName})`;
+      const msg = buildAdminStoreAdWhatsappMessage(this.ad.details?.store_name);
       openWhatsappNative(phone, msg);
     }
   }

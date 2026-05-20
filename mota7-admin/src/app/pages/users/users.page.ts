@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Injector, ChangeDetectorRef, runInInjectionContext } from '@angular/core';
+import { Component, OnInit, inject, EnvironmentInjector, ChangeDetectorRef, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonicModule,
@@ -54,7 +54,9 @@ import {
   refreshOutline,
   albumsOutline,
   gridOutline,
+  addCircleOutline,
 } from 'ionicons/icons';
+import { openAdminAddAdForUser } from './admin-add-ad.presenter';
 
 @Component({
   selector: 'app-users',
@@ -68,7 +70,7 @@ export class UsersPage implements OnInit {
     'اعلان مرفوض بسبب ايقاف تنشيط الحساب - لمزيد من الاستفسار, يرجى التواصل مع الادارة';
 
   private firestore = inject(Firestore);
-  private injector = inject(Injector);
+  private injector = inject(EnvironmentInjector);
   private actionSheetCtrl = inject(ActionSheetController);
   private modalCtrl = inject(ModalController);
   private navCtrl = inject(NavController);
@@ -104,7 +106,8 @@ export class UsersPage implements OnInit {
       'calendar-outline': calendarOutline,
       'refresh-outline': refreshOutline,
       'albums-outline': albumsOutline,
-      'grid-outline': gridOutline,
+      'grid-outline':       gridOutline,
+      'add-circle-outline': addCircleOutline,
     });
   }
 
@@ -466,6 +469,18 @@ export class UsersPage implements OnInit {
   // دالة الفلترة للبحث برقم الهاتف أو الاسم
   filterUsers() {
     this.filterAndSortUsers();
+  }
+
+  async openAddAdForUser(user: any, ev: Event): Promise<void> {
+    ev.stopPropagation();
+    await openAdminAddAdForUser(
+      this.modalCtrl,
+      this.alertCtrl,
+      this.toastCtrl,
+      this.firestore,
+      this.injector,
+      user
+    );
   }
 
   async openArabicList(user: any) {

@@ -32,6 +32,14 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import {
+  type AdminAdOwnerContext,
+  adFormOwnerUserDocId,
+  adFormPendingSuccessMessage,
+  adFormSuccessNavigateAfterSave,
+  loadAdFormOwnerUserDoc,
+  resolveAdFormSubmitOwner,
+} from 'src/app/core/utils/admin-ad-owner-context.util';
 import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
@@ -48,7 +56,8 @@ import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota
   ],
 })
 export class EducationFormComponent implements OnInit {
-  @Input() editAdData: any; 
+  @Input() editAdData: any;
+  @Input() adminOwnerContext: AdminAdOwnerContext | null = null; 
 
   eduCategories: any[] = [...EDUCATION_CATEGORY.items];
   availableSubjects: string[] = [];
@@ -131,7 +140,8 @@ export class EducationFormComponent implements OnInit {
     const ctx = await loadUserGovernorateContextForAdForm(
       this.auth,
       this.firestore,
-      this.injector
+      this.injector,
+      adFormOwnerUserDocId(this.auth, this.adminOwnerContext)
     );
     this.userGovernorateId = ctx.userGovernorateId;
     if (ctx.userCityId) {
@@ -176,15 +186,18 @@ export class EducationFormComponent implements OnInit {
   }
 
   async loadUserProfile() {
-    const user = this.auth.currentUser;
-    if (user?.email) {
-      const userKey = user.email.split('@')[0];
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', userKey))
+    const userKey = adFormOwnerUserDocId(this.auth, this.adminOwnerContext);
+    if (userKey) {
+      const data = await loadAdFormOwnerUserDoc(
+        this.firestore,
+        this.injector,
+        userKey
       );
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        let fullName = data['fullName'] || 'ميدو'; 
+      if (data) {
+        let fullName =
+          String(data['fullName'] ?? data['name'] ?? '').trim() ||
+          String(this.adminOwnerContext?.ownerFullName ?? '').trim() ||
+          'معلم مُتاح';
         if (!fullName.startsWith('أ/ ')) {
           fullName = `أ/ ${fullName}`;
         }
@@ -198,8 +211,8 @@ export class EducationFormComponent implements OnInit {
         this.userCityId = geo.userCityId;
         this.eduData.city = geo.cityDisplay || this.eduData.city;
         this.coverageCityIdsForAd = geo.coverageCityIds;
-        this.eduData.contactPhone = data['phone'] || '';
-        this.eduData.whatsappPhone = data['phone'] || '';
+        this.eduData.contactPhone = String(data['phone'] ?? '').trim();
+        this.eduData.whatsappPhone = this.eduData.contactPhone;
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
       }
     }
@@ -256,8 +269,8 @@ export class EducationFormComponent implements OnInit {
       return;
     }
 
-    const user = this.auth.currentUser; // تعريف المستخدم
-    if (!user) {
+    const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+    if (!owner.canSubmit) {
       this.presentToast('يجب تسجيل الدخول أولاً');
       return;
     }
@@ -316,7 +329,7 @@ export class EducationFormComponent implements OnInit {
 
         const adPayload: any = {
           ad_id: adId,
-          userId: user.uid,
+          userId: owner.uid,
           owner_name: this.eduData.teacherName,
           owner_phone: this.eduData.contactPhone,
           category_id: this.eduData.category_id,
@@ -373,16 +386,20 @@ export class EducationFormComponent implements OnInit {
 
       this.isSubmitting = true;
       await loader.dismiss();
-      this.presentToast(this.isEditMode ? 'تم تحديث الإعلان بنجاح' : 'تم إرسال إعلانك التعليمي بنجاح');
+      this.presentToast(
+        adFormPendingSuccessMessage(this.isEditMode, this.adminOwnerContext)
+      );
       await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
-      if (ntfySnapshot) {
+      if (ntfySnapshot && owner.uid) {
         if (this.isEditMode) {
-          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterAdUpdated(owner.uid, ntfySnapshot);
         } else {
-          void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterNewAdSubmitted(owner.uid, ntfySnapshot);
         }
       }
-      this.navCtrl.navigateRoot('/my-ads');
+      if (!this.isEditMode) {
+        adFormSuccessNavigateAfterSave(this.navCtrl, this.adminOwnerContext);
+      }
 
     } catch (e) {
       console.error(e);

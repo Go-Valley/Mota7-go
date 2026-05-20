@@ -1,0 +1,92 @@
+<ion-header class="admin-add-ad-header" dir="rtl">
+  <ion-toolbar mode="ios">
+    <ion-title>إضافة إعلان للمستخدم</ion-title>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="dismiss()" aria-label="إغلاق">
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content dir="rtl">
+  <div class="main-wrapper selection-container admin-add-ad-shell">
+    <div class="admin-owner-banner">
+      <ion-icon name="person-outline" aria-hidden="true"></ion-icon>
+      <div class="admin-owner-banner__text">
+        <span class="admin-owner-banner__label">الإعلان يُنشَر باسم</span>
+        <span class="admin-owner-banner__value">{{ ownerLabel }}</span>
+        <span class="admin-owner-banner__hint">يُرسل للمراجعة بحالة «معلق» كما في تطبيق مُتاح</span>
+      </div>
+    </div>
+
+    <p class="subtitle">اختر نوع الإعلان الذي تريد إضافته للمستخدم</p>
+
+    <div class="types-grid">
+      <button type="button" class="type-card type-card--store" (click)="selectType('store')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box store">
+          <ion-icon name="storefront-outline"></ion-icon>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">إضافة متجر</span>
+          <span class="text-box__desc">عرض نشاط تجاري في قسم المتاجر</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+
+      <button type="button" class="type-card type-card--product" (click)="selectType('product')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box product">
+          <ion-icon name="cart-outline"></ion-icon>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">إضافة منتج</span>
+          <span class="text-box__desc">بيع سلعة أو عرض منتج في التطبيق</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+
+      <button type="button" class="type-card type-card--delivery" (click)="selectType('delivery')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box delivery">
+          <ion-icon name="car-outline"></ion-icon>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمة نقل وتوصيل</span>
+          <span class="text-box__desc">تاكسي، ملاكي، نقل بضائع، أو دليفري</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+
+      <button type="button" class="type-card type-card--education" (click)="selectType('education')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box education">
+          <ion-icon name="school-outline"></ion-icon>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمة تعليمية</span>
+          <span class="text-box__desc">دروس خصوصية للمواد والمراحل</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+
+      <button type="button" class="type-card type-card--other" (click)="selectType('other')">
+        <span class="type-card__glow" aria-hidden="true"></span>
+        <span class="type-card__shine" aria-hidden="true"></span>
+        <span class="icon-box other">
+          <ion-icon name="construct-outline"></ion-icon>
+        </span>
+        <span class="text-box">
+          <span class="text-box__title">خدمات أخرى</span>
+          <span class="text-box__desc">سباكة، نجارة، صيانة، أو حرفة</span>
+        </span>
+        <ion-icon name="chevron-back-outline" class="arrow" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  </div>
+</ion-content>

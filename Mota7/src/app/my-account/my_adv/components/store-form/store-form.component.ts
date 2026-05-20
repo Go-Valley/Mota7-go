@@ -40,6 +40,14 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import {
+  type AdminAdOwnerContext,
+  adFormOwnerUserDocId,
+  adFormPendingSuccessMessage,
+  adFormSuccessNavigateAfterSave,
+  loadAdFormOwnerUserDoc,
+  resolveAdFormSubmitOwner,
+} from 'src/app/core/utils/admin-ad-owner-context.util';
 
 import { addIcons } from 'ionicons';
 import { camera, callOutline, logoWhatsapp, chevronDownOutline, chevronForwardOutline, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
@@ -60,7 +68,9 @@ import { VerificationBadgeComponent } from '../../../../shared/verification-badg
   ],
 })
 export class StoreFormComponent implements OnInit {
-  @Input() editAdData: any; 
+  @Input() editAdData: any;
+  /** إنشاء إعلان من لوحة الأدمن نيابةً عن مستخدم */
+  @Input() adminOwnerContext: AdminAdOwnerContext | null = null;
   @ViewChild('inputStoreName', { read: IonInput }) private inputStoreName?: IonInput;
   @ViewChild('inputWhatsappPhone', { read: IonInput }) private inputWhatsappPhone?: IonInput;
   isEditMode = false;
@@ -185,7 +195,8 @@ export class StoreFormComponent implements OnInit {
     const ctx = await loadUserGovernorateContextForAdForm(
       this.auth,
       this.firestore,
-      this.injector
+      this.injector,
+      adFormOwnerUserDocId(this.auth, this.adminOwnerContext)
     );
     this.userGovernorateId = ctx.userGovernorateId;
     if (ctx.userCityId) {
@@ -194,21 +205,23 @@ export class StoreFormComponent implements OnInit {
   }
 
   async loadUserProfile() {
-    const user = this.auth.currentUser;
-    if (user && user.email) {
-      const userKey = user.email.split('@')[0];
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', userKey))
+    const userKey = adFormOwnerUserDocId(this.auth, this.adminOwnerContext);
+    if (userKey) {
+      const data = await loadAdFormOwnerUserDoc(
+        this.firestore,
+        this.injector,
+        userKey
       );
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        // تأكدنا من جلب fullName أو name حسب بياناتك
-        this.ownerRealName = data['fullName'] || data['name'] || 'صاحب متجر';
+      if (data) {
+        this.ownerRealName =
+          String(data['fullName'] ?? data['name'] ?? '').trim() ||
+          String(this.adminOwnerContext?.ownerFullName ?? '').trim() ||
+          'صاحب متجر';
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
         this.storeBadgeValidFrom = data['verification_valid_from'];
         this.storeBadgeValidUntil = data['verification_valid_until'];
-        this.storeData.contactPhone = data['phone'] || '';
-        this.storeData.whatsappPhone = data['phone'] || '';
+        this.storeData.contactPhone = String(data['phone'] ?? '').trim();
+        this.storeData.whatsappPhone = this.storeData.contactPhone;
         const geo = await hydrateAdFormUserCityFromProfile(
           this.govService,
           data as Record<string, unknown>,
@@ -361,8 +374,8 @@ export class StoreFormComponent implements OnInit {
       return;
     }
 
-    const user = this.auth.currentUser;
-    if (!user) {
+    const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+    if (!owner.canSubmit) {
       this.presentToast('يرجى تسجيل الدخول أولاً');
       return;
     }
@@ -408,7 +421,7 @@ export class StoreFormComponent implements OnInit {
       const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
       const adPayload: any = {
         ad_id: adId,
-        userId: user.uid,
+        userId: owner.uid,
         owner_name: this.ownerRealName,
         category_id: this.storeData.category_id,
         store_name: this.storeData.storeName,
@@ -470,18 +483,20 @@ export class StoreFormComponent implements OnInit {
       });
 
       await loader.dismiss();
-      this.presentToast(this.isEditMode ? 'تم تحديث البيانات بنجاح' : 'تم إرسال متجرك للمراجعة بنجاح');
+      this.presentToast(
+        adFormPendingSuccessMessage(this.isEditMode, this.adminOwnerContext)
+      );
       await this.modalCtrl.dismiss({ saved: true }, 'confirm');
 
-      if (ntfySnapshot && user) {
+      if (ntfySnapshot && owner.uid) {
         if (this.isEditMode) {
-          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterAdUpdated(owner.uid, ntfySnapshot);
         } else {
-          void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterNewAdSubmitted(owner.uid, ntfySnapshot);
         }
       }
       if (!this.isEditMode) {
-        this.navCtrl.navigateRoot('/my-ads');
+        adFormSuccessNavigateAfterSave(this.navCtrl, this.adminOwnerContext);
       }
     } catch (e: any) {
       if (loader) await loader.dismiss();

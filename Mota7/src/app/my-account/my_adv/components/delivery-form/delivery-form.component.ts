@@ -38,6 +38,14 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import {
+  type AdminAdOwnerContext,
+  adFormOwnerUserDocId,
+  adFormPendingSuccessMessage,
+  adFormSuccessNavigateAfterSave,
+  loadAdFormOwnerUserDoc,
+  resolveAdFormSubmitOwner,
+} from 'src/app/core/utils/admin-ad-owner-context.util';
 import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
@@ -54,8 +62,9 @@ import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota
   ],
 })
 export class DeliveryFormComponent implements OnInit, OnDestroy {
-  @Input() editAdData: any; 
+  @Input() editAdData: any;
   @Input() locationFunc: any; // استقبال دالة الموقع من الصفحة الأب
+  @Input() adminOwnerContext: AdminAdOwnerContext | null = null;
 
   deliveryCategories: any[] = [...DELIVERY_CATEGORY.items];
   isSubmitting = false;
@@ -137,7 +146,8 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
     const ctx = await loadUserGovernorateContextForAdForm(
       this.auth,
       this.firestore,
-      this.injector
+      this.injector,
+      adFormOwnerUserDocId(this.auth, this.adminOwnerContext)
     );
     this.userGovernorateId = ctx.userGovernorateId;
     if (ctx.userCityId) {
@@ -171,16 +181,16 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   }
 
   async loadUserProfile() {
-    const user = this.auth.currentUser;
-    if (user?.email) {
-      const userKey = user.email.split('@')[0];
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', userKey))
+    const userKey = adFormOwnerUserDocId(this.auth, this.adminOwnerContext);
+    if (userKey) {
+      const data = await loadAdFormOwnerUserDoc(
+        this.firestore,
+        this.injector,
+        userKey
       );
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        this.deliveryData.contactPhone = data['phone'] || '';
-        this.deliveryData.whatsappPhone = data['phone'] || '';
+      if (data) {
+        this.deliveryData.contactPhone = String(data['phone'] ?? '').trim();
+        this.deliveryData.whatsappPhone = this.deliveryData.contactPhone;
         const geo = await hydrateAdFormUserCityFromProfile(
           this.govService,
           data as Record<string, unknown>,
@@ -190,7 +200,9 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         this.userCityId = geo.userCityId;
         this.deliveryData.city = geo.cityDisplay || this.deliveryData.city;
         this.coverageCityIdsForAd = geo.coverageCityIds;
-        this.deliveryData.driverName = data['fullName'] || '';
+        this.deliveryData.driverName =
+          String(data['fullName'] ?? data['name'] ?? '').trim() ||
+          String(this.adminOwnerContext?.ownerFullName ?? '').trim();
         // جلب حالة التوثيق من حساب المستخدم لتعيينها للإعلان
         this.userVerificationStatus = tierFromUserDoc(data as Record<string, unknown>);
       }
@@ -376,8 +388,8 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       return;
     }
   
-    const user = this.auth.currentUser;
-    if (!user) {
+    const owner = resolveAdFormSubmitOwner(this.auth, this.adminOwnerContext);
+    if (!owner.canSubmit) {
       this.presentToast('يجب تسجيل الدخول أولاً');
       return;
     }
@@ -431,7 +443,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
 
       const adPayload: any = {
         ad_id: adId,
-        userId: user.uid,
+        userId: owner.uid,
         owner_name: this.deliveryData.driverName,
         owner_phone: this.deliveryData.contactPhone,
         category_id: this.deliveryData.category_id,
@@ -493,18 +505,20 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
 
       this.isSubmitting = true;
       await loader.dismiss();
-      this.presentToast(this.isEditMode ? 'تم تحديث الإعلان بنجاح' : 'تم إرسال طلب الانضمام بنجاح');
+      this.presentToast(
+        adFormPendingSuccessMessage(this.isEditMode, this.adminOwnerContext)
+      );
       
       await this.modalCtrl.dismiss({ submitted: true }, 'confirm');
-      if (ntfySnapshot) {
+      if (ntfySnapshot && owner.uid) {
         if (this.isEditMode) {
-          void this.newAdNtfy.notifyAfterAdUpdated(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterAdUpdated(owner.uid, ntfySnapshot);
         } else {
-          void this.newAdNtfy.notifyAfterNewAdSubmitted(user.uid, ntfySnapshot);
+          void this.newAdNtfy.notifyAfterNewAdSubmitted(owner.uid, ntfySnapshot);
         }
       }
       if (!this.isEditMode) {
-        this.navCtrl.navigateRoot('/my-ads');
+        adFormSuccessNavigateAfterSave(this.navCtrl, this.adminOwnerContext);
       }
   
     } catch (e) {

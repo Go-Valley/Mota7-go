@@ -1,4 +1,4 @@
-import type { EnvironmentInjector } from '@angular/core';
+import type { Injector } from '@angular/core';
 import { runInInjectionContext } from '@angular/core';
 import type { Auth } from '@angular/fire/auth';
 import type { Firestore } from '@angular/fire/firestore';
@@ -15,13 +15,15 @@ export interface UserGovernorateContext {
 export async function loadUserGovernorateContextForAdForm(
   auth: Auth,
   firestore: Firestore,
-  injector: EnvironmentInjector
+  injector: Injector,
+  ownerUserDocId?: string | null
 ): Promise<UserGovernorateContext> {
-  const user = auth.currentUser;
-  if (!user?.email) {
+  const userKey =
+    String(ownerUserDocId ?? '').trim() ||
+    (auth.currentUser?.email ? auth.currentUser.email.split('@')[0] : '');
+  if (!userKey) {
     return { userGovernorateId: null, userCityId: null };
   }
-  const userKey = user.email.split('@')[0];
   const userDoc = await runInInjectionContext(injector, () =>
     getDoc(doc(firestore, 'users', userKey))
   );
