@@ -16,15 +16,15 @@ import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.ser
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import {
-  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
-  checkOwnerAdQuota,
-  presentOwnerAdQuotaExceeded,
-  tierFromUserDoc,
-} from 'src/app/core/utils/user-ad-quota.util';
+  blockDigitsOnlyBeforeInput,
+  blockDigitsOnlyKeyDown,
+  blockDigitsOnlyPaste,
+  DIGITS_ONLY_BLOCKED_MSG,
+} from 'src/app/core/utils/mota7-digits-only-input.util';
+import { tierFromUserDoc } from 'src/app/core/utils/user-ad-quota.util';
 import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import { environment } from 'src/environments/environment';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
-import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, locationOutline } from 'ionicons/icons';
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
@@ -38,13 +38,20 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
   selector: 'app-delivery-form',
   templateUrl: './delivery-form.component.html',
   styleUrls: ['./delivery-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent]
+  imports: [
+    IonicModule,
+    CommonModule,
+    FormsModule,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class DeliveryFormComponent implements OnInit, OnDestroy {
   @Input() editAdData: any; 
@@ -55,6 +62,11 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   isEditMode = false; 
   currentAdId: string | null = null; 
   userVerificationStatus: string = 'none'; // لتخزين حالة التوثيق (none, blue, gold)
+  whatsappPhoneLiveWarning: string | null = null;
+
+  readonly onWhatsappDigitsOnlyWarn = (msg: string): void => {
+    this.whatsappPhoneLiveWarning = msg;
+  };
 
   deliveryData = {
     category_id: '', 
@@ -74,14 +86,17 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   userGovernorateId: string | null = null;
   userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
+  coverageGovernorateWholeIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
     const applied = applyCoverageMultiEmitToAdForm(
       ev,
       this.coverageCityIdsForAd,
-      this.deliveryData.city
+      this.deliveryData.city,
+      this.coverageGovernorateWholeIdsForAd
     );
     this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.coverageGovernorateWholeIdsForAd = applied.coverageGovernorateWholeIds;
     this.deliveryData.city = applied.cityDisplay;
   }
 
@@ -94,7 +109,6 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
   private navCtrl = inject(NavController);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
-  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
@@ -153,6 +167,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
       lng: ad.location?.lng || 0
     };
     this.coverageCityIdsForAd = uniqSortedCityIds(ad.coverage_city_ids);
+    this.coverageGovernorateWholeIdsForAd = uniqSortedCityIds(ad.coverage_governorate_whole_ids);
   }
 
   async loadUserProfile() {
@@ -310,9 +325,36 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
     this.locationListenerHandles = [];
   }
 
+  onWhatsappPhoneKeyDown(ev: KeyboardEvent): void {
+    blockDigitsOnlyKeyDown(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhoneBeforeInput(ev: InputEvent): void {
+    blockDigitsOnlyBeforeInput(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.applyWhatsappPhoneRaw(digits),
+      () => {
+        this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+      }
+    );
+  }
+
   onWhatsappPhoneInput(ev: Event): void {
-    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.applyWhatsappPhoneRaw(readIonTextInputValueFromEvent(ev));
+  }
+
+  private applyWhatsappPhoneRaw(raw: string): void {
+    const st = applyOrderPhoneInputState(raw);
     this.deliveryData.whatsappPhone = st.cleaned;
+    this.whatsappPhoneLiveWarning = st.warning;
   }
 
   async saveDeliveryAd() {
@@ -383,38 +425,6 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (!this.isEditMode) {
-        const userKey = user.email!.split('@')[0];
-        const quota = await checkOwnerAdQuota(
-          this.firestore,
-          this.injector,
-          this.deliveryData.contactPhone,
-          userKey,
-          user.uid
-        );
-        if (!quota.ok) {
-          await loader.dismiss();
-          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
-            isEmptyTier: quota.isEmptyTier,
-            onOpenSubscriptionPlans: async () => {
-              await this.modalCtrl.dismiss(
-                undefined,
-                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
-              );
-              await this.navCtrl.navigateRoot('/tabs/my-account');
-              this.subsModalBridge.requestOpen();
-            },
-            quotaAdminContact: {
-              firestore: this.firestore,
-              injector: this.injector,
-              userDocId: userKey,
-              contactPhoneFallback: this.deliveryData.contactPhone,
-            },
-          });
-          return;
-        }
-      }
-
       const adId = this.isEditMode ? this.currentAdId! : `${this.deliveryData.contactPhone}_${this.deliveryData.category_id}-${Date.now()}`;
 
       const verifyTier = canonicalTierForFirestore(this.userVerificationStatus);
@@ -440,6 +450,7 @@ export class DeliveryFormComponent implements OnInit, OnDestroy {
         location: { lat: this.deliveryData.lat, lng: this.deliveryData.lng },
         city: this.deliveryData.city,
         coverage_city_ids: [...this.coverageCityIdsForAd],
+        coverage_governorate_whole_ids: [...this.coverageGovernorateWholeIdsForAd],
         delivery_service_token,
         is_available: this.deliveryData.isAvailable,
         updated_at: serverTimestamp(),

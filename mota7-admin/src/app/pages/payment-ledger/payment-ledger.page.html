@@ -1,0 +1,540 @@
+<app-mota7-header
+  title="سجل الاشتراكات والمدفوعات"
+  [showBackButton]="true"
+  (backClick)="goBack()">
+</app-mota7-header>
+
+<ion-content class="pl-page">
+  <div class="pl-inner">
+    <section class="pl-hero">
+      <div class="pl-hero__icon" aria-hidden="true">
+        <ion-icon name="cash-outline"></ion-icon>
+      </div>
+      <h2>دفتر المدفوعات</h2>
+      <p>تسجيل الباقات، VIP، والبانرات — مرجع محاسبي بدون تطبيق تلقائي على التوثيق</p>
+    </section>
+
+    <ion-segment
+      class="pl-tabs"
+      [value]="mainTab"
+      (ionChange)="onMainTabChange($event)"
+      mode="ios">
+      <ion-segment-button value="cashier">
+        <ion-label>تسجيل سريع</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="ledger">
+        <ion-label>السجل</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="reports">
+        <ion-label>التقارير</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- ——— كاشير ——— -->
+    <ng-container *ngIf="mainTab === 'cashier'">
+      <div class="pl-cashier-toolbar">
+        <ion-button fill="outline" color="medium" (click)="confirmClearCashierForm()">
+          <ion-icon slot="start" name="trash-outline"></ion-icon>
+          مسح البيانات
+        </ion-button>
+      </div>
+
+      <ion-card class="pl-card">
+        <ion-card-header>
+          <ion-card-title>بيانات العميل والدفع</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item lines="full">
+            <ion-label position="stacked">رقم الحساب *</ion-label>
+            <ion-input
+              [(ngModel)]="cashierUserKey"
+              placeholder="مثال: 010xxxxxxxx أو جزء الإيميل"
+              dir="ltr">
+            </ion-input>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">الهاتف (اختياري)</ion-label>
+            <ion-input [(ngModel)]="cashierUserPhone" type="tel" dir="ltr"></ion-input>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">تاريخ الدفع</ion-label>
+            <ion-input
+              type="date"
+              [(ngModel)]="cashierPaidDate"
+              (ionChange)="onCashierPaidDateChange()">
+            </ion-input>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">طريقة التحويل</ion-label>
+            <ion-select [(ngModel)]="cashierPaymentMethod" interface="popover" mode="ios">
+              <ion-select-option *ngFor="let m of paymentMethods" [value]="m.value">
+                {{ m.label }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item lines="full">
+            <ion-label position="stacked">مرجع التحويل</ion-label>
+            <ion-input [(ngModel)]="cashierReference" dir="ltr"></ion-input>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-label position="stacked">ملاحظات</ion-label>
+            <ion-textarea [(ngModel)]="cashierNotes" rows="2" autoGrow="true"></ion-textarea>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="pl-card">
+        <ion-card-header>
+          <ion-card-title>الخدمات</ion-card-title>
+          <ion-card-subtitle>اختر ما دفعه العميل — يمكن أكثر من خدمة في جلسة واحدة</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="pl-chips">
+            <button
+              type="button"
+              class="pl-chip"
+              *ngFor="let t of productTypes"
+              [class.pl-chip--on]="isProductActive(t)"
+              (click)="toggleProductType(t)">
+              {{ productTypeLabel(t) }}
+            </button>
+          </div>
+
+          <div class="pl-line" *ngFor="let line of cashierLines">
+            <ng-container *ngIf="line.selected">
+              <div class="pl-line__head">
+                <strong>{{ productTypeLabel(line.productType) }}</strong>
+                <ion-button fill="clear" size="small" (click)="resetLinePeriods(line)">
+                  إعادة الفترة الافتراضية
+                </ion-button>
+              </div>
+
+              <div class="pl-line__grid" *ngIf="line.productType === 'package'">
+                <ion-label>الباقة</ion-label>
+                <ion-select
+                  [(ngModel)]="line.productVariant"
+                  (ionChange)="onLineVariantChange(line)"
+                  interface="popover"
+                  mode="ios">
+                  <ion-select-option *ngFor="let p of packageTiers" [value]="p.v">
+                    {{ p.l }}
+                  </ion-select-option>
+                </ion-select>
+              </div>
+
+              <div class="pl-line__grid" *ngIf="line.productType === 'vip'">
+                <ion-label>المستوى</ion-label>
+                <ion-select
+                  [(ngModel)]="line.productVariant"
+                  (ionChange)="onLineVariantChange(line)"
+                  interface="popover"
+                  mode="ios">
+                  <ion-select-option *ngFor="let n of vipLevels" [value]="'vip_' + n">
+                    مستوى {{ n }}
+                  </ion-select-option>
+                </ion-select>
+              </div>
+
+              <div class="pl-line__grid pl-line__grid--2">
+                <div>
+                  <ion-label>من</ion-label>
+                  <ion-input type="date" [(ngModel)]="line.periodStart"></ion-input>
+                </div>
+                <div>
+                  <ion-label>إلى</ion-label>
+                  <ion-input type="date" [(ngModel)]="line.periodEnd"></ion-input>
+                </div>
+              </div>
+
+              <ion-item lines="none" class="pl-amount-item">
+                <ion-label position="stacked">المبلغ (جم)</ion-label>
+                <ion-input type="number" [(ngModel)]="line.amountEgp" min="0"></ion-input>
+                <ion-note slot="end" *ngIf="line.listPriceEgp !== line.amountEgp">
+                  قائمة: {{ line.listPriceEgp }}
+                </ion-note>
+              </ion-item>
+            </ng-container>
+          </div>
+
+          <div class="pl-total" *ngIf="selectedCashierLines().length">
+            <span>الإجمالي</span>
+            <strong>{{ cashierTotal() }} جم</strong>
+          </div>
+
+          <ion-button
+            expand="block"
+            class="pl-save-btn"
+            (click)="saveCashierSession()"
+            [disabled]="!selectedCashierLines().length">
+            <ion-icon slot="start" name="save-outline"></ion-icon>
+            حفظ التسجيل
+          </ion-button>
+
+          <ion-button
+            expand="block"
+            fill="outline"
+            *ngIf="lastWhatsAppSummary"
+            (click)="copyWhatsAppSummary()">
+            <ion-icon slot="start" name="copy-outline"></ion-icon>
+            نسخ آخر ملخص واتساب
+          </ion-button>
+
+          <ion-card *ngIf="pendingPackageVerification" class="pl-pending-verify">
+            <ion-card-content>
+              <p class="pl-pending-verify__title">باقة مسجّلة — لم يُطبَّق التوثيق بعد</p>
+              <p class="pl-pending-verify__meta" dir="ltr">
+                {{ pendingPackageVerification.userKey }} · {{ pendingVerificationLabel() }}
+              </p>
+              <ion-button expand="block" (click)="applyPendingPackageVerification()">
+                <ion-icon slot="start" name="shield-checkmark-outline"></ion-icon>
+                تطبيق التوثيق على الحساب
+              </ion-button>
+            </ion-card-content>
+          </ion-card>
+        </ion-card-content>
+      </ion-card>
+    </ng-container>
+
+    <!-- ——— سجل ——— -->
+    <ng-container *ngIf="mainTab === 'ledger'">
+      <ion-card class="pl-card pl-filters">
+        <ion-card-content>
+          <div class="pl-filter-row">
+            <ion-item lines="none" class="pl-month-item">
+              <ion-label>شهر</ion-label>
+              <ion-input type="month" [(ngModel)]="ledgerMonthKey"></ion-input>
+            </ion-item>
+            <ion-button (click)="loadLedgerMonth()" [disabled]="ledgerLoading">
+              <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+            </ion-button>
+            <ion-button fill="outline" (click)="exportCsv()">
+              <ion-icon slot="start" name="download-outline"></ion-icon>
+              CSV
+            </ion-button>
+          </div>
+
+          <ion-segment
+            [value]="ledgerViewMode"
+            (ionChange)="onLedgerViewModeChange($event)"
+            mode="ios"
+            class="pl-subseg">
+            <ion-segment-button value="lines">
+              <ion-label>سطر بسطر</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="grouped">
+              <ion-label>حسب المستخدم</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          <ion-item lines="full">
+            <ion-label>نوع الخدمة</ion-label>
+            <ion-select
+              [value]="ledgerFilterType"
+              (ionChange)="onLedgerFilterTypeChange($event)"
+              interface="popover"
+              mode="ios">
+              <ion-select-option value="all">الكل</ion-select-option>
+              <ion-select-option value="package">باقة</ion-select-option>
+              <ion-select-option value="vip">VIP</ion-select-option>
+              <ion-select-option value="banner_design">تصميم بانر</ion-select-option>
+              <ion-select-option value="banner_upload">رفع بانر</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-label position="stacked">بحث حساب</ion-label>
+            <ion-input
+              [value]="ledgerFilterUserInput"
+              (ionInput)="onLedgerFilterUserInput($event)"
+              placeholder="جزء من رقم الحساب"
+              clearInput="true"></ion-input>
+          </ion-item>
+          <p class="pl-filter-pending" *ngIf="ledgerUserFilterPending">
+            جاري تطبيق البحث…
+          </p>
+        </ion-card-content>
+      </ion-card>
+
+      <div class="pl-kpi-row">
+        <div class="pl-kpi">
+          <span>إجمالي الشهر</span>
+          <strong>{{ ledgerReportSnapshot.totalEgp }} جم</strong>
+        </div>
+        <div class="pl-kpi">
+          <span>عمليات</span>
+          <strong>{{ ledgerReportSnapshot.lineCount }}</strong>
+        </div>
+        <div class="pl-kpi">
+          <span>مستخدمون</span>
+          <strong>{{ ledgerReportSnapshot.uniqueUsers }}</strong>
+        </div>
+      </div>
+
+      <div *ngIf="ledgerLoading" class="pl-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <div class="pl-multi-select-bar" *ngIf="ledgerSelectionMode && !ledgerLoading">
+        <ion-checkbox
+          mode="ios"
+          [checked]="isAllVisibleLedgerSelected"
+          (ionChange)="toggleSelectAllLedger($event.detail.checked)"></ion-checkbox>
+        <span class="pl-multi-select-label">اختيار الكل</span>
+        <span class="pl-multi-select-count">{{ ledgerSelectedCount }} محدّد</span>
+        <ion-button fill="clear" size="small" color="medium" (click)="exitLedgerSelection()">
+          إلغاء
+        </ion-button>
+        <button
+          type="button"
+          class="pl-multi-delete-btn"
+          [disabled]="ledgerSelectedCount === 0"
+          (click)="confirmDeleteSelectedLedger()">
+          <ion-icon name="trash-outline"></ion-icon>
+          <span>حذف</span>
+        </button>
+      </div>
+
+      <ng-template #ledgerLineCard let-e>
+        <ion-item-sliding #lineSliding class="pl-ledger-sliding pl-virtual-item">
+          <ion-item
+            lines="none"
+            class="pl-ledger-sliding-item"
+            (click)="onLedgerEntryClick(e, $event)">
+            <ion-card
+              class="pl-card pl-entry"
+              [class.pl-entry--selected]="ledgerSelectionMode && isLedgerEntrySelected(e.id)">
+              <ion-card-content
+                (pointerdown)="onLedgerEntryPointerDown(e, $event)"
+                (pointerup)="onLedgerPointerUp()"
+                (pointerleave)="onLedgerPointerCancel()"
+                (pointercancel)="onLedgerPointerCancel()">
+            <ion-checkbox
+              *ngIf="ledgerSelectionMode && e.status === 'recorded'"
+              mode="ios"
+              class="pl-entry-select"
+              [checked]="isLedgerEntrySelected(e.id)"
+              (click)="$event.stopPropagation()"
+              (ionChange)="toggleLedgerEntry(e.id)"></ion-checkbox>
+            <div class="pl-entry__top">
+              <div>
+                <h3 dir="ltr">{{ e.userKey }}</h3>
+                <p>{{ productTypeLabel(e.productType) }} — {{ variantLabel(e.productType, e.productVariant) }}</p>
+              </div>
+              <strong class="pl-entry__amt">{{ e.amountEgp }} جم</strong>
+            </div>
+            <p class="pl-entry__meta">
+              {{ e.periodStart }} → {{ e.periodEnd }}
+              · {{ paidLabel(e.paidAt) }}
+              · {{ methodLabel(e.paymentMethod) }}
+              <span *ngIf="e.status !== 'recorded'" class="pl-badge-cancel">{{ e.status }}</span>
+            </p>
+            <p class="pl-entry__notes" *ngIf="e.notes">{{ e.notes }}</p>
+            <div class="pl-entry__actions" *ngIf="e.status === 'recorded' && !ledgerSelectionMode">
+              <ion-button size="small" fill="clear" (click)="copyEntryWhatsApp(e)">
+                <ion-icon slot="start" name="copy-outline"></ion-icon>
+                واتساب
+              </ion-button>
+              <ion-button size="small" fill="clear" color="danger" (click)="cancelEntry(e)">
+                إلغاء
+              </ion-button>
+            </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-item>
+          <ion-item-options side="end" *ngIf="e.status === 'recorded' && !ledgerSelectionMode">
+            <ion-item-option
+              color="danger"
+              (click)="confirmCancelEntry(e, lineSliding); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ng-template>
+
+      <ng-template #ledgerGroupCard let-g>
+        <ion-item-sliding #groupSliding class="pl-ledger-sliding pl-virtual-item">
+          <ion-item
+            lines="none"
+            class="pl-ledger-sliding-item"
+            (click)="onLedgerGroupClick(g, $event)">
+            <ion-card
+              class="pl-card pl-group"
+              [class.pl-entry--selected]="ledgerSelectionMode && isLedgerGroupSelected(g)">
+              <ion-card-content
+                (pointerdown)="onLedgerGroupPointerDown(g, $event)"
+                (pointerup)="onLedgerPointerUp()"
+                (pointerleave)="onLedgerPointerCancel()"
+                (pointercancel)="onLedgerPointerCancel()">
+            <ion-checkbox
+              *ngIf="ledgerSelectionMode"
+              mode="ios"
+              class="pl-entry-select"
+              [checked]="isLedgerGroupSelected(g)"
+              (click)="$event.stopPropagation()"
+              (ionChange)="toggleLedgerGroup(g)"></ion-checkbox>
+            <div class="pl-entry__top">
+              <div>
+                <h3 dir="ltr">{{ g.userKey }}</h3>
+                <p *ngIf="g.userPhone" dir="ltr">{{ g.userPhone }}</p>
+              </div>
+              <strong class="pl-entry__amt">{{ g.totalEgp }} جم</strong>
+            </div>
+            <div class="pl-group-grid">
+              <div><span>باقة</span><b>{{ g.packageAmount || '—' }}</b></div>
+              <div><span>VIP</span><b>{{ g.vipAmount || '—' }}</b></div>
+              <div><span>تصميم</span><b>{{ g.bannerDesignAmount || '—' }}</b></div>
+              <div><span>رفع</span><b>{{ g.bannerUploadAmount || '—' }}</b></div>
+            </div>
+            <p class="pl-entry__meta">{{ g.lineCount }} عملية</p>
+            <div class="pl-entry__notes pl-entry__notes--group" *ngIf="g.notes?.length">
+              <p *ngFor="let note of g.notes">{{ note }}</p>
+            </div>
+            <div class="pl-entry__actions" *ngIf="!ledgerSelectionMode">
+              <ion-button size="small" fill="clear" (click)="copyGroupWhatsApp(g)">
+                <ion-icon slot="start" name="copy-outline"></ion-icon>
+                نسخ ملخص واتساب (كل الاشتراكات)
+              </ion-button>
+            </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-item>
+          <ion-item-options side="end" *ngIf="!ledgerSelectionMode">
+            <ion-item-option
+              color="danger"
+              (click)="confirmCancelUserGroup(g, groupSliding); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ng-template>
+
+      <ng-container *ngIf="!ledgerLoading && ledgerViewMode === 'lines'">
+        <div class="pl-ledger-lines" (click)="closeOpenLedgerSlidings($event)">
+        <cdk-virtual-scroll-viewport
+          #ledgerLinesViewport
+          *ngIf="ledgerUsesVirtualScroll(ledgerDisplayEntries.length); else ledgerLinesClassic"
+          class="pl-ledger-viewport"
+          [itemSize]="ledgerLineItemPx">
+          <ng-container
+            *cdkVirtualFor="let e of ledgerDisplayEntries; trackBy: trackByLedgerEntryId">
+            <ng-container
+              *ngTemplateOutlet="ledgerLineCard; context: { $implicit: e }"></ng-container>
+          </ng-container>
+        </cdk-virtual-scroll-viewport>
+        <ng-template #ledgerLinesClassic>
+          <ng-container
+            *ngFor="let e of ledgerDisplayEntries; trackBy: trackByLedgerEntryId">
+            <ng-container
+              *ngTemplateOutlet="ledgerLineCard; context: { $implicit: e }"></ng-container>
+          </ng-container>
+        </ng-template>
+        <p class="pl-empty" *ngIf="!ledgerDisplayEntries.length">لا توجد عمليات في هذا الشهر</p>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="!ledgerLoading && ledgerViewMode === 'grouped'">
+        <div class="pl-ledger-grouped" (click)="closeOpenLedgerSlidings($event)">
+        <cdk-virtual-scroll-viewport
+          #ledgerGroupedViewport
+          *ngIf="ledgerUsesVirtualScroll(ledgerGroupedRows.length); else ledgerGroupedClassic"
+          class="pl-ledger-viewport"
+          [itemSize]="ledgerGroupItemPx">
+          <ng-container
+            *cdkVirtualFor="let g of ledgerGroupedRows; trackBy: trackByGroupedUser">
+            <ng-container
+              *ngTemplateOutlet="ledgerGroupCard; context: { $implicit: g }"></ng-container>
+          </ng-container>
+        </cdk-virtual-scroll-viewport>
+        <ng-template #ledgerGroupedClassic>
+          <ng-container *ngFor="let g of ledgerGroupedRows; trackBy: trackByGroupedUser">
+            <ng-container
+              *ngTemplateOutlet="ledgerGroupCard; context: { $implicit: g }"></ng-container>
+          </ng-container>
+        </ng-template>
+        <p class="pl-empty" *ngIf="!ledgerGroupedRows.length">لا توجد بيانات</p>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <!-- ——— تقارير ——— -->
+    <ng-container *ngIf="mainTab === 'reports'">
+      <ion-card class="pl-card pl-filters">
+        <ion-card-content>
+          <div class="pl-filter-row">
+            <ion-item lines="none" class="pl-month-item">
+              <ion-label>شهر التقرير</ion-label>
+              <ion-input type="month" [(ngModel)]="reportMonthKey"></ion-input>
+            </ion-item>
+            <ion-button (click)="loadReports()" [disabled]="reportLoading">
+              <ion-icon slot="icon-only" name="analytics-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <div *ngIf="reportLoading" class="pl-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <ng-container *ngIf="!reportLoading && reportCompare">
+        <div class="pl-compare">
+          <div class="pl-compare__card pl-compare__card--main">
+            <span>{{ reportMonthLabel(reportCompare.current.monthKey) }}</span>
+            <strong>{{ reportCompare.current.totalEgp }} جم</strong>
+            <small>{{ reportCompare.current.lineCount }} عملية · {{ reportCompare.current.uniqueUsers }} مستخدم</small>
+          </div>
+          <div class="pl-compare__card">
+            <span>الشهر السابق</span>
+            <strong>{{ reportCompare.previous.totalEgp }} جم</strong>
+            <small
+              class="pl-delta"
+              [class.pl-delta--up]="reportCompare.revenueDeltaEgp > 0"
+              [class.pl-delta--down]="reportCompare.revenueDeltaEgp < 0">
+              {{
+                reportCompare.revenueDeltaPct != null
+                  ? (reportCompare.revenueDeltaPct > 0 ? '+' : '') + reportCompare.revenueDeltaPct + '%'
+                  : '—'
+              }}
+              ({{ reportCompare.revenueDeltaEgp > 0 ? '+' : '' }}{{ reportCompare.revenueDeltaEgp }} جم)
+            </small>
+          </div>
+        </div>
+
+        <ion-card class="pl-card">
+          <ion-card-header>
+            <ion-card-title>حسب نوع الخدمة</ion-card-title>
+          </ion-card-header>
+          <ion-card-content class="pl-breakdown">
+            <div *ngFor="let t of productTypes">
+              <span>{{ productTypeLabel(t) }}</span>
+              <b>{{ reportCompare.current.byProductType[t] || 0 }} جم</b>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card class="pl-card">
+          <ion-card-header>
+            <ion-card-title>الباقات</ion-card-title>
+          </ion-card-header>
+          <ion-card-content class="pl-breakdown">
+            <div *ngFor="let p of packageTiers">
+              <span>{{ p.l }}</span>
+              <b>{{ packageTierRevenue(p.v) }} جم</b>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card class="pl-card">
+          <ion-card-header>
+            <ion-card-title>VIP</ion-card-title>
+          </ion-card-header>
+          <ion-card-content class="pl-breakdown">
+            <div *ngFor="let n of vipLevels">
+              <span>مستوى {{ n }}</span>
+              <b>{{ vipLevelRevenue(n) }} جم</b>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </ng-container>
+    </ng-container>
+  </div>
+</ion-content>

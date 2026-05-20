@@ -276,6 +276,8 @@
       background: linear-gradient(135deg, #fff9ef 0%, #fff4e0 100%);
       border: 1px dashed rgba(255, 107, 0, 0.45);
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+      position: relative;
+      overflow: hidden;
 
       ion-icon {
         font-size: 22px;
@@ -312,6 +314,119 @@
         color: #b45309;
         white-space: nowrap;
         flex-shrink: 0;
+      }
+    }
+
+    .metric-chip--limit {
+      width: 100%;
+      text-align: inherit;
+      font: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 48%, #f5f3ff 100%);
+      border: 1.5px solid rgba(99, 102, 241, 0.45);
+      box-shadow:
+        0 4px 14px rgba(79, 70, 229, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      padding: 12px 12px 14px;
+      transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+
+      &:active {
+        transform: scale(0.985);
+      }
+
+      &:focus-visible {
+        outline: 2px solid #6366f1;
+        outline-offset: 2px;
+      }
+
+      ion-icon[name='grid-outline'] {
+        font-size: 24px;
+        color: #4f46e5;
+        flex-shrink: 0;
+      }
+
+      .metric-chip__hint {
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: #6366f1;
+        line-height: 1.35;
+        opacity: 0.92;
+      }
+
+      .metric-chip__usage {
+        font-size: 0.78rem;
+        font-weight: 900;
+        color: #312e81;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(99, 102, 241, 0.28);
+        border-radius: 999px;
+        padding: 5px 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric-chip__badge {
+        position: absolute;
+        top: 8px;
+        inset-inline-start: 10px;
+        font-size: 0.58rem;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #4338ca;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(99, 102, 241, 0.35);
+        border-radius: 6px;
+        padding: 2px 6px;
+        line-height: 1.2;
+      }
+
+      .metric-chip__edit {
+        font-size: 18px;
+        color: #6366f1;
+        opacity: 0.75;
+        flex-shrink: 0;
+        margin-inline-start: auto;
+      }
+
+      .metric-chip__progress {
+        position: absolute;
+        bottom: 0;
+        inset-inline-start: 0;
+        height: 3px;
+        border-radius: 0 3px 3px 0;
+        background: linear-gradient(90deg, #6366f1, #818cf8);
+        transition: width 0.25s ease;
+        pointer-events: none;
+      }
+
+      .metric-chip__value {
+        color: #312e81;
+        font-size: 1.5rem;
+      }
+
+      &.metric-chip--limit-full {
+        border-color: rgba(220, 38, 38, 0.5);
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 48%, #fff1f2 100%);
+
+        ion-icon[name='grid-outline'] {
+          color: #dc2626;
+        }
+
+        .metric-chip__usage {
+          color: #991b1b;
+          border-color: rgba(220, 38, 38, 0.35);
+        }
+
+        .metric-chip__progress {
+          background: linear-gradient(90deg, #dc2626, #f87171);
+        }
       }
     }
 

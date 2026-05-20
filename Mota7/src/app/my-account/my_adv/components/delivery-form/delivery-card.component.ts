@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   ChangeDetectorRef,
   Component,
@@ -177,7 +178,7 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
       window.open(`tel:${phone}`, '_system');
     } else if (type === 'whatsapp') {
       const vehicleName = this.getCategoryName(this.ad.category_id);
-      const msg = encodeURIComponent(`السلام عليكم .. محتاج اطلب خدمة نقل وتوصيل (${vehicleName})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. محتاج اطلب خدمة نقل وتوصيل (${vehicleName})`);
       const waPhone = this.ad.details?.whatsapp_phone || this.ad.owner_phone;
       window.open(`whatsapp://send?phone=${waPhone}&text=${msg}`, '_system');
     }
@@ -190,18 +191,18 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
     const ownerPhone = this.ad?.owner_phone || '';
 
     if (type === 'pending') {
-      const msg = encodeURIComponent(`السلام عليكم .. برجاء تفعيل اعلان (${deliveryKey}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. برجاء تفعيل اعلان (${deliveryKey}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
     if (type === 'rejected') {
-      const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${deliveryKey}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${deliveryKey}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
-    const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${deliveryKey}) لرقم (${ownerPhone})`);
+    const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${deliveryKey}) لرقم (${ownerPhone})`);
     window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
   }
 
@@ -236,7 +237,7 @@ export class DeliveryCardComponent implements OnInit, OnChanges {
     const verificationName = verificationType === 'gold' ? 'توثيق ذهبي' : 'توثيق أزرق';
     
     const message = `السلام عليكم .. محتاج اوثق اعلاني "${verificationName}" (${vehicleName}) - لرقم (${ownerPhone})`;
-    const encodedMessage = encodeURIComponent(message);
+    const encodedMessage = encodeWhatsappText(message);
     
     window.open(`whatsapp://send?phone=${adminPhone}&text=${encodedMessage}`, '_system');
   }

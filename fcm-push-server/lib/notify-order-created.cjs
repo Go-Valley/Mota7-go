@@ -1,9 +1,35 @@
 'use strict';
 
 const criteria = require('../config/recipient-criteria.cjs');
+
+/** منع إرسال مكرر لنفس الطلب خلال نافذة قصيرة (HTTP مباشر + spark_fcm_jobs) */
+const recentNotifyByOrderId = new Map();
+const NOTIFY_DEDUP_MS = 90_000;
+
+function shouldSkipDuplicateNotify(orderId) {
+  const id = String(orderId || '').trim();
+  if (!id) return false;
+  const now = Date.now();
+  const prev = recentNotifyByOrderId.get(id);
+  if (prev && now - prev < NOTIFY_DEDUP_MS) {
+    return true;
+  }
+  recentNotifyByOrderId.set(id, now);
+  if (recentNotifyByOrderId.size > 500) {
+    for (const [k, t] of recentNotifyByOrderId) {
+      if (now - t > NOTIFY_DEDUP_MS) recentNotifyByOrderId.delete(k);
+    }
+  }
+  return false;
+}
 const { collectMatchedProviderPhones } = require('./collect-provider-phones.cjs');
+const { publishOrderNtfy } = require('./publish-order-ntfy.cjs');
 const { getTokensForPhones } = require('./device-tokens.cjs');
 const { sendToTokens, sendToTopic } = require('./fcm-rest.cjs');
+const {
+  providerOrderFcmTitle,
+  providerOrderNotificationBody,
+} = require('./order-notification-copy.cjs');
 
 function shortOrderPreview(order) {
   const st = String(order.serviceType || '');
@@ -28,20 +54,17 @@ function shortOrderPreview(order) {
   return 'طلب خدمة جديد';
 }
 
-function orderPushTitle(serviceType) {
-  const st = String(serviceType || '').trim().toLowerCase();
-  if (st === 'delivery') return 'Mota7: new delivery order';
-  if (st === 'education') return 'Mota7: new education order';
-  if (st === 'other') return 'Mota7: new service order';
-  return 'Mota7: new order';
-}
-
 /**
  * @param {import('firebase-admin/firestore').Firestore} db
  * @param {string} orderId
  * @param {Record<string, unknown>} order
  */
 async function notifyOrderCreated(db, orderId, order) {
+  if (shouldSkipDuplicateNotify(orderId)) {
+    console.log('[notify] skip duplicate', orderId);
+    return { skipped: 'duplicate_recent' };
+  }
+
   if (criteria.order.requireStatusPending && String(order.status || '') !== 'pending') {
     console.log('[notify] skip non-pending', orderId, order.status);
     return { skipped: 'not_pending' };
@@ -54,6 +77,8 @@ async function notifyOrderCreated(db, orderId, order) {
     console.log('[notify] unsupported serviceType', serviceType);
     return { skipped: 'unsupported_service_type' };
   }
+
+  void publishOrderNtfy(orderId, order).catch(() => {});
 
   const preview = shortOrderPreview(order);
   const dataPayload = {
@@ -86,8 +111,8 @@ async function notifyOrderCreated(db, orderId, order) {
   const fcm = await sendToTokens(
     tokens,
     {
-      title: orderPushTitle(serviceType),
-      body: `${preview}\n${criteria.notification.providerBodySuffix}`,
+      title: providerOrderFcmTitle(serviceType),
+      body: providerOrderNotificationBody(preview, serviceType),
     },
     dataPayload
   );

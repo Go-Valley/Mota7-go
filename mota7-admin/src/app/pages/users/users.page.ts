@@ -30,12 +30,15 @@ import {
   canonicalTierForFirestore,
   defaultMaxAdsForTier,
   effectiveTierFromUserFields,
+  storedVerificationTierFromUserFields,
   normalizeVerificationTier,
   verificationBadgeAssetPath,
   VERIFICATION_TIER_SORT_WEIGHT,
   yyyyMmDdStringToUtcTimestamp,
   type CanonicalVerificationTier,
 } from '../../core/utils/verification-tiers.util';
+import { resolveMaxActiveAdsForVerificationTier } from '../../core/utils/subscription-verification-limits.util';
+import { SubscriptionService } from '../../services/subscription.service';
 import {
   DateRangePickerModalComponent,
   type DateRangePickerResult,
@@ -50,6 +53,7 @@ import {
   calendarOutline,
   refreshOutline,
   albumsOutline,
+  gridOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -71,6 +75,7 @@ export class UsersPage implements OnInit {
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private cdr = inject(ChangeDetectorRef);
+  private subscriptionService = inject(SubscriptionService);
 
   usersList: any[] = [];
   filteredUsers: any[] = []; // قائمة المستخدمين بعد الفلترة
@@ -99,6 +104,7 @@ export class UsersPage implements OnInit {
       'calendar-outline': calendarOutline,
       'refresh-outline': refreshOutline,
       'albums-outline': albumsOutline,
+      'grid-outline': gridOutline,
     });
   }
 
@@ -279,6 +285,37 @@ export class UsersPage implements OnInit {
     return out;
   }
 
+  /** الحد الأقصى للإعلانات النشطة (محفوظ على الحساب أو افتراضي حسب التوثيق). */
+  userMaxActiveAdsLimit(user: any): number {
+    const raw = user?.max_active_ads;
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) {
+      return Math.floor(raw);
+    }
+    const tier = storedVerificationTierFromUserFields(
+      user as Record<string, unknown>
+    );
+    return defaultMaxAdsForTier(tier);
+  }
+
+  /** نسبة استخدام الحد (0–1) لعرض شريط التقدّم على الكارت. */
+  maxAdsUsageRatio(user: any): number {
+    const limit = this.userMaxActiveAdsLimit(user);
+    if (limit <= 0) {
+      return 0;
+    }
+    return Math.min(1, this.userActiveAdsCount(user) / limit);
+  }
+
+  isUserAtMaxActiveAds(user: any): boolean {
+    const limit = this.userMaxActiveAdsLimit(user);
+    return limit > 0 && this.userActiveAdsCount(user) >= limit;
+  }
+
+  hasExplicitMaxActiveAds(user: any): boolean {
+    const raw = user?.max_active_ads;
+    return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0;
+  }
+
   /** إعلانات مقبولة (نشطة على التطبيق) */
   userActiveAdsCount(user: any): number {
     let n = 0;
@@ -443,12 +480,12 @@ export class UsersPage implements OnInit {
           handler: () => this.toggleStatus(user) 
         },
         {
-          text: 'بدون اشتراك (empty)',
+          text: 'بدون اشتراك',
           icon: 'person-outline',
           handler: () => void this.promptAssignVerification(user, 'empty'),
         },
         {
-          text: 'توثيق تجريبي (free)',
+          text: 'توثيق مجاني',
           icon: 'person-outline',
           handler: () => void this.promptAssignVerification(user, 'free'),
         },
@@ -468,12 +505,12 @@ export class UsersPage implements OnInit {
           handler: () => void this.promptAssignVerification(user, 'golden'),
         },
         {
-          text: 'توثيق ماسي (Diamonds)',
+          text: 'توثيق ماسي',
           icon: 'star-outline',
           handler: () => void this.promptAssignVerification(user, 'Diamonds'),
         },
         {
-          text: 'VIP',
+          text: 'توثيق VIP',
           icon: 'star-outline',
           handler: () => void this.promptAssignVerification(user, 'vip'),
         },
@@ -481,11 +518,6 @@ export class UsersPage implements OnInit {
           text: 'إعادة تعيين الباقة التجريبية (free_trial_used)',
           icon: 'refresh-outline',
           handler: () => void this.promptResetFreeTrial(user),
-        },
-        {
-          text: 'إعادة لبدون اشتراك (إلغاء التوثيق)',
-          icon: 'close-circle-outline',
-          handler: () => void this.promptClearVerification(user),
         },
         {
           text: 'حذف نهائياً',
@@ -530,7 +562,7 @@ export class UsersPage implements OnInit {
       case 'empty':
         return 'بدون اشتراك';
       case 'free':
-        return 'توثيق تجريبي';
+        return 'توثيق مجاني';
       case 'bronze':
         return 'توثيق برونزي';
       case 'silver':
@@ -578,6 +610,76 @@ export class UsersPage implements OnInit {
     return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
   }
 
+  /** نافذة الحد الأقصى (تلقائي من الباقات + تعديل يدوي) ثم منتقي التاريخ. */
+  private async promptMaxActiveAdsForTier(
+    tier: Exclude<CanonicalVerificationTier, 'none'>,
+    suggestedMax: number,
+    currentMax: unknown
+  ): Promise<number | null> {
+    const initial =
+      typeof currentMax === 'number' &&
+      Number.isFinite(currentMax) &&
+      currentMax >= 0
+        ? Math.floor(currentMax)
+        : suggestedMax;
+
+    let chosenMax: number | null = null;
+    const alert = await this.alertCtrl.create({
+      header: this.tierArabicLabel(tier),
+      message:
+        `الحد الأقصى للإعلانات النشطة (مقترح من إدارة الاشتراكات: ${suggestedMax}). يمكنك تعديل الرقم قبل المتابعة.`,
+      mode: 'ios',
+      inputs: [
+        {
+          name: 'maxAds',
+          type: 'number',
+          placeholder: 'الحد الأقصى',
+          value: String(initial),
+          min: 0,
+        },
+      ],
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'متابعة — التاريخ',
+          handler: (data) => {
+            const parsed = this.parseMaxActiveAdsInput(
+              data?.['maxAds'],
+              suggestedMax
+            );
+            if (parsed == null) {
+              void this.showToast('أدخل رقماً صحيحاً (0 أو أكبر)');
+              return false;
+            }
+            chosenMax = parsed;
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role === 'cancel') {
+      return null;
+    }
+    return chosenMax;
+  }
+
+  private parseMaxActiveAdsInput(
+    raw: unknown,
+    fallback: number
+  ): number | null {
+    const s = String(raw ?? '').trim();
+    if (!s) {
+      return Math.max(0, Math.floor(fallback));
+    }
+    const n = parseInt(s, 10);
+    if (!Number.isFinite(n) || n < 0) {
+      return null;
+    }
+    return Math.floor(n);
+  }
+
   async promptAssignVerification(
     user: any,
     tier: Exclude<CanonicalVerificationTier, 'none'>
@@ -586,46 +688,20 @@ export class UsersPage implements OnInit {
     this.verificationDraftTier = tier;
     this.cdr.detectChanges();
 
-    const defaultMax = defaultMaxAdsForTier(tier);
-    const maxAds = await new Promise<number | null>((resolve) => {
-      void this.alertCtrl
-        .create({
-          header: this.tierArabicLabel(tier),
-          subHeader: 'الحد الأقصى للإعلانات النشطة',
-          mode: 'ios',
-          inputs: [
-            {
-              name: 'maxAds',
-              type: 'number',
-              placeholder: 'الحد الأقصى للإعلانات النشطة',
-              value: String(defaultMax),
-            },
-          ],
-          buttons: [
-            {
-              text: 'إلغاء',
-              role: 'cancel',
-              handler: () => resolve(null),
-            },
-            {
-              text: 'متابعة — المدة',
-              handler: (data) => {
-                const n = parseInt(String(data?.maxAds ?? '').trim(), 10);
-                if (!Number.isFinite(n) || n < 0) {
-                  void this.showToast(
-                    'أدخل عدداً صحيحاً للحد الأقصى للإعلانات'
-                  );
-                  return false;
-                }
-                resolve(n);
-                return true;
-              },
-            },
-          ],
-        })
-        .then((a) => a.present());
-    });
+    let suggestedMax: number;
+    try {
+      const cfg = await this.subscriptionService.getConfig();
+      suggestedMax = resolveMaxActiveAdsForVerificationTier(cfg, tier);
+    } catch (e) {
+      console.error('resolveMaxActiveAdsForVerificationTier', e);
+      suggestedMax = defaultMaxAdsForTier(tier);
+    }
 
+    const maxAds = await this.promptMaxActiveAdsForTier(
+      tier,
+      suggestedMax,
+      user?.max_active_ads
+    );
     if (maxAds == null) {
       this.verificationDraftUserId = null;
       this.verificationDraftTier = null;
@@ -644,10 +720,9 @@ export class UsersPage implements OnInit {
       component: DateRangePickerModalComponent,
       componentProps: {
         title: 'مدة توثيق الحساب',
-        subtitle:
-          'تاريخ التوثيق من وإلى — اختر من التقويم باللمس (يمكن «بدون تواريخ» لصلاحية مفتوحة)',
+        subtitle: `تاريخ التوثيق من وإلى — الحد الأقصى للإعلانات النشطة: ${maxAds}`,
         confirmLabel: 'حفظ وتطبيق',
-        allowWithoutDates: true,
+        allowWithoutDates: false,
         initialFrom: initFrom,
         initialUntil: initUntil,
       },
@@ -666,43 +741,21 @@ export class UsersPage implements OnInit {
       return;
     }
 
-    let fromTs: Timestamp | null = null;
-    let untilTs: Timestamp | null = null;
-    if (role === 'confirm' && data) {
-      fromTs = yyyyMmDdStringToUtcTimestamp(data.fromIsoDate, false);
-      untilTs = yyyyMmDdStringToUtcTimestamp(data.untilIsoDate, true);
-      if (!fromTs || !untilTs) {
-        void this.showToast('تواريخ غير صالحة — أعد الاختيار');
-        return;
-      }
-      if (fromTs.toMillis() > untilTs.toMillis()) {
-        void this.showToast('تاريخ البداية بعد تاريخ النهاية');
-        return;
-      }
+    if (role !== 'confirm' || !data) {
+      return;
+    }
+    const fromTs = yyyyMmDdStringToUtcTimestamp(data.fromIsoDate, false);
+    const untilTs = yyyyMmDdStringToUtcTimestamp(data.untilIsoDate, true);
+    if (!fromTs || !untilTs) {
+      void this.showToast('تواريخ غير صالحة — أعد الاختيار');
+      return;
+    }
+    if (fromTs.toMillis() > untilTs.toMillis()) {
+      void this.showToast('تاريخ البداية بعد تاريخ النهاية');
+      return;
     }
 
     await this.persistUserVerification(user, tier, maxAds, fromTs, untilTs);
-  }
-
-  async promptClearVerification(user: any): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: 'إلغاء التوثيق',
-      message:
-        'إعادة الحساب إلى توثيق empty (بدون اشتراك)، حد إعلانات 0، وحذف تواريخ صلاحية التوثيق من الحساب. تُحدَّث جميع إعلانات المستخدم المرتبطة باستثناء الإعلانات الموثَّقة VIP (تبقى كما هي).',
-      mode: 'ios',
-      buttons: [
-        { text: 'رجوع', role: 'cancel' },
-        {
-          text: 'تأكيد الإلغاء',
-          role: 'destructive',
-          handler: () => {
-            void this.persistUserVerificationClear(user);
-            return true;
-          },
-        },
-      ],
-    });
-    await alert.present();
   }
 
   private async persistUserVerification(
@@ -727,7 +780,9 @@ export class UsersPage implements OnInit {
         updateDoc(doc(this.firestore, 'users', user.id), userPayload)
       );
       await this.cascadeVerificationToUserAds(user, tierStored, validFrom, validUntil);
-      this.showToast('تم تحديث التوثيق ومزامنة الإعلانات المرتبطة');
+      this.showToast(
+        `تم تحديث التوثيق — الحد الأقصى ${maxAds} إعلاناً نشطاً`
+      );
     } catch (e) {
       console.error('persistUserVerification', e);
       this.showToast('خطأ في الحفظ — تحقق من الاتصال أو صلاحيات الأدمن');
@@ -767,26 +822,6 @@ export class UsersPage implements OnInit {
     } catch (e) {
       console.error('executeResetFreeTrial', e);
       this.showToast('خطأ — تحقق من الصلاحيات');
-    }
-  }
-
-  private async persistUserVerificationClear(user: any): Promise<void> {
-    const tierStored = canonicalTierForFirestore('empty');
-    try {
-      await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, 'users', user.id), {
-          verifiedStatus: tierStored,
-          verification_level: tierStored,
-          max_active_ads: defaultMaxAdsForTier('empty'),
-          verification_valid_from: deleteField(),
-          verification_valid_until: deleteField(),
-        })
-      );
-      await this.cascadeVerificationToUserAds(user, tierStored, null, null);
-      this.showToast('تم إلغاء التوثيق ومزامنة الإعلانات');
-    } catch (e) {
-      console.error('persistUserVerificationClear', e);
-      this.showToast('خطأ في الحفظ — تحقق من الاتصال أو صلاحيات الأدمن');
     }
   }
 
@@ -1000,19 +1035,92 @@ export class UsersPage implements OnInit {
     }
   }
 
-  /** تهيئة مستخدمين بلا طبقة صريحة أو بـ none/free لمستندات قديمة — دون تعديل من له ذهبي/VIP وما شابه */
-  async confirmMigrateLegacyFreeDefaults(): Promise<void> {
+  async promptEditMaxActiveAds(user: any, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const tier = storedVerificationTierFromUserFields(
+      user as Record<string, unknown>
+    );
+    let suggestedMax: number;
+    try {
+      const cfg = await this.subscriptionService.getConfig();
+      suggestedMax = resolveMaxActiveAdsForVerificationTier(cfg, tier);
+    } catch (e) {
+      console.error('promptEditMaxActiveAds resolveMax', e);
+      suggestedMax = defaultMaxAdsForTier(tier);
+    }
+
+    const currentLimit = this.userMaxActiveAdsLimit(user);
+    const active = this.userActiveAdsCount(user);
+    let chosenMax: number | null = null;
+
     const alert = await this.alertCtrl.create({
-      header: 'تهيئة التوثيق المجاني',
+      header: 'حد الإعلانات',
       message:
-        'يتم تعيين توثيق مجاني (free) والحد الافتراضي لإعلانات المستخدمين الذين بحكم حقولهم لا يزالون بدءًا أو none/free فقط. لا يُغيَّر من له ذهبي أو ماسي أو VIP وهكذا.',
+        `الحد الأقصى لعدد الإعلانات النشطة لهذا المستخدم.\n` +
+        `المقترح من الباقة (${this.tierArabicLabel(
+          effectiveTierFromUserFields(user as Record<string, unknown>)
+        )}): ${suggestedMax}\n` +
+        `الإعلانات النشطة حالياً: ${active}`,
+      mode: 'ios',
+      inputs: [
+        {
+          name: 'maxAds',
+          type: 'number',
+          placeholder: 'الحد الأقصى',
+          value: String(currentLimit),
+          min: 0,
+        },
+      ],
+      buttons: [
+        { text: 'إلغاء', role: 'cancel' },
+        {
+          text: 'حفظ',
+          handler: (data) => {
+            const parsed = this.parseMaxActiveAdsInput(
+              data?.['maxAds'],
+              suggestedMax
+            );
+            if (parsed == null) {
+              void this.showToast('أدخل رقماً صحيحاً (0 أو أكبر)');
+              return false;
+            }
+            chosenMax = parsed;
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role === 'cancel' || chosenMax == null) {
+      return;
+    }
+
+    try {
+      await runInInjectionContext(this.injector, () =>
+        updateDoc(doc(this.firestore, 'users', user.id), {
+          max_active_ads: chosenMax,
+        })
+      );
+      await this.showToast(`تم تحديث الحد الأقصى إلى ${chosenMax} إعلاناً نشطاً`);
+    } catch (e) {
+      console.error('promptEditMaxActiveAds', e);
+      await this.showToast('خطأ في الحفظ — تحقق من الصلاحيات');
+    }
+  }
+
+  async confirmSyncMaxAdsFromPlans(): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'مزامنة حدود الإعلانات',
+      message:
+        'يُحدَّث حقل max_active_ads لكل المستخدمين حسب طبقة التوثيق المحفوظة على الحساب والحدود الحالية في إدارة الاشتراكات. لا يُغيَّر نوع التوثيق ولا تواريخه.',
       mode: 'ios',
       buttons: [
         { text: 'إلغاء', role: 'cancel' },
         {
-          text: 'تنفيذ',
+          text: 'مزامنة',
           handler: () => {
-            void this.runMigrateLegacyFreeDefaults();
+            void this.runSyncMaxAdsFromPlans();
             return true;
           },
         },
@@ -1021,62 +1129,54 @@ export class UsersPage implements OnInit {
     await alert.present();
   }
 
-  private async runMigrateLegacyFreeDefaults(): Promise<void> {
-    const tierStored = canonicalTierForFirestore('empty');
-    const maxAds = defaultMaxAdsForTier('empty');
+  private async runSyncMaxAdsFromPlans(): Promise<void> {
     try {
-      let updated = 0;
+      const cfg = await this.subscriptionService.getConfig();
       const snap = await runInInjectionContext(this.injector, () =>
         getDocs(collection(this.firestore, 'users'))
       );
 
-      const idsToMigrate: string[] = [];
+      const updates: { id: string; maxAds: number }[] = [];
       for (const d of snap.docs) {
         const data = d.data() as Record<string, unknown>;
-        const nt = normalizeVerificationTier(
-          data['verification_level'] ?? data['verifiedStatus'] ?? 'none'
-        );
-        if (nt !== 'none' && nt !== 'free' && nt !== 'empty') {
-          continue;
-        }
-        const lv = String(data['verification_level'] ?? '').trim().toLowerCase();
-        const sv = String(data['verifiedStatus'] ?? '').trim().toLowerCase();
-        const mx = data['max_active_ads'];
+        const tier = storedVerificationTierFromUserFields(data);
+        const nextMax = resolveMaxActiveAdsForVerificationTier(cfg, tier);
+        const current = data['max_active_ads'];
         if (
-          lv === 'empty' &&
-          sv === 'empty' &&
-          typeof mx === 'number' &&
-          mx === maxAds
+          typeof current === 'number' &&
+          Number.isFinite(current) &&
+          Math.floor(current) === nextMax
         ) {
           continue;
         }
-        idsToMigrate.push(d.id);
+        updates.push({ id: d.id, maxAds: nextMax });
+      }
+
+      if (!updates.length) {
+        await this.showToast('جميع الحدود مطابقة للباقات — لا تحديث');
+        return;
       }
 
       const chunk = 400;
-      for (let i = 0; i < idsToMigrate.length; i += chunk) {
-        const slice = idsToMigrate.slice(i, i + chunk);
+      for (let i = 0; i < updates.length; i += chunk) {
+        const slice = updates.slice(i, i + chunk);
         await runInInjectionContext(this.injector, () => {
           const batch = writeBatch(this.firestore);
-          for (const userId of slice) {
-            batch.update(doc(this.firestore, 'users', userId), {
-              verification_level: tierStored,
-              verifiedStatus: tierStored,
+          for (const { id, maxAds } of slice) {
+            batch.update(doc(this.firestore, 'users', id), {
               max_active_ads: maxAds,
             });
           }
           return batch.commit();
         });
       }
-      updated = idsToMigrate.length;
+
       await this.showToast(
-        updated
-          ? `تم تحديث ${updated} مستخدماً`
-          : 'لا حساب بحاجة للتهيئة (أو مُطبَّقة مسبقاً)'
+        `تم مزامنة ${updates.length} مستخدماً من أصل ${snap.size}`
       );
     } catch (e) {
-      console.error('runMigrateLegacyFreeDefaults', e);
-      await this.showToast('فشل التهيئة — تحقق من الصلاحيات أو الاتصال');
+      console.error('runSyncMaxAdsFromPlans', e);
+      await this.showToast('فشل المزامنة — تحقق من الصلاحيات أو الاتصال');
     }
   }
 

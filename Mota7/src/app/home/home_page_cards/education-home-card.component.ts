@@ -23,6 +23,7 @@ import { AdImpressionTrackDirective } from '../shared/ad-impression-track.direct
 import { AdCardEngagementRowComponent } from '../shared/ad-card-engagement-row.component';
 import { VerificationBadgeComponent } from '../../shared/verification-badge/verification-badge.component';
 import { formatAdCoverageDisplay } from 'src/app/core/utils/governorate-city-display.util';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 
 @Component({
   selector: 'app-education-home-card',
@@ -133,7 +134,7 @@ export class EducationHomeCardComponent implements OnInit, OnChanges {
     } else {
       const stageName = this.getStageName(this.ad.category_id);
       const subject = this.ad.details?.subject || '';
-      const msg = encodeURIComponent(
+      const msg = encodeWhatsappText(
         `السلام عليكم .. محتاج اطلب خدمة تعليمية (${stageName} - مادة ${subject})`
       );
       window.open(`whatsapp://send?phone=${phone}&text=${msg}`, '_system');

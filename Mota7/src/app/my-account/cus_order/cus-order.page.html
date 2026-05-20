@@ -25,7 +25,11 @@
         <p>لا توجد طلبات حالية</p>
       </div>
 
-<div *ngFor="let order of inbox.orders(); trackBy: trackByOrderId" class="order-wrapper">
+<div
+  *ngFor="let order of inbox.orders(); trackBy: trackByOrderId"
+  class="order-wrapper"
+  [id]="orderCardDomId(order.id)"
+  [class.order-highlighted]="isOrderHighlighted(order.id)">
           
         <app-delivery-card 
           *ngIf="order['serviceType'] === 'delivery'"

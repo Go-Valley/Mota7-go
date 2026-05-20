@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   ChangeDetectorRef,
   Component,
@@ -136,7 +137,7 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
       window.open(`tel:${phone}`, '_system');
     } else if (type === 'whatsapp') {
       const serviceName = this.getCategoryName();
-      const msg = encodeURIComponent(`السلام عليكم .. محتاج اطلب خدمة (${serviceName})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. محتاج اطلب خدمة (${serviceName})`);
       // استخدام whatsapp_phone من داخل details كما في الفايربيز
       const waPhone = this.ad.details?.whatsapp_phone || phone;
       window.open(`whatsapp://send?phone=${waPhone}&text=${msg}`, '_system');
@@ -150,18 +151,18 @@ export class OtherServicesCardComponent implements OnInit, OnChanges {
     const ownerPhone = this.ad?.owner_phone || '';
 
     if (type === 'pending') {
-      const msg = encodeURIComponent(`السلام عليكم .. برجاء تفعيل اعلان (${otherKey}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. برجاء تفعيل اعلان (${otherKey}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
     if (type === 'rejected') {
-      const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${otherKey}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${otherKey}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
-    const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${otherKey}) لرقم (${ownerPhone})`);
+    const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${otherKey}) لرقم (${ownerPhone})`);
     window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
   }
 

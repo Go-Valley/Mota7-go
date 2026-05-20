@@ -17,7 +17,8 @@
         <label class="main-label">نوع المركبة : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.subService" 
                     interface="action-sheet" 
-                    mode="ios" 
+                    mode="ios"
+                    required
                     placeholder="اختر وسيلة النقل / التوصيل"
                     cancelText="إلغاء">
           <ion-select-option *ngFor="let item of deliveryItems" [value]="item.nameAr">{{item.nameAr}}</ion-select-option>
@@ -62,11 +63,20 @@
       <div class="input-group">
         <label class="main-label">المبلغ : (اختياري)</label>
         <ion-input
+          #inputPrice
+          class="mota7-amount-input"
+          dir="rtl"
+          mota7DigitsOnly="amount"
+          [mota7DigitsOnlyOnWarn]="onPriceDigitsOnlyWarn"
           type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
           [ngModel]="orderData.price"
           (ionInput)="onPriceInput($event)"
           (keydown)="onPriceKeyDown($event)"
-          placeholder="أرقام فقط — مثلاً: 30">
+          (beforeinput)="onPriceBeforeInput($event)"
+          (paste)="onPricePaste($event)"
+          placeholder="مثلاً: 30">
         </ion-input>
         <p class="phone-live-warning" *ngIf="priceLiveWarning" role="alert">{{ priceLiveWarning }}</p>
       </div>
@@ -100,14 +110,18 @@
         <label class="main-label">رقم الهاتف : <span>*</span></label>
         <ion-input
           #inputCustomerPhone
+          mota7DigitsOnly="phone"
+          [mota7DigitsOnlyOnWarn]="onPhoneDigitsOnlyWarn"
           type="tel"
           maxlength="11"
           inputmode="numeric"
+          pattern="[0-9]*"
           autocomplete="tel-national"
           [ngModel]="orderData.customerPhone"
           (ngModelChange)="onCustomerPhoneChange($event)"
           (keydown)="onCustomerPhoneKeyDown($event)"
           (beforeinput)="onCustomerPhoneBeforeInput($event)"
+          (paste)="onCustomerPhonePaste($event)"
           placeholder="01xxxxxxxxx">
         </ion-input>
         <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>

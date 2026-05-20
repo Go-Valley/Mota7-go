@@ -17,11 +17,14 @@ import { Mota7Notifications } from './plugins/mota7-notifications.plugin';
 import { UserAccountStatusService } from './my-account/user-account-status.service';
 import { MandatoryUpdateService } from './core/services/mandatory-update.service';
 import { DeviceFcmMota7RegistrationService } from './core/services/device-fcm-mota7-registration.service';
+import { OrderNotificationTapService } from './core/services/order-notification-tap.service';
 import { OrderPushNotificationBridgeService } from './core/services/order-push-notification-bridge.service';
+import { ProviderMatchService } from './core/services/provider-match.service';
 import { ProviderOrdersInboxService } from './core/services/provider-orders-inbox.service';
 import { OfflineBannerComponent } from './shared/offline-banner/offline-banner.component';
 import { ShoppingFirestoreSeedService } from './core/services/shopping-firestore-seed.service';
 import { environment } from '../environments/environment';
+import { formatWhatsappMessageWithGreeting } from './core/utils/whatsapp-message-format.util';
 
 /** حد أدنى لعرض شاشة اللوجو (app-launch-shell) على الموبايل قبل إخفائها */
 const NATIVE_LAUNCH_LOGO_MIN_MS = 6000;
@@ -45,7 +48,9 @@ export class AppComponent implements OnInit {
   private ntfyListener = inject(NtfyListenerService);
   private deviceFcmMota7 = inject(DeviceFcmMota7RegistrationService);
   private orderPushBridge = inject(OrderPushNotificationBridgeService);
+  private orderNotificationTap = inject(OrderNotificationTapService);
   private providerOrdersInbox = inject(ProviderOrdersInboxService);
+  private providerMatch = inject(ProviderMatchService);
   private userAccountStatus = inject(UserAccountStatusService);
   readonly mandatoryUpdate = inject(MandatoryUpdateService);
   private shoppingSeed = inject(ShoppingFirestoreSeedService);
@@ -103,6 +108,7 @@ export class AppComponent implements OnInit {
 
     if (this.platform.is('hybrid')) {
       this.orderPushBridge.start();
+      this.orderNotificationTap.start();
       this.ntfyListener.start();
       void this.showNotificationPermissionReminder();
       void App.addListener('resume', () => {
@@ -219,7 +225,10 @@ export class AppComponent implements OnInit {
       const parsed = new URL(urlString);
       const rawPhone = parsed.searchParams.get('phone') ?? '';
       const phone = this.normalizeWhatsappPhone(rawPhone);
-      const text = parsed.searchParams.get('text') ?? '';
+      const rawText = parsed.searchParams.get('text') ?? '';
+      const text = rawText
+        ? formatWhatsappMessageWithGreeting(decodeURIComponent(rawText))
+        : '';
       const whatsappUrl = `whatsapp://send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}`;
 
       if (Capacitor.isNativePlatform()) {
@@ -253,6 +262,7 @@ export class AppComponent implements OnInit {
   checkAuthState() {
     runInInjectionContext(this.injector, () =>
       onAuthStateChanged(this.auth, async (user) => {
+      this.providerMatch.reset();
       if (user) {
         if (!environment.production) {
           console.log('المستخدم مسجل دخول:', user.uid);
@@ -262,6 +272,7 @@ export class AppComponent implements OnInit {
         }
         if (Capacitor.isNativePlatform()) {
           void this.deviceFcmMota7.registerIfEligible(user);
+          void this.providerMatch.ensureLoaded();
         }
       } else {
         if (!environment.production) {

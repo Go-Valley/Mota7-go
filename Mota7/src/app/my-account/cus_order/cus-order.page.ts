@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  CUSTOM_ELEMENTS_SCHEMA,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, NavController, Platform } from '@ionic/angular';
 import { Subscription } from 'rxjs';
@@ -44,8 +51,16 @@ export class CusOrderPage implements OnInit, OnDestroy {
   private platform = inject(Platform);
   private hardwareBackSub?: Subscription;
   private acct = inject(UserAccountStatusService);
+  private highlightClearTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    effect(() => {
+      const id = this.inbox.highlightOrderId();
+      if (!id) {
+        return;
+      }
+      void this.scrollToHighlightedOrder(id);
+    });
     addIcons({
       'location-outline': locationOutline,
       'checkmark-circle-outline': checkmarkCircleOutline,
@@ -76,6 +91,38 @@ export class CusOrderPage implements OnInit, OnDestroy {
     }
     // orders من Firestore — نفس معايير إشعار push (fcm-push-server/config/recipient-criteria.cjs)
     await this.inbox.refreshAdsForCurrentUser();
+    const pendingHighlight = this.inbox.highlightOrderId();
+    if (pendingHighlight) {
+      void this.scrollToHighlightedOrder(pendingHighlight);
+    }
+  }
+
+  orderCardDomId(orderId: string): string {
+    return `order-card-${orderId}`;
+  }
+
+  isOrderHighlighted(orderId: string): boolean {
+    return this.inbox.highlightOrderId() === orderId;
+  }
+
+  private async scrollToHighlightedOrder(orderId: string): Promise<void> {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const el = document.getElementById(this.orderCardDomId(orderId));
+    if (!el) {
+      return;
+    }
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {
+      el.scrollIntoView();
+    }
+    if (this.highlightClearTimer) {
+      clearTimeout(this.highlightClearTimer);
+    }
+    this.highlightClearTimer = setTimeout(() => {
+      this.inbox.clearHighlightOrderId();
+      this.highlightClearTimer = null;
+    }, 12_000);
   }
 
   async onAcceptOrder(id: string): Promise<void> {
@@ -97,6 +144,10 @@ export class CusOrderPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.highlightClearTimer) {
+      clearTimeout(this.highlightClearTimer);
+      this.highlightClearTimer = null;
+    }
     this.hardwareBackSub?.unsubscribe();
     this.hardwareBackSub = undefined;
   }

@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   Input,
@@ -142,7 +143,7 @@ export class ProductCardComponent implements OnInit, OnChanges {
     
     if (type === 'whatsapp') {
       const productDesc = this.ad.details?.short_desc || this.ad.details?.title || '';
-      const msg = encodeURIComponent(`السلام عليكم .. استفسار عن منتج (${productDesc})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. استفسار عن منتج (${productDesc})`);
       window.open(`whatsapp://send?phone=${waPhone}&text=${msg}`, '_system');
     } else {
       window.open(`tel:${phone}`, '_system');
@@ -156,18 +157,18 @@ export class ProductCardComponent implements OnInit, OnChanges {
     const ownerPhone = this.ad?.owner_phone || '';
 
     if (type === 'pending') {
-      const msg = encodeURIComponent(`السلام عليكم .. برجاء تفعيل اعلان (${productDesc}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. برجاء تفعيل اعلان (${productDesc}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
     if (type === 'rejected') {
-      const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${productDesc}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${productDesc}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
-    const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${productDesc}) لرقم (${ownerPhone})`);
+    const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${productDesc}) لرقم (${ownerPhone})`);
     window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
   }
 

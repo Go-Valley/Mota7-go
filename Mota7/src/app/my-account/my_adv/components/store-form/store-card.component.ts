@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   Input,
@@ -126,18 +127,18 @@ export class StoreCardComponent implements OnInit, OnChanges {
     const ownerPhone = this.ad?.owner_phone || '';
 
     if (type === 'pending') {
-      const msg = encodeURIComponent(`السلام عليكم .. برجاء تفعيل اعلان (${storeName}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. برجاء تفعيل اعلان (${storeName}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
     if (type === 'rejected') {
-      const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${storeName}) لرقم (${ownerPhone})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب رفض اعلاني : (${storeName}) لرقم (${ownerPhone})`);
       window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
       return;
     }
 
-    const msg = encodeURIComponent(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${storeName}) لرقم (${ownerPhone})`);
+    const msg = encodeWhatsappText(`السلام عليكم .. بستفسر عن سبب انتهاء اعلاني : (${storeName}) لرقم (${ownerPhone})`);
     window.open(`whatsapp://send?phone=${adminPhone}&text=${msg}`, '_system');
   }
 
@@ -159,7 +160,7 @@ export class StoreCardComponent implements OnInit, OnChanges {
     // مستقبلاً: هنا سيتم إضافة كود زيادة عداد Stats.calls للأدمن
     
     if (type === 'whatsapp') {
-      const msg = encodeURIComponent(`السلام عليكم، استفسار بخصوص متجر: ${this.ad.store_name}`);
+      const msg = encodeWhatsappText(`السلام عليكم، استفسار بخصوص متجر: ${this.ad.store_name}`);
       window.open(`whatsapp://send?phone=${phone}&text=${msg}`, '_system');
     } else {
       window.open(`tel:${phone}`, '_system');

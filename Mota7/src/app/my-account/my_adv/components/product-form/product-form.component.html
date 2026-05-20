@@ -80,10 +80,15 @@
         <ion-item lines="none" class="styled-item">
           <ion-input
             #inputPrice
+            mota7DigitsOnly="amount"
+            [mota7DigitsOnlyOnWarn]="onPriceDigitsOnlyWarn"
             type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
             [ngModel]="priceInputStr"
             (ionInput)="onProductPriceInput($event)"
             (keydown)="onProductPriceKeyDown($event)"
+            (beforeinput)="onProductPriceBeforeInput($event)"
             placeholder="أرقام فقط">
           </ion-input>
         </ion-item>
@@ -112,17 +117,28 @@
       <ion-label class="main-label">رقم الواتساب للتواصل</ion-label>
       <ion-item lines="none" class="styled-item whatsapp-field">
         <ion-icon name="logo-whatsapp" slot="start" color="success" class="whatsapp-icon-item"></ion-icon>
-        <ion-input 
+        <ion-input
           #inputWhatsappPhone
-          [ngModel]="productData.whatsappPhone" 
-          type="tel" 
+          mota7DigitsOnly="phone"
+          [mota7DigitsOnlyOnWarn]="onWhatsappDigitsOnlyWarn"
+          [ngModel]="productData.whatsappPhone"
+          type="tel"
+          maxlength="11"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          autocomplete="tel-national"
           placeholder="01xxxxxxxxx"
-          (ngModelChange)="onWhatsappPhoneChange($event)"></ion-input>
+          (ngModelChange)="onWhatsappPhoneChange($event)"
+          (keydown)="onWhatsappPhoneKeyDown($event)"
+          (beforeinput)="onWhatsappPhoneBeforeInput($event)"
+          (paste)="onWhatsappPhonePaste($event)"
+        ></ion-input>
       </ion-item>
+      <p class="phone-live-warning" *ngIf="whatsappPhoneLiveWarning" role="alert">{{ whatsappPhoneLiveWarning }}</p>
     </div>
 
     <div class="input-group coverage-block">
-      <ion-label class="main-label geo-field-label">مناطق عرض المنتج ضمن مدينتك*</ion-label>
+      <ion-label class="main-label geo-field-label">مناطق عرض المُنتج ضمن محافظتك*</ion-label>
       <p class="location-hint">اختر المدن التي تريد عرض منتجك فيها</p>
       <app-governorate-city-selector
         variant="coverageMultiRestricted"

@@ -16,7 +16,16 @@ import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { AppLauncher } from '@capacitor/app-launcher';
 import { Geolocation } from '@capacitor/geolocation';
-import { Firestore, doc, updateDoc, Timestamp } from '@angular/fire/firestore';
+import {
+  Firestore,
+  doc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+  Timestamp,
+  type Unsubscribe,
+} from '@angular/fire/firestore';
+import { buildTrackingPointsFromOrder } from './destination-map-picker.presenter';
 import { IonicModule, ModalController, Platform, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -118,6 +127,11 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   resolvingAddress = false;
   /** وضع التتبع: جاري جلب مسار الشوارع من OSRM */
   routeLoading = false;
+  /** مزامنة لحظية مع مستند الطلب في Firestore */
+  trackingLiveActive = false;
+  private orderLiveUnsub: Unsubscribe | null = null;
+  private trackingSnapshotDebounce: ReturnType<typeof setTimeout> | null = null;
+  private trackingBoundsFittedOnce = false;
 
   ngOnInit(): void {
     this.registerHardwareBackToDismiss();
@@ -130,7 +144,7 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       this.selectedLat = start.lat;
       this.selectedLng = start.lng;
       this.selectedAddress =
-        'تتبّع جميع الأطراف على الخريطة — اسحب العلامات عند الحاجة، أو افتح خرائط جوجل للتوجيه.';
+        'عرض المسار المحدد عند الطلب — يمكنك فتح خرائط جوجل للتوجيه.';
       void this.setupTrackingReturnObservers();
       return;
     }
@@ -190,6 +204,11 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       clearTimeout(this.routeDebounceTimer);
       this.routeDebounceTimer = null;
     }
+    if (this.trackingSnapshotDebounce) {
+      clearTimeout(this.trackingSnapshotDebounce);
+      this.trackingSnapshotDebounce = null;
+    }
+    this.stopTrackingOrderLiveSync();
     this.routeAbort?.abort();
     this.routeAbort = null;
     if (this.map) {
@@ -385,7 +404,9 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       L.control.zoom({ position: 'bottomright' }).addTo(this.map);
       this.renderTrackingMarkers();
       this.fitToTrackingPoints();
+      this.trackingBoundsFittedOnce = true;
       this.scheduleTrackingRoadRoute(true);
+      this.startTrackingOrderLiveSync();
       return;
     }
 
@@ -489,9 +510,9 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
   }
 
   private initTrackingPoints(): void {
-    this.providerPoint = this.normalizeTrackerPoint(this.providerPoint, 'مقدم الخدمة');
-    this.customerPoint = this.normalizeTrackerPoint(this.customerPoint, 'طالب الخدمة');
-    this.destinationPoint = this.normalizeTrackerPoint(this.destinationPoint, 'وجهة الوصول');
+    this.providerPoint = this.normalizeTrackerPoint(this.providerPoint, 'كابتن التوصيل');
+    this.customerPoint = this.normalizeTrackerPoint(this.customerPoint, 'العميل');
+    this.destinationPoint = this.normalizeTrackerPoint(this.destinationPoint, 'جهة الوصول');
   }
 
   private static readonly FALLBACK_MAP_CENTER = { lat: 25.4374, lng: 30.5465 };
@@ -522,69 +543,46 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
         iconAnchor: [16, 30],
       });
 
-    const bindDrag = (
-      marker: any,
-      dragTarget: 'provider' | 'customer' | 'destination'
-    ): void => {
-      marker.on('dragend', (event: any) => {
-        const point = event.target.getLatLng();
-        if (dragTarget === 'provider' && this.providerPoint) {
-          this.providerPoint.lat = point.lat;
-          this.providerPoint.lng = point.lng;
-        }
-        if (dragTarget === 'customer' && this.customerPoint) {
-          this.customerPoint.lat = point.lat;
-          this.customerPoint.lng = point.lng;
-        }
-        if (dragTarget === 'destination' && this.destinationPoint) {
-          this.destinationPoint.lat = point.lat;
-          this.destinationPoint.lng = point.lng;
-        }
-        void this.persistDraggedTrackingPoint(dragTarget, point.lat, point.lng);
-        this.scheduleTrackingRoadRoute(false);
-      });
-    };
-
     const pointOk = (lat: number, lng: number): boolean =>
       Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
 
     if (this.providerPoint && pointOk(this.providerPoint.lat, this.providerPoint.lng)) {
       this.providerMarker = L.marker([this.providerPoint.lat, this.providerPoint.lng], {
         icon: makeIcon('🚗', 'trk-provider'),
-        draggable: true,
+        draggable: false,
+        interactive: true,
       }).addTo(this.markersLayer);
-      this.providerMarker.bindTooltip('مقدّم الخدمة (المندوب)', {
+      this.providerMarker.bindTooltip('كابتن التوصيل', {
         direction: 'top',
         offset: [0, -22],
         className: 'mota7-trk-tt',
       });
-      bindDrag(this.providerMarker, 'provider');
     }
 
     if (this.customerPoint && pointOk(this.customerPoint.lat, this.customerPoint.lng)) {
       this.customerMarker = L.marker([this.customerPoint.lat, this.customerPoint.lng], {
         icon: makeIcon('👤', 'trk-customer'),
-        draggable: true,
+        draggable: false,
+        interactive: true,
       }).addTo(this.markersLayer);
-      this.customerMarker.bindTooltip('نقطة الاستلام (طالب الخدمة)', {
+      this.customerMarker.bindTooltip('العميل', {
         direction: 'top',
         offset: [0, -22],
         className: 'mota7-trk-tt',
       });
-      bindDrag(this.customerMarker, 'customer');
     }
 
     if (this.destinationPoint && pointOk(this.destinationPoint.lat, this.destinationPoint.lng)) {
       this.destinationMarker = L.marker([this.destinationPoint.lat, this.destinationPoint.lng], {
         icon: makeIcon('📍', 'trk-destination'),
-        draggable: true,
+        draggable: false,
+        interactive: true,
       }).addTo(this.markersLayer);
-      this.destinationMarker.bindTooltip('وجهة الوصول', {
+      this.destinationMarker.bindTooltip('جهة الوصول', {
         direction: 'top',
         offset: [0, -22],
         className: 'mota7-trk-tt',
       });
-      bindDrag(this.destinationMarker, 'destination');
     }
 
     this.scheduleTrackingRoadRoute(true);
@@ -802,6 +800,74 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
     }
   }
 
+  private startTrackingOrderLiveSync(): void {
+    const orderId = (this.trackingOrderId ?? '').trim();
+    if (!orderId || this.mode !== 'tracking') {
+      return;
+    }
+    this.stopTrackingOrderLiveSync();
+    this.trackingLiveActive = true;
+    this.cdr.markForCheck();
+    runInInjectionContext(this.injector, () => {
+      this.orderLiveUnsub = onSnapshot(
+        doc(this.firestore, 'orders', orderId),
+        (snap) => {
+          if (!snap.exists()) {
+            return;
+          }
+          this.scheduleTrackingSnapshotApply(snap.data() as Record<string, unknown>);
+        },
+        (err) => console.error('[tracking-map] live order sync', err)
+      );
+    });
+  }
+
+  private stopTrackingOrderLiveSync(): void {
+    if (this.orderLiveUnsub) {
+      this.orderLiveUnsub();
+      this.orderLiveUnsub = null;
+    }
+    this.trackingLiveActive = false;
+  }
+
+  private scheduleTrackingSnapshotApply(data: Record<string, unknown>): void {
+    if (this.trackingSnapshotDebounce) {
+      clearTimeout(this.trackingSnapshotDebounce);
+    }
+    this.trackingSnapshotDebounce = setTimeout(() => {
+      this.trackingSnapshotDebounce = null;
+      this.applyTrackingOrderSnapshot(data);
+    }, 280);
+  }
+
+  private pointsEqual(
+    a: { lat: number; lng: number } | null,
+    b: { lat: number; lng: number } | null
+  ): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
+  }
+
+  private applyTrackingOrderSnapshot(data: Record<string, unknown>): void {
+    if (this.mode !== 'tracking' || !this.isMapReady) {
+      return;
+    }
+    const built = buildTrackingPointsFromOrder(data);
+    const same =
+      this.pointsEqual(this.providerPoint, built.providerPoint) &&
+      this.pointsEqual(this.customerPoint, built.customerPoint) &&
+      this.pointsEqual(this.destinationPoint, built.destinationPoint);
+    if (same) {
+      return;
+    }
+    this.providerPoint = built.providerPoint;
+    this.customerPoint = built.customerPoint;
+    this.destinationPoint = built.destinationPoint;
+    this.renderTrackingMarkers();
+    this.cdr.markForCheck();
+  }
+
   private fitToTrackingPoints(): void {
     if (!this.leaflet || !this.map) return;
     const L = this.leaflet;
@@ -900,12 +966,26 @@ export class DestinationMapPickerModalComponent implements OnInit, AfterViewInit
       return;
     }
     this.waitingGoogleReturn = false;
+    if (this.mode === 'tracking') {
+      const orderId = (this.trackingOrderId ?? '').trim();
+      if (orderId) {
+        void runInInjectionContext(this.injector, async () => {
+          try {
+            const snap = await getDoc(doc(this.firestore, 'orders', orderId));
+            if (snap.exists()) {
+              this.applyTrackingOrderSnapshot(snap.data() as Record<string, unknown>);
+            }
+          } catch {
+            /* ignore */
+          }
+        });
+      }
+    }
     if (this.map) {
       setTimeout(() => {
         this.map.invalidateSize();
         if (this.mode === 'tracking') {
           this.renderTrackingMarkers();
-          this.fitToTrackingPoints();
         } else {
           const z = this.map.getZoom();
           this.panTo(this.selectedLat, this.selectedLng, Math.max(14, z));

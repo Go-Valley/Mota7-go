@@ -136,7 +136,7 @@ export function buildTrackingPointsFromOrder(order: Record<string, unknown> | nu
     ? {
         lat: pp.lat,
         lng: pp.lng,
-        label: String(order?.['providerName'] ?? 'مقدم الخدمة').trim() || 'مقدم الخدمة',
+        label: String(order?.['providerName'] ?? 'كابتن التوصيل').trim() || 'كابتن التوصيل',
       }
     : null;
 
@@ -145,7 +145,9 @@ export function buildTrackingPointsFromOrder(order: Record<string, unknown> | nu
     ? {
         lat: cp.lat,
         lng: cp.lng,
-        label: String(order?.['customerName'] ?? 'طالب الخدمة').trim() || 'طالب الخدمة',
+        label:
+          String(order?.['fromLocation'] ?? order?.['customerName'] ?? 'العميل').trim() ||
+          'العميل',
       }
     : null;
 

@@ -42,9 +42,9 @@ import {
   timestampPlusMs,
 } from 'src/app/core/utils/order-lifecycle.util';
 import {
-  presentTrackingMapModal,
-  buildTrackingPointsFromOrder,
-} from 'src/app/my-order/delivery-service/destination-map-picker/destination-map-picker.presenter';
+  openDeliveryTrackingMap,
+  refreshDeliveryOrderDoc,
+} from 'src/app/core/utils/order-delivery-tracking.util';
 import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
@@ -56,6 +56,7 @@ import {
   reserveProviderRatesCustomerRatingPrompt,
 } from '../../provider-completion-notice-modal/provider-rates-customer-modal.presenter';
 import { resolveOrderOriginLocationDisplay } from 'src/app/core/utils/mota7-reverse-geocode.util';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   getMota7CurrentPosition,
   mota7GeolocationFailureMessage,
@@ -380,90 +381,32 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  async openMap(lat?: unknown, lng?: unknown) {
-    const pins = buildTrackingPointsFromOrder(this.order);
-    const hasPin =
-      !!pins.providerPoint || !!pins.customerPoint || !!pins.destinationPoint;
-
-    const rawLat = Number(lat ?? this.order?.lat);
-    const rawLng = Number(lng ?? this.order?.lng);
-    const hasNumericPair =
-      Number.isFinite(rawLat) &&
-      Number.isFinite(rawLng) &&
-      !(rawLat === 0 && rawLng === 0);
-
-    if (!hasPin && !hasNumericPair) {
-      const toast = await this.toastController.create({
-        message:
-          'لا توجد نقاط كافية للخريطة (موقع أو وجهة). تأكّد من تحديث بيانات الطلب أو من موقع العميل.',
-        duration: 3200,
-        color: 'warning',
-      });
-      await toast.present();
-      return;
-    }
-
-    await presentTrackingMapModal(this.modalCtrl, {
-      order: this.order,
-      directionsRole: 'provider',
-    });
+  private async syncOrderAndOpenTracking(): Promise<void> {
+    this.order = await refreshDeliveryOrderDoc(
+      this.injector,
+      this.firestore,
+      this.order
+    );
+    await openDeliveryTrackingMap(
+      this.modalCtrl,
+      this.order,
+      'provider',
+      this.toastController
+    );
   }
 
+  async openMap(): Promise<void> {
+    await this.syncOrderAndOpenTracking();
+  }
+
+  /** قبل القبول: خريطة ثلاثية (عميل + وجهة + مندوب إن وُجد) */
   async openCustomerCurrentLocationMap(): Promise<void> {
-    const id = this.order?.id;
-    if (id) {
-      try {
-        const snap = await runInInjectionContext(this.injector, () =>
-          getDoc(doc(this.firestore, 'orders', String(id)))
-        );
-        if (snap.exists()) {
-          this.order = { ...this.order, ...(snap.data() as object), id };
-        }
-      } catch {
-        /* نفتح الخريطة ب أي بيانات متاحة محلياً */
-      }
-    }
-    await this.openMap(this.order?.lat, this.order?.lng);
+    await this.syncOrderAndOpenTracking();
   }
 
-  /** مزامنة الطلب من الفايربيز (آخر إحداثيات العميل والمندوب على المستند) ثم إعادة فتح المسار */
-  async refreshRouteOpenMap() {
-    const id = this.order?.id;
-    if (!id) {
-      const toast = await this.toastController.create({
-        message: 'تعذّر تحديث المسار',
-        duration: 2000,
-        color: 'warning'
-      });
-      await toast.present();
-      return;
-    }
-    try {
-      const snap = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'orders', id))
-      );
-      if (!snap.exists()) {
-        const toast = await this.toastController.create({
-          message: 'الطلب غير موجود',
-          duration: 2000,
-          color: 'warning'
-        });
-        await toast.present();
-        return;
-      }
-      const d = snap.data();
-      this.order = { ...this.order, ...d, id };
-    } catch (e) {
-      console.error('refreshRouteOpenMap:', e);
-      const toast = await this.toastController.create({
-        message: 'تعذّر جلب أحدث بيانات المسار',
-        duration: 2500,
-        color: 'warning'
-      });
-      await toast.present();
-      return;
-    }
-    await this.openMap(this.order.lat, this.order.lng);
+  /** جلب آخر إحداثيات من Firestore ثم فتح الخريطة (تحديث لحظي داخل المودال) */
+  async refreshRouteOpenMap(): Promise<void> {
+    await this.syncOrderAndOpenTracking();
   }
 
   makeCall(phone: string) {
@@ -472,7 +415,7 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
 
   openWhatsApp(phone: string) {
     if (phone) {
-      const msg = encodeURIComponent(
+      const msg = encodeWhatsappText(
         `السلام عليكم.. بتواصل مع حضرتك بخصوص طلبك: ${this.order?.subService || 'طلب خدمة'}`
       );
       window.open(`whatsapp://send?phone=2${phone}&text=${msg}`, '_system');
@@ -567,16 +510,29 @@ export class DeliveryCardComponent implements OnInit, OnDestroy, OnChanges {
           }
         }
       }
+      const acceptPatch: Record<string, unknown> = {
+        status: 'accepted',
+        acceptedAt: Timestamp.now(),
+        providerId: this.providerId,
+        providerName: finalName,
+        providerPhone: this.providerId,
+        providerUID: user?.uid,
+      };
+      try {
+        const pos = await getMota7CurrentPosition();
+        acceptPatch['providerLat'] = pos.coords.latitude;
+        acceptPatch['providerLng'] = pos.coords.longitude;
+        acceptPatch['lastUpdate'] = Timestamp.now();
+      } catch {
+        /* يُحدَّث لاحقاً عبر تفعيل موقعي أو التتبع الحي */
+      }
       await runInInjectionContext(this.injector, () =>
-        updateDoc(doc(this.firestore, 'orders', this.order.id), {
-          status: 'accepted',
-          acceptedAt: Timestamp.now(),
-          providerId: this.providerId,
-          providerName: finalName,
-          providerPhone: this.providerId,
-          providerUID: user?.uid
-        })
+        updateDoc(doc(this.firestore, 'orders', this.order.id), acceptPatch)
       );
+      if (acceptPatch['providerLat'] != null) {
+        this.order.providerLat = acceptPatch['providerLat'];
+        this.order.providerLng = acceptPatch['providerLng'];
+      }
       void attachProviderAdIdToOrder(this.injector, this.firestore, this.order.id, {
         ...this.order,
         providerId: this.providerId,

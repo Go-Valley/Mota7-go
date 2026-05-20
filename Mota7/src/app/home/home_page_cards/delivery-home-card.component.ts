@@ -1,4 +1,5 @@
 import { Component, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, Input, inject, EnvironmentInjector } from '@angular/core';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -115,7 +116,7 @@ export class DeliveryHomeCardComponent implements OnInit, OnChanges {
       window.open(`tel:${phone}`, '_system');
     } else if (type === 'whatsapp') {
       const vehicleName = this.getCategoryName(this.ad.category_id);
-      const msg = encodeURIComponent(`السلام عليكم .. محتاج اطلب خدمة نقل وتوصيل (${vehicleName})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. محتاج اطلب خدمة نقل وتوصيل (${vehicleName})`);
       const waPhone = this.ad.details?.whatsapp_phone || this.ad.owner_phone;
       window.open(`whatsapp://send?phone=${waPhone}&text=${msg}`, '_system');
     }

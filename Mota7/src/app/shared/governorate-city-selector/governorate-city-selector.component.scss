@@ -24,6 +24,25 @@
   background: linear-gradient(180deg, #ffffff 0%, #f8f9fb 100%);
 }
 
+.gcs-all-row {
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%);
+  min-height: 54px;
+
+  .gcs-mark--all {
+    color: #ea580c;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .gcs-all-sub {
+    flex: 0 1 auto;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.9;
+  }
+}
+
 .gcs-row {
   display: flex;
   align-items: center;

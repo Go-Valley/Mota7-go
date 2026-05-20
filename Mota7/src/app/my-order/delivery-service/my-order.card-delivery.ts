@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   Input,
@@ -32,7 +33,10 @@ import {
   finalizeOrderRemovedFromUi,
   completeAcceptedOrderWhenWindowElapsed
 } from '../../core/utils/order-lifecycle.firestore';
-import { presentTrackingMapModal } from './destination-map-picker/destination-map-picker.presenter';
+import {
+  openDeliveryTrackingMap,
+  refreshDeliveryOrderDoc,
+} from '../../core/utils/order-delivery-tracking.util';
 import { resolveOrderOriginLocationDisplay } from '../../core/utils/mota7-reverse-geocode.util';
 import {
   getMota7CurrentPosition,
@@ -371,56 +375,30 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
     const descriptor = this.order?.subService || 'طلب خدمة';
     if (phone) {
       const msg = `السلام عليكم.. بتواصل مع حضرتك بخصوص طلب: ${descriptor}`;
-      const url = `whatsapp://send?phone=2${phone}&text=${encodeURIComponent(msg)}`;
+      const url = `whatsapp://send?phone=2${phone}&text=${encodeWhatsappText(msg)}`;
       window.open(url, '_system');
     }
   }
 
   /**
-   * تتبّع داخلي ثلاثي: طالب الخدمة، مقدّم الخدمة، وجهة الوصول.
+   * تتبّع ثلاثي: طالب الخدمة، مقدّم الخدمة، وجهة الوصول (خريطة داخلية أو جوجل).
    */
   async navigateToProvider() {
-    const pLat = this.order?.providerLat;
-    const pLng = this.order?.providerLng;
-    const destOk =
-      pLat != null &&
-      pLng != null &&
-      Number.isFinite(Number(pLat)) &&
-      Number.isFinite(Number(pLng));
-    if (!destOk) {
-      await this.presentToast(
-        'موقع المندوب غير متاح بعد — انتظر قليلاً حتى يُحدَّث من تطبيقه بعد القبول'
-      );
-      return;
-    }
-    await presentTrackingMapModal(this.modalCtrl, {
-      order: this.order,
-      directionsRole: 'customer',
-    });
+    this.order = await refreshDeliveryOrderDoc(
+      this.injector,
+      this.firestore,
+      this.order
+    );
+    await openDeliveryTrackingMap(
+      this.modalCtrl,
+      this.order,
+      'customer',
+      this.toastController
+    );
   }
 
-  /** جلب آخر providerLat/providerLng من الفايربيز ثم إعادة فتح المودال الداخلي */
+  /** جلب آخر الإحداثيات من Firestore ثم إعادة فتح خريطة التتبع */
   async refreshRouteToProvider() {
-    const id = this.order?.id;
-    if (!id) {
-      await this.presentToast('تعذّر تحديث المسار');
-      return;
-    }
-    try {
-      const snap = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'orders', id))
-      );
-      if (!snap.exists()) {
-        await this.presentToast('الطلب غير موجود');
-        return;
-      }
-      const d = snap.data();
-      this.order = { ...this.order, ...d, id };
-    } catch (e) {
-      console.error('refreshRouteToProvider:', e);
-      await this.presentToast('تعذّر جلب أحدث موقع المندوب');
-      return;
-    }
     await this.navigateToProvider();
   }
 
@@ -438,6 +416,7 @@ export class MyOrderCardDeliveryComponent implements OnInit, OnDestroy, OnChange
           lat: latitude,
           lng: longitude,
           location_name: 'تم التحديد عبر GPS',
+          lastUpdate: Timestamp.now(),
         })
       );
       this.order.lat = latitude;

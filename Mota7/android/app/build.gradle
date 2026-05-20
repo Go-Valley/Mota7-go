@@ -19,7 +19,7 @@ android {
         manifestPlaceholders = [GOOGLE_MAPS_API_KEY: (project.findProperty("GOOGLE_MAPS_API_KEY") ?: "")]
         // يجب أن يطابق App.getInfo().build في Capacitor — يُقارَن مع Remote Config: android_min_version_code
         // مواءمة iOS: نفس اسم الإصدار في ios/App/App.xcodeproj → MARKETING_VERSION ورقم البناء → CURRENT_PROJECT_VERSION، و package.json → "version".
-        versionCode 29
+        versionCode 30
         versionName "2.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

@@ -21,6 +21,7 @@ import { closeOutline, logoWhatsapp } from 'ionicons/icons';
 import { HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY } from '../../../core/utils/hardware-back-my-account.util';
 import { openWhatsappNative } from '../../../core/utils/whatsapp-open.util';
 import { normalizeSubscriptionsConfig } from '../../../core/models/subscriptions-config.model';
+import { adTitleForUserDisplay } from '../../../core/utils/ad-display-title.util';
 
 /**
  * أعلى من معالج الطبقات (100) والتنقل إلى «حسابي» على صفحات التبويب (50)،
@@ -148,43 +149,50 @@ export class VerificationModalComponent implements OnInit, OnDestroy {
 
   getAdTitle(): string {
     const a = this.adRecord();
+    let raw = '';
     switch (this.adType) {
       case 'delivery':
-        return String(
+        raw = String(
           a['delivery_match_key'] ??
             (a['details'] as Record<string, unknown>)?.['vehicle_name'] ??
             a['category_id'] ??
             'خدمة توصيل'
         );
+        break;
       case 'education':
-        return String(
+        raw = String(
           a['education_match_key'] ??
             (a['details'] as Record<string, unknown>)?.['subject'] ??
             a['category_id'] ??
             'خدمة تعليمية'
         );
+        break;
       case 'product':
-        return String(
+        raw = String(
           (a['details'] as Record<string, unknown>)?.['short_desc'] ??
             (a['details'] as Record<string, unknown>)?.['title'] ??
             'منتج'
         );
+        break;
       case 'store':
-        return String(
+        raw = String(
           a['store_name'] ??
             (a['details'] as Record<string, unknown>)?.['store_name'] ??
             'متجر'
         );
+        break;
       case 'other':
-        return String(
+        raw = String(
           a['other_match_key'] ??
             (a['details'] as Record<string, unknown>)?.['service_name'] ??
             a['category_id'] ??
             'خدمة'
         );
+        break;
       default:
-        return String(a['owner_name'] ?? 'إعلان');
+        raw = String(a['owner_name'] ?? 'إعلان');
     }
+    return adTitleForUserDisplay(raw, this.adType);
   }
 
   closeModal(): void {

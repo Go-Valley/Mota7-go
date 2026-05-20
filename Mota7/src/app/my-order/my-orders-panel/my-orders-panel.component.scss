@@ -1,0 +1,214 @@
+.orders-panel {
+  padding: 30px 20px 30px;
+  text-align: center;
+
+  &--sheet {
+    padding: 8px 16px 24px;
+    text-align: right;
+  }
+
+  &__intro {
+    margin-bottom: 28px;
+
+    &--page {
+      margin-bottom: 40px;
+
+      h2 {
+        font-weight: 900;
+        color: #1a1a1a;
+        font-size: 1.5rem;
+        margin: 0 0 10px;
+      }
+
+      p {
+        color: #666;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        padding: 0 20px;
+        font-weight: 600;
+        margin: 0;
+      }
+    }
+  }
+
+  &__intro-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #fff1f2 0%, #ffe4e6 55%, #fecdd3 100%);
+    border: 1px solid rgba(251, 113, 133, 0.35);
+    box-shadow:
+      0 8px 24px rgba(220, 38, 38, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    animation: orders-panel-icon-float 3s ease-in-out infinite;
+
+    ion-icon {
+      font-size: 1.75rem;
+      color: #dc2626;
+    }
+
+    &--page {
+      width: 80px;
+      height: 80px;
+      border-radius: 30px;
+      background: #fff9f0;
+      border: none;
+      box-shadow: none;
+      animation: none;
+
+      ion-icon {
+        font-size: 40px;
+        color: #ec840c;
+      }
+    }
+  }
+
+  &__intro-copy {
+    margin: 0;
+    padding: 16px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.75;
+    color: #334155;
+    text-align: center;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffffff 48%, #fff1f2 100%);
+    border: 1px solid rgba(234, 88, 12, 0.18);
+    border-radius: 18px;
+    box-shadow:
+      0 8px 28px rgba(15, 23, 42, 0.06),
+      0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  }
+
+  &__action {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  ion-button.service-cta {
+    --background: #ffffff;
+    --background-activated: #f8fafc;
+    --background-hover: #ffffff;
+    --box-shadow: none;
+    --border-width: 1px;
+    --border-style: solid;
+    --border-color: #0000004d;
+    --color: #1a1a2e;
+    --ripple-color: rgba(255, 107, 0, 0.12);
+    margin-top: 10px;
+    min-height: 56px;
+    border-radius: 90px;
+    box-shadow: 0 6px 6px rgb(0, 0, 0) !important;
+
+    &::part(native) {
+      border-radius: 90px;
+      min-height: 0;
+      padding: 5px 10px;
+    }
+
+    .service-cta__row {
+      justify-content: flex-start;
+      align-items: center;
+      gap: 40px;
+      width: 100%;
+      padding-inline: 37px;
+    }
+
+    .service-cta__icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #fff7ed;
+      border: 1px solid #ffedd5;
+
+      ion-icon {
+        font-size: 22px;
+        color: #ff6b00;
+      }
+    }
+
+    .service-cta__copy {
+      align-items: center;
+      text-align: center;
+    }
+
+    .service-cta__title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ion-color-warning-contrast);
+    }
+
+    .service-cta__sub {
+      font-size: 0.82rem;
+      color: #6b7280;
+    }
+  }
+
+  &__empty {
+    margin: 32px auto 0;
+    max-width: 20rem;
+    padding: 22px 20px;
+    text-align: center;
+    border-radius: 22px;
+    background: linear-gradient(160deg, #f8fafc 0%, #ffffff 45%, #fff7ed 100%);
+    border: 1px dashed rgba(234, 88, 12, 0.35);
+    box-shadow:
+      0 12px 32px rgba(15, 23, 42, 0.08),
+      0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+    animation: orders-panel-empty-in 0.45s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+  }
+
+  &__empty-icon {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    filter: grayscale(0.15);
+  }
+
+  &__empty-text {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.55;
+    color: #9f1239;
+  }
+
+  &__list {
+    margin-top: 28px;
+    text-align: right;
+  }
+
+  &__list-title {
+    font-weight: 900;
+    color: #1a1a1a;
+    margin: 0 0 20px;
+    font-size: 1.2rem;
+    border-right: 4px solid #ff8800;
+    padding-right: 12px;
+  }
+}
+
+@keyframes orders-panel-icon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes orders-panel-empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

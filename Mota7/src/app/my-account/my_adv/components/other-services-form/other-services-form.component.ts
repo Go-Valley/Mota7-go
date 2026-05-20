@@ -12,14 +12,14 @@ import { SparkAdFcmJobService } from 'src/app/core/services/spark-ad-fcm-job.ser
 import { readIonTextInputValueFromEvent } from 'src/app/core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from 'src/app/core/utils/egyptian-phone-order.util';
 import {
-  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
-  checkOwnerAdQuota,
-  presentOwnerAdQuotaExceeded,
-  tierFromUserDoc,
-} from 'src/app/core/utils/user-ad-quota.util';
+  blockDigitsOnlyBeforeInput,
+  blockDigitsOnlyKeyDown,
+  blockDigitsOnlyPaste,
+  DIGITS_ONLY_BLOCKED_MSG,
+} from 'src/app/core/utils/mota7-digits-only-input.util';
+import { tierFromUserDoc } from 'src/app/core/utils/user-ad-quota.util';
 import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
-import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
 import { addIcons } from 'ionicons';
 import { chevronDownOutline, chevronForwardOutline, logoWhatsapp, shieldCheckmark, checkmarkCircle } from 'ionicons/icons';
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
@@ -32,13 +32,20 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
   selector: 'app-other-services-form',
   templateUrl: './other-services-form.component.html',
   styleUrls: ['./other-services-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
+  imports: [
+    IonicModule,
+    CommonModule,
+    FormsModule,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class OtherServicesFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -46,6 +53,11 @@ export class OtherServicesFormComponent implements OnInit {
   isEditMode = false;
   currentAdId: string | null = null;
   userVerificationStatus: string = 'none';
+  whatsappPhoneLiveWarning: string | null = null;
+
+  readonly onWhatsappDigitsOnlyWarn = (msg: string): void => {
+    this.whatsappPhoneLiveWarning = msg;
+  };
 
   serviceData = {
     category_id: '',
@@ -62,14 +74,17 @@ export class OtherServicesFormComponent implements OnInit {
   userGovernorateId: string | null = null;
   userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
+  coverageGovernorateWholeIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
     const applied = applyCoverageMultiEmitToAdForm(
       ev,
       this.coverageCityIdsForAd,
-      this.serviceData.city
+      this.serviceData.city,
+      this.coverageGovernorateWholeIdsForAd
     );
     this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.coverageGovernorateWholeIdsForAd = applied.coverageGovernorateWholeIds;
     this.serviceData.city = applied.cityDisplay;
   }
 
@@ -77,7 +92,6 @@ export class OtherServicesFormComponent implements OnInit {
   private auth = inject(Auth);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
-  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private sparkFcm = inject(SparkAdFcmJobService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
@@ -134,6 +148,7 @@ export class OtherServicesFormComponent implements OnInit {
       city: ad.city || ''
     };
     this.coverageCityIdsForAd = uniqSortedCityIds(ad.coverage_city_ids);
+    this.coverageGovernorateWholeIdsForAd = uniqSortedCityIds(ad.coverage_governorate_whole_ids);
     this.userVerificationStatus = canonicalTierForFirestore(
       ad.verification_level ?? ad.is_verified
     );
@@ -171,9 +186,36 @@ export class OtherServicesFormComponent implements OnInit {
     return null;
   }
 
+  onWhatsappPhoneKeyDown(ev: KeyboardEvent): void {
+    blockDigitsOnlyKeyDown(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhoneBeforeInput(ev: InputEvent): void {
+    blockDigitsOnlyBeforeInput(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.applyWhatsappPhoneRaw(digits),
+      () => {
+        this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+      }
+    );
+  }
+
   onWhatsappPhoneInput(ev: Event): void {
-    const st = applyOrderPhoneInputState(readIonTextInputValueFromEvent(ev));
+    this.applyWhatsappPhoneRaw(readIonTextInputValueFromEvent(ev));
+  }
+
+  private applyWhatsappPhoneRaw(raw: string): void {
+    const st = applyOrderPhoneInputState(raw);
     this.serviceData.whatsappPhone = st.cleaned;
+    this.whatsappPhoneLiveWarning = st.warning;
   }
 
 // دالة الحفظ المعدلة اللي هتحل المشكلة
@@ -254,38 +296,6 @@ async saveServiceAd() {
       }
     }
 
-    if (!this.isEditMode) {
-      const userKey = user.email!.split('@')[0];
-      const quota = await checkOwnerAdQuota(
-        this.firestore,
-        this.injector,
-        this.serviceData.contactPhone,
-        userKey,
-        user.uid
-      );
-      if (!quota.ok) {
-        await loader.dismiss();
-        await presentOwnerAdQuotaExceeded(this.alertCtrl, {
-          isEmptyTier: quota.isEmptyTier,
-          onOpenSubscriptionPlans: async () => {
-            await this.modalCtrl.dismiss(
-              undefined,
-              AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
-            );
-            await this.navCtrl.navigateRoot('/tabs/my-account');
-            this.subsModalBridge.requestOpen();
-          },
-          quotaAdminContact: {
-            firestore: this.firestore,
-            injector: this.injector,
-            userDocId: userKey,
-            contactPhoneFallback: this.serviceData.contactPhone,
-          },
-        });
-        return;
-      }
-    }
-
     const adId = this.isEditMode ? this.currentAdId! : `${this.serviceData.contactPhone}_${this.serviceData.category_id}-${Date.now()}`;
 
     await runInInjectionContext(this.injector, async () => {
@@ -313,6 +323,7 @@ async saveServiceAd() {
         location: { lat: this.serviceData.lat, lng: this.serviceData.lng },
         city: this.serviceData.city,
         coverage_city_ids: [...this.coverageCityIdsForAd],
+        coverage_governorate_whole_ids: [...this.coverageGovernorateWholeIdsForAd],
         is_available: this.serviceData.isAvailable,
         updated_at: serverTimestamp()
       };

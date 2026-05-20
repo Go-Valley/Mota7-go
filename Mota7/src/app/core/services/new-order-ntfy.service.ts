@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { providerOrderNtfyAsciiTitle } from '../utils/order-notification-copy.util';
 import { buildOrderNtfyMessageBody, buildShoppingOrderNtfyMessageBody } from '../utils/order-ntfy.util';
 import { NewAdNtfyService } from './new-ad-ntfy.service';
 
@@ -10,7 +11,7 @@ import { NewAdNtfyService } from './new-ad-ntfy.service';
 export class NewOrderNtfyService {
   private readonly bootstrap = inject(NewAdNtfyService);
 
-  async publishPendingOrder(order: Record<string, unknown>): Promise<void> {
+  async publishPendingOrder(orderId: string, order: Record<string, unknown>): Promise<void> {
     await this.bootstrap.prepareLocalNotifications();
 
     const cfg = environment.ntfy;
@@ -24,14 +25,15 @@ export class NewOrderNtfyService {
     }
 
     // رأس Title يجب أن يبقى ASCII/Latin-1: أحرف عربية هنا قد تُسقط الطلب صامتاً في WebView (لا يصل للموضوع).
-    const body = buildOrderNtfyMessageBody(order);
+    const st = String(order['serviceType'] ?? '').trim().toLowerCase();
+    const body = buildOrderNtfyMessageBody(order, orderId);
     try {
       const base = cfg.baseUrl.replace(/\/$/, '');
       const topic = encodeURIComponent(topicName);
       const res = await fetch(`${base}/${topic}`, {
         method: 'POST',
         headers: {
-          Title: 'Mota7: new order',
+          Title: providerOrderNtfyAsciiTitle(st),
           'Content-Type': 'text/plain; charset=utf-8',
         },
         body,

@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   OnInit,
@@ -21,21 +22,23 @@ import {
   ORDER_PHONE_INVALID_MSG,
   orderPhoneToEnglishDigits,
 } from '../../core/utils/egyptian-phone-order.util';
+import { blockDigitsOnlyPaste } from '../../core/utils/mota7-digits-only-input.util';
 import {
   findMatchingNameArItem,
   normalizeUserFreeText,
+  presentOrderRequiredFieldAlert,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
-import {
-  mergeGuestStoredContactIntoOrderData,
-  writeGuestOrderContact,
-} from '../../core/utils/guest-order-contact-storage.util';
+import { mergeGuestStoredContactIntoOrderData } from '../../core/utils/guest-order-contact-storage.util';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateService } from '../../core/services/governorate.service';
 import {
   applyServiceRequestCoverageFromUserDoc,
+  assignServiceRequestCoverageToComponent,
   finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromGuestStorage,
   hydrateServiceRequestCoverageFromUserDoc,
+  persistGuestOrderContactAfterServiceSubmit,
 } from '../../core/utils/service-request-user-city.util';
 
 @Component({
@@ -50,8 +53,6 @@ export class OtherServiceComponent implements OnInit {
   initialSubServiceId?: string;
   initialSubServiceNameAr?: string;
   /** عند true: قبول الطلب دون اختيار فرع (زر «المزيد» ضمن خدمات أخرى) */
-  allowUnspecifiedService = false;
-
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
@@ -67,6 +68,10 @@ export class OtherServiceComponent implements OnInit {
   requestCoverageCityIds: string[] = [];
   requestCoverageArabic: string[] = [];
   phoneLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
   private loadingCtrl = inject(LoadingController);
   private firestore = inject(Firestore);
   private auth = inject(Auth); 
@@ -104,10 +109,19 @@ export class OtherServiceComponent implements OnInit {
       });
 
     await this.loadUserProfile();
-    mergeGuestStoredContactIntoOrderData(
-      this.orderData,
-      !!this.auth.currentUser?.email
-    );
+    const loggedIn = !!this.auth.currentUser?.email;
+    mergeGuestStoredContactIntoOrderData(this.orderData, loggedIn);
+    if (!loggedIn) {
+      const guestApplied = await hydrateServiceRequestCoverageFromGuestStorage(
+        this.govService,
+        {
+          requestCoverageCityIds: this.requestCoverageCityIds,
+          requestCoverageArabic: this.requestCoverageArabic,
+          orderCity: this.orderData.city,
+        }
+      );
+      assignServiceRequestCoverageToComponent(this, guestApplied);
+    }
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
@@ -168,10 +182,20 @@ export class OtherServiceComponent implements OnInit {
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    
+
     if (this.inputCustomerPhone) {
       this.inputCustomerPhone.value = st.cleaned;
     }
+  }
+
+  onCustomerPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.onCustomerPhoneChange(digits),
+      () => {
+        this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
+      }
+    );
   }
 
   onOtherFreeTextInput(ev: Event, field: 'customerName' | 'shortNote'): void {
@@ -219,11 +243,12 @@ export class OtherServiceComponent implements OnInit {
             this.govService,
             data
           );
-          applyServiceRequestCoverageFromUserDoc(hydration, {
+          const applied = applyServiceRequestCoverageFromUserDoc(hydration, {
             requestCoverageCityIds: this.requestCoverageCityIds,
             requestCoverageArabic: this.requestCoverageArabic,
             orderCity: this.orderData.city,
           });
+          assignServiceRequestCoverageToComponent(this, applied);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -262,8 +287,11 @@ export class OtherServiceComponent implements OnInit {
     const { customerPhone, shortNote } = this.orderData;
 
     const subMatch = findMatchingNameArItem(this.otherItems, this.orderData.subService);
-    const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedService ? 'غير محدد' : '');
-    const subOk = !!subMatch || this.allowUnspecifiedService;
+    if (!subMatch) {
+      await presentOrderRequiredFieldAlert(this.alertCtrl, 'الخدمة المطلوبة');
+      return;
+    }
+    const canonicalSub = subMatch.nameAr;
 
     const missingParts: string[] = [];
     if (!customerName) {
@@ -274,9 +302,6 @@ export class OtherServiceComponent implements OnInit {
     }
     if (!covIds.length && !prefilledCity) {
       missingParts.push('المدينة (من القائمة)');
-    }
-    if (!subOk) {
-      missingParts.push('الخدمة المطلوبة');
     }
 
     if (missingParts.length > 0) {
@@ -306,8 +331,7 @@ export class OtherServiceComponent implements OnInit {
 
     const city = coverage.cityDisplay;
     const scopeSig = covIds.join('__');
-    const other_service_token =
-      subService === 'غير محدد' ? '' : subService;
+    const other_service_token = subService;
     const other_match_key =
       scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
 
@@ -339,7 +363,7 @@ export class OtherServiceComponent implements OnInit {
             {
               text: 'تواصل مع الإدارة',
               handler: () => {
-                const msg = encodeURIComponent("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
+                const msg = encodeWhatsappText("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
                 window.open(`whatsapp://send?phone=201002288812&text=${msg}`, '_system');
               }
             }
@@ -399,7 +423,13 @@ export class OtherServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone, city);
+      await persistGuestOrderContactAfterServiceSubmit(
+        this.govService,
+        customerName,
+        customerPhone,
+        city,
+        covIds
+      );
       this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
 
       await loader.dismiss();

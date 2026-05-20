@@ -53,6 +53,7 @@ import {
   sanitizeOrderPhoneInput,
 } from '../core/utils/egyptian-phone-order.util';
 import { normalizeUserFreeText, readIonTextInputValueFromEvent } from '../core/utils/order-form-fields.util';
+import { Mota7DigitsOnlyIonInputDirective } from '../shared/directives/mota7-digits-only-ion-input.directive';
 import { parseProductPriceToNumber } from '../core/utils/price-parse.util';
 import { sellerCityLabelFromFirestoreOrderItemRow } from '../core/utils/product-seller-location.util';
 import { normalizeShoppingOrderStatusKey } from '../core/utils/shopping-order-status.util';
@@ -147,7 +148,14 @@ function normalizeOrderLinesFromFirestoreDoc(itemsRaw: unknown): {
   standalone: true,
   templateUrl: './checkout.page.html',
   styleUrls: ['./checkout.page.scss'],
-  imports: [CommonModule, FormsModule, IonicModule, Mota7HeaderComponent, GovernorateCitySelectorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonicModule,
+    Mota7HeaderComponent,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
@@ -198,6 +206,10 @@ export class CheckoutPage implements OnInit, ViewWillEnter, ViewWillLeave {
   readonly checkoutGeoSeed = signal<{ governorateId: string; cityId: string } | null>(null);
 
   phoneLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
 
   private readonly deliveryConfig = signal<{ in: number; out: number }>({ in: 0, out: 0 });
 

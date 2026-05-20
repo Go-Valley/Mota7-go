@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   inject,
@@ -36,6 +37,8 @@ import {
   ORDER_PHONE_INVALID_MSG,
   orderPhoneToEnglishDigits,
 } from '../core/utils/egyptian-phone-order.util';
+import { blockDigitsOnlyPaste } from '../core/utils/mota7-digits-only-input.util';
+import { Mota7DigitsOnlyIonInputDirective } from '../shared/directives/mota7-digits-only-ion-input.directive';
 import { readIonTextInputValueFromEvent } from '../core/utils/order-form-fields.util';
 import {
   getLegacyFirebaseAuth,
@@ -71,7 +74,13 @@ import {
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule]
+  imports: [
+    IonicModule,
+    CommonModule,
+    Mota7HeaderComponent,
+    FormsModule,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class LoginPage implements OnInit, OnDestroy {
 
@@ -85,6 +94,10 @@ export class LoginPage implements OnInit, OnDestroy {
 
   /** تحذير فوري تحت حقل الهاتف (نفس منطق طلبات الخدمات) */
   phoneLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
 
   // بيانات الدخول المربوطة بالواجهة
   loginData = {
@@ -158,12 +171,22 @@ export class LoginPage implements OnInit, OnDestroy {
     }
   }
 
+  onLoginPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.onLoginPhoneChange(digits),
+      () => {
+        this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
+      }
+    );
+  }
+
   onLoginPhoneChange(val: string): void {
     const raw = val || '';
     const st = applyOrderPhoneInputState(raw);
     this.loginData.phone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    
+
     if (this.inputPhone) {
       this.inputPhone.value = st.cleaned;
     }
@@ -391,7 +414,7 @@ export class LoginPage implements OnInit, OnDestroy {
   forgotPassword() {
     const phoneNumber = '201220883999';
     const message = 'السلام عليكم .. نسيت كلمة السر ومحتاج اعمل إعادة تعيين لكلمة السر';
-    const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeWhatsappText(message)}`;
     window.open(url, '_blank');
   }
 }

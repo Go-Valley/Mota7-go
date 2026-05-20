@@ -235,15 +235,22 @@
                 <!-- Badge -->
                 <div class="subs-gcard__badge" *ngIf="p.badge">{{ p.badge }}</div>
 
-                <!-- Plan header -->
                 <div class="subs-gcard__head">
+                  <div class="subs-gcard__tier-media" aria-hidden="true">
+                    <img
+                      class="subs-gcard__tier-media-img"
+                      [src]="planTierBadgeSrc(p)"
+                      [ngStyle]="planTierBadgeImageStyle(p)"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
                   <h3 class="subs-gcard__name">{{ p.name }}</h3>
                   <div class="subs-gcard__price">{{ p.priceLabel }}</div>
                   <p class="subs-gcard__subtitle" *ngIf="p.subtitle">{{ p.subtitle }}</p>
                   <p class="subs-gcard__tagline" *ngIf="p.tagline">{{ p.tagline }}</p>
                 </div>
-
-                <!-- Expiry pill -->
                 <div class="subs-gcard__expiry" *ngIf="p.expiryHint" role="note">
                   <span class="subs-gcard__expiry-inner">
                     <span class="subs-gcard__expiry-dot" aria-hidden="true"></span>
@@ -282,13 +289,11 @@
                   </div>
                 </div>
 
-                <!-- Promo box (admin-controlled) -->
                 <div class="subs-gcard__promo" *ngIf="p.promo_text">
                   <span class="subs-gcard__promo-title">عروض مُتاح</span>
                   <span class="subs-gcard__promo-body">{{ p.promo_text }}</span>
                 </div>
 
-                <!-- CTA button -->
                 <button
                   type="button"
                   class="subs-gcard__cta"
@@ -315,9 +320,21 @@
                 >
                   <div class="subs-gcard__accent"></div>
                   <div class="subs-gcard__badge subs-gcard__badge--sm" *ngIf="p.badge">{{ p.badge }}</div>
-                  <h3 class="subs-gcard__name">{{ p.name }}</h3>
-                  <div class="subs-gcard__price">{{ p.priceLabel }}</div>
-                  <p class="subs-gcard__subtitle" *ngIf="p.subtitle">{{ p.subtitle }}</p>
+                  <div class="subs-gcard__head subs-gcard__head--compact">
+                    <div class="subs-gcard__tier-media subs-gcard__tier-media--sm" aria-hidden="true">
+                      <img
+                        class="subs-gcard__tier-media-img"
+                        [src]="planTierBadgeSrc(p)"
+                        [ngStyle]="planTierBadgeImageStyle(p)"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                    <h3 class="subs-gcard__name">{{ p.name }}</h3>
+                    <div class="subs-gcard__price">{{ p.priceLabel }}</div>
+                    <p class="subs-gcard__subtitle" *ngIf="p.subtitle">{{ p.subtitle }}</p>
+                  </div>
                   <ul class="subs-gcard__feats subs-gcard__feats--dense" *ngIf="p.includedFeatures.length">
                     <li *ngFor="let line of p.includedFeatures.slice(0, 5)">
                       <span class="subs-gcard__feat-icon subs-gcard__feat-icon--yes"></span>

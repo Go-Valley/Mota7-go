@@ -132,20 +132,32 @@ export async function ensureCoverageCityIdsForAdSubmit(
 
 /** لا تُصفّر التغطية عند emit فارغ من المُختار (بذرة فاشلة قبل تحميل المدن). */
 export function applyCoverageMultiEmitToAdForm(
-  ev: { cityIds?: string[]; primaryCityDisplay?: string },
+  ev: {
+    cityIds?: string[];
+    primaryCityDisplay?: string;
+    governorateWholeIds?: string[];
+  },
   currentCoverageIds: string[],
-  currentCityDisplay: string
-): { coverageCityIds: string[]; cityDisplay: string } {
+  currentCityDisplay: string,
+  currentGovernorateWholeIds: string[] = []
+): {
+  coverageCityIds: string[];
+  coverageGovernorateWholeIds: string[];
+  cityDisplay: string;
+} {
   const ids = uniqSortedCityIds(ev.cityIds ?? []);
+  const wholeGovIds = uniqSortedCityIds(ev.governorateWholeIds ?? []);
   if (ids.length) {
     const disp = String(ev.primaryCityDisplay ?? '').trim();
     return {
       coverageCityIds: ids,
+      coverageGovernorateWholeIds: wholeGovIds,
       cityDisplay: disp || currentCityDisplay,
     };
   }
   return {
     coverageCityIds: currentCoverageIds,
+    coverageGovernorateWholeIds: currentGovernorateWholeIds,
     cityDisplay: currentCityDisplay,
   };
 }

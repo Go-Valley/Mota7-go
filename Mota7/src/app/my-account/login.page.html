@@ -23,16 +23,20 @@
           <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
           <ion-input
             #inputPhone
+            mota7DigitsOnly="phone"
+            [mota7DigitsOnlyOnWarn]="onPhoneDigitsOnlyWarn"
             type="tel"
             maxlength="11"
             inputmode="numeric"
+            pattern="[0-9]*"
             autocomplete="tel-national"
             placeholder="01xxxxxxxxx"
             class="ion-text-right dark-text"
             [ngModel]="loginData.phone"
             (ngModelChange)="onLoginPhoneChange($event)"
             (keydown)="onLoginPhoneKeyDown($event)"
-            (beforeinput)="onLoginPhoneBeforeInput($event)">
+            (beforeinput)="onLoginPhoneBeforeInput($event)"
+            (paste)="onLoginPhonePaste($event)">
           </ion-input>
         </ion-item>
         <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>

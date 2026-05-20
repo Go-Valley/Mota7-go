@@ -20,6 +20,7 @@ import {
   getDoc,
 } from '@angular/fire/firestore';
 import { addIcons } from 'ionicons';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   logoWhatsapp,
   call,
@@ -263,7 +264,7 @@ export class StoreDetailPage implements OnInit {
     await this.trackContactClick(type);
 
     if (type === 'whatsapp') {
-      const msg = encodeURIComponent(
+      const msg = encodeWhatsappText(
         `السلام عليكم، استفسار بخصوص متجر: ${this.ad?.store_name || ''}`
       );
       window.open(`whatsapp://send?phone=${phone}&text=${msg}`, '_system');

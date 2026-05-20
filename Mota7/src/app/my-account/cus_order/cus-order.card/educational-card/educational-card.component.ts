@@ -36,6 +36,7 @@ import {
   completeAcceptedOrderWhenWindowElapsed
 } from 'src/app/core/utils/order-lifecycle.firestore';
 import { attachProviderAdIdToOrder } from 'src/app/core/utils/order-provider-rating.firestore';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   presentProviderRatesCustomerModal,
   releaseProviderRatesCustomerRatingPromptReservation,
@@ -320,7 +321,7 @@ export class EducationalCardComponent implements OnInit, OnDestroy, OnChanges {
 
   openWhatsApp(phone: string, subject: string, stage: string) {
     if (phone) {
-      const message = encodeURIComponent(
+      const message = encodeWhatsappText(
         `السلام عليكم.. بتواصل مع حضرتك بخصوص طلبك (${subject} - ${stage})`
       );
       window.open(`whatsapp://send?phone=2${phone}&text=${message}`, '_system');

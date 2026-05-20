@@ -501,11 +501,20 @@ ion-button.auth-btn--register {
   }
 }
 
-/* ——— مودال باقات الاشتراكات: عرض كامل، فراغ 5% علوي/سفلي (≈90%) ———
-   يُعرض المودال خارج الـ host في الطبقة العامة؛ ::ng-deep + ::part لتمرير التنسيق */
+/* ——— مودال باقات الاشتراكات: تصميم فاخر (SCSS فقط) ——— */
 :host ::ng-deep ion-modal.subscriptions-packages-modal {
-  --backdrop-opacity: 0.5;
+  --backdrop-opacity: 0.58;
   --box-shadow: none;
+
+  &::part(backdrop) {
+    background: radial-gradient(
+      ellipse 100% 70% at 50% 0%,
+      rgba(255, 107, 0, 0.08) 0%,
+      rgba(15, 23, 42, 0.72) 100%
+    );
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 
   &::part(content) {
     position: absolute;
@@ -517,43 +526,72 @@ ion-button.auth-btn--register {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 24px;
-    background: #fff;
+    border-radius: 28px;
+    background: linear-gradient(168deg, #fefefe 0%, #f8fafc 42%, #f1f5f9 100%);
     box-shadow:
-      0 22px 56px rgba(15, 23, 42, 0.14),
-      0 0 0 1px rgba(148, 163, 184, 0.12);
+      0 32px 80px rgba(15, 23, 42, 0.22),
+      0 0 0 1px rgba(255, 255, 255, 0.8),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    animation: subs-modal-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes subs-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 :host ::ng-deep ion-modal.subscriptions-packages-modal ion-content.subscriptions-modal-content {
   --keyboard-offset: 0;
   flex: 1 1 auto;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  --padding-start: max(16px, env(safe-area-inset-left, 0px));
-  --padding-end: max(16px, env(safe-area-inset-right, 0px));
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  --padding-start: max(14px, env(safe-area-inset-left, 0px));
+  --padding-end: max(14px, env(safe-area-inset-right, 0px));
 }
 
 :host ::ng-deep ion-modal.subscriptions-packages-modal ion-header.subs-modal-header {
   flex-shrink: 0;
 
   ion-toolbar {
-    --background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+    --background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 42%, #252542 100%);
     --color: #fff;
     --border-width: 0;
-    --min-height: 52px;
-    --padding-top: 8px;
-    --padding-bottom: 8px;
+    --min-height: 56px;
+    --padding-top: 10px;
+    --padding-bottom: 10px;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset-inline: 0;
+      bottom: 0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 183, 77, 0.45),
+        transparent
+      );
+    }
 
     ion-title {
       font-weight: 800;
-      font-size: 1.02rem;
+      font-size: 1.06rem;
       text-align: center;
       color: #fff !important;
+      letter-spacing: -0.02em;
     }
 
     ion-button {
-      --color: #ffe1c0;
+      --color: #ffd4a8;
       font-weight: 700;
     }
   }
@@ -563,26 +601,47 @@ ion-button.auth-btn--register {
   flex-shrink: 0;
 
   ion-toolbar {
-    --background: #fff;
+    --background: rgba(255, 255, 255, 0.92);
     --padding-top: 10px;
     --padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     --border-width: 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.06);
   }
 }
 
 .subscriptions-modal-content {
-  --background: linear-gradient(180deg, #fffdfb 0%, #f8fafc 100%);
+  --background: transparent;
   direction: rtl;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -5%, rgba(255, 107, 0, 0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+      linear-gradient(180deg, #fafbfc 0%, #f4f6f9 100%);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .subs-footer-cancel {
-  --background: linear-gradient(135deg, #ff6b00 0%, #ea580c 100%);
+  --background: linear-gradient(135deg, #ff7a1a 0%, #ea580c 50%, #c2410c 100%);
   --color: #fff;
-  --border-radius: 14px;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 28px rgba(234, 88, 12, 0.32);
   font-weight: 800;
-  margin: 0 12px;
-  min-height: 48px;
+  margin: 0 14px;
+  min-height: 50px;
 }
 
 .subs-empty-state {
@@ -749,55 +808,74 @@ ion-button.auth-btn--register {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Subscription Plans — Premium Horizontal Gallery
+   Subscription Plans — Classic layout + tier badge media
    ═══════════════════════════════════════════════════════════ */
 .subs-plans-root {
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  padding-inline: 2px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-inline: 4px;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .subs-plans-hero {
   text-align: center;
-  padding: 12px 8px 22px;
-  margin-bottom: 2px;
+  padding: 16px 12px 22px;
+  margin-bottom: 4px;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #ff6b00, transparent);
+    opacity: 0.75;
+  }
 }
 
 .subs-plans-kicker {
-  margin: 0 0 6px;
-  font-size: 0.72rem;
+  margin: 0 0 10px;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #ea580c;
+  background: linear-gradient(90deg, #ea580c, #ff6b00, #fbbf24);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .subs-plans-title {
-  margin: 0 0 8px;
-  font-size: 1.35rem;
+  margin: 0 0 10px;
+  font-size: 1.42rem;
   font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.32;
   color: #0f172a;
-  letter-spacing: -0.03em;
-  line-height: 1.35;
 }
 
 .subs-plans-lead {
-  margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.65;
+  margin: 0 auto;
+  max-width: 30ch;
+  font-size: 0.86rem;
+  line-height: 1.7;
   color: #64748b;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-/* ── Horizontal gallery scroll ── */
 .subs-gallery {
   display: flex;
-  gap: 16px;
+  align-items: unset;
+  gap: 18px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 10px 2px 18px;
+  padding: 14px 6px 24px;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 12px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 
@@ -808,136 +886,282 @@ ion-button.auth-btn--register {
 
 .subs-gallery--compact {
   gap: 14px;
-  padding-bottom: 14px;
-}
-
-/* ── Gallery card ── */
-.subs-gcard {
-  position: relative;
-  flex: 0 0 min(82vw, 320px);
-  scroll-snap-align: center;
-  border-radius: 26px;
-  padding: 0 0 20px;
-  background: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.08),
-    0 4px 16px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease;
-}
-
-.subs-gcard--sm {
-  flex: 0 0 min(74vw, 280px);
   padding-bottom: 16px;
 }
 
-/* ── Accent bar at top ── */
+.subs-gcard {
+  position: relative;
+  flex: 0 0 min(84vw, 328px);
+  scroll-snap-align: center;
+  border-radius: 28px;
+  padding: 0 0 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow:
+    0 24px 56px rgba(15, 23, 42, 0.1),
+    0 8px 20px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.32s cubic-bezier(0.34, 1.15, 0.64, 1),
+    box-shadow 0.32s ease;
+  animation: subs-card-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 100% 60% at 50% -15%,
+      rgba(255, 255, 255, 0.9) 0%,
+      transparent 55%
+    );
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.07s; }
+  &:nth-child(3) { animation-delay: 0.14s; }
+  &:nth-child(4) { animation-delay: 0.21s; }
+  &:nth-child(5) { animation-delay: 0.28s; }
+}
+
+@keyframes subs-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.subs-gcard--sm {
+  flex: 0 0 min(76vw, 288px);
+  padding-bottom: 18px;
+  border-radius: 24px;
+}
+
 .subs-gcard__accent {
-  height: 6px;
+  height: 5px;
   width: 100%;
   flex-shrink: 0;
 }
 
-/* ── Tier gradients ── */
 .subs-gcard--tier-trial .subs-gcard__accent {
-  background: linear-gradient(90deg, #22d3ee, #4ade80, #22d3ee);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #06b6d4, #34d399, #22d3ee, #06b6d4);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 .subs-gcard--tier-bronze .subs-gcard__accent {
-  background: linear-gradient(90deg, #92400e, #d97706, #b45309);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #78350f, #d97706, #fbbf24, #92400e);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 .subs-gcard--tier-silver .subs-gcard__accent {
-  background: linear-gradient(90deg, #94a3b8, #e2e8f0, #94a3b8);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #64748b, #f1f5f9, #cbd5e1, #64748b);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 .subs-gcard--tier-gold .subs-gcard__accent {
-  background: linear-gradient(90deg, #eab308, #fbbf24, #f97316, #eab308);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #ca8a04, #fbbf24, #fb923c, #eab308);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 .subs-gcard--tier-diamond .subs-gcard__accent {
-  background: linear-gradient(90deg, #6366f1, #22d3ee, #a855f7, #6366f1);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #4f46e5, #22d3ee, #c084fc, #6366f1);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 .subs-gcard--tier-slate .subs-gcard__accent {
-  background: linear-gradient(90deg, #475569, #94a3b8, #475569);
-  background-size: 200% 100%;
-  animation: subs-shimmer 3s linear infinite;
+  background: linear-gradient(90deg, #334155, #94a3b8, #64748b, #334155);
+  background-size: 300% 100%;
+  animation: subs-shimmer 2.6s linear infinite;
 }
 
 @keyframes subs-shimmer {
   0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
+  100% { background-position: 300% 50%; }
 }
 
-/* ── Highlight ring for featured plans ── */
+.subs-gcard--tier-trial {
+  background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 55%, #fafbfc 100%);
+}
+.subs-gcard--tier-bronze {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 55%, #fafbfc 100%);
+}
+.subs-gcard--tier-silver {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%, #fafbfc 100%);
+}
+.subs-gcard--tier-gold {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 50%, #fff7ed 100%);
+}
+.subs-gcard--tier-diamond {
+  background: linear-gradient(180deg, #eef2ff 0%, #ffffff 50%, #f5f3ff 100%);
+}
+.subs-gcard--tier-slate {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%, #fafbfc 100%);
+}
+
 .subs-gcard--highlight {
-  border-color: rgba(251, 146, 60, 0.5);
+  border-color: rgba(255, 107, 0, 0.45);
   box-shadow:
-    0 24px 68px rgba(234, 88, 12, 0.12),
-    0 0 0 2px rgba(251, 146, 60, 0.35),
-    0 4px 16px rgba(15, 23, 42, 0.06);
+    0 28px 72px rgba(255, 107, 0, 0.14),
+    0 0 0 2px rgba(255, 183, 77, 0.4),
+    0 8px 24px rgba(15, 23, 42, 0.08);
+  animation:
+    subs-card-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both,
+    subs-highlight-pulse 3.2s ease-in-out infinite;
 }
 
-/* ── Badge (floating pill) ── */
+@keyframes subs-highlight-pulse {
+  0%, 100% {
+    box-shadow:
+      0 28px 72px rgba(255, 107, 0, 0.14),
+      0 0 0 2px rgba(255, 183, 77, 0.4),
+      0 8px 24px rgba(15, 23, 42, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 32px 80px rgba(255, 107, 0, 0.2),
+      0 0 0 2.5px rgba(255, 200, 120, 0.55),
+      0 12px 32px rgba(15, 23, 42, 0.1);
+  }
+}
+
 .subs-gcard__badge {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  font-size: 0.68rem;
+  top: 18px;
+  left: 18px;
+  font-size: 0.66rem;
   font-weight: 900;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #1e293b, #334155);
-  color: #fefce8;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
-  z-index: 2;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+  color: #fef9c3;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 22px rgba(49, 46, 129, 0.35);
+  z-index: 4;
   max-width: 52%;
   text-align: center;
   line-height: 1.25;
 }
 
 .subs-gcard__badge--sm {
-  font-size: 0.62rem;
-  padding: 4px 8px;
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  top: 14px;
+  left: 14px;
 }
 
-/* ── Card head ── */
 .subs-gcard__head {
-  padding: 20px 20px 10px;
+  position: relative;
+  padding: 22px 22px 12px;
+  padding-inline-end: 104px;
+}
+
+.subs-gcard__head--compact {
+  padding: 16px 18px 10px;
+  padding-inline-end: 76px;
+
+  .subs-gcard__name {
+    padding: 0;
+    margin-bottom: 6px;
+    font-size: 1.12rem;
+  }
+
+  .subs-gcard__price {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 1.28rem;
+  }
+
+  .subs-gcard__subtitle {
+    padding: 0;
+    margin-bottom: 6px;
+  }
+}
+
+.subs-gcard__tier-media {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 14px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  z-index: 3;
+}
+
+.subs-gcard--tier-diamond .subs-gcard__tier-media {
+  box-shadow:
+    0 12px 36px rgba(79, 70, 229, 0.28),
+    0 0 0 1px rgba(129, 140, 248, 0.35);
+}
+.subs-gcard--tier-gold .subs-gcard__tier-media {
+  box-shadow:
+    0 12px 36px rgba(234, 179, 8, 0.28),
+    0 0 0 1px rgba(251, 191, 36, 0.4);
+}
+.subs-gcard--tier-trial .subs-gcard__tier-media {
+  box-shadow:
+    0 12px 32px rgba(13, 148, 136, 0.22),
+    0 0 0 1px rgba(45, 212, 191, 0.35);
+}
+
+.subs-gcard__tier-media--sm {
+  width: 58px;
+  height: 58px;
+  top: 12px;
+  inset-inline-end: 12px;
+  border-width: 2px;
+}
+
+.subs-gcard__tier-media-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.06);
 }
 
 .subs-gcard__name {
-  margin: 0 0 8px;
-  font-size: 1.22rem;
+  margin: 0 0 10px;
+  font-size: 1.26rem;
   font-weight: 900;
   color: #0f172a;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  letter-spacing: -0.03em;
+  line-height: 1.28;
 }
 
 .subs-gcard__price {
-  font-size: 1.3rem;
+  font-size: 1.38rem;
   font-weight: 900;
+  margin-bottom: 10px;
+  line-height: 1.2;
   color: #0369a1;
-  margin-bottom: 8px;
-  line-height: 1.25;
-
-  .subs-gcard--tier-gold & { color: #b45309; }
-  .subs-gcard--tier-diamond & { color: #6366f1; }
-  .subs-gcard--tier-bronze & { color: #92400e; }
 }
 
+.subs-gcard--tier-gold .subs-gcard__price { color: #b45309; }
+.subs-gcard--tier-diamond .subs-gcard__price { color: #4f46e5; }
+.subs-gcard--tier-bronze .subs-gcard__price { color: #92400e; }
+.subs-gcard--tier-trial .subs-gcard__price { color: #0d9488; }
+.subs-gcard--tier-silver .subs-gcard__price { color: #475569; }
+.subs-gcard--tier-slate .subs-gcard__price { color: #334155; }
+
 .subs-gcard__subtitle {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 0.86rem;
   font-weight: 700;
   color: #475569;
@@ -953,22 +1177,22 @@ ion-button.auth-btn--register {
   line-height: 1.55;
 }
 
-/* ── Expiry pill (تلميح مدة / انتهاء) — متوازن في المنتصف ── */
 .subs-gcard__expiry {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: calc(100% - 40px);
+  width: calc(100% - 44px);
   max-width: 100%;
-  margin: 0 auto 14px;
-  padding: 8px 14px;
+  margin: 0 auto 16px;
+  padding: 9px 16px;
   box-sizing: border-box;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 800;
   color: #b45309;
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, rgba(255, 251, 235, 0.95) 0%, rgba(254, 243, 199, 0.85) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.45);
   border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.12);
 }
 
 .subs-gcard__expiry-inner {
@@ -976,7 +1200,6 @@ ion-button.auth-btn--register {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  align-content: center;
   gap: 8px;
   max-width: 100%;
   text-align: center;
@@ -985,41 +1208,37 @@ ion-button.auth-btn--register {
 .subs-gcard__expiry-text {
   text-align: center;
   line-height: 1.5;
-  flex: 0 1 auto;
-  max-width: 100%;
-  min-width: 0;
   word-break: break-word;
   overflow-wrap: break-word;
-  text-wrap: balance;
 }
 
 .subs-gcard__expiry-dot {
   flex-shrink: 0;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #f59e0b;
-  animation: subs-pulse-dot 1.8s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.65);
+  animation: subs-pulse-dot 1.6s ease-in-out infinite;
 }
 
 @keyframes subs-pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 0.55; transform: scale(0.82); }
 }
 
-/* ── Feature lists ── */
 .subs-gcard__feats {
   list-style: none;
   margin: 0;
-  padding: 0 20px 8px;
+  padding: 0 22px 10px;
   flex: 1;
 }
 
 .subs-gcard__feats li {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 11px;
   font-size: 0.84rem;
   line-height: 1.55;
   color: #334155;
@@ -1079,7 +1298,6 @@ ion-button.auth-btn--register {
   text-decoration-color: rgba(220, 38, 38, 0.35);
 }
 
-/* ── Footer note ── */
 .subs-gcard__footer {
   margin: 0 20px;
   padding-top: 10px;
@@ -1091,7 +1309,6 @@ ion-button.auth-btn--register {
   line-height: 1.55;
 }
 
-/* ── CTA button ── */
 .subs-gcard__cta {
   display: block;
   width: calc(100% - 40px);
@@ -1132,7 +1349,6 @@ ion-button.auth-btn--register {
   transform: none;
 }
 
-/* ── Subscription dates ── */
 .subs-gcard__dates {
   display: flex;
   flex-direction: column;
@@ -1161,7 +1377,6 @@ ion-button.auth-btn--register {
   font-size: 0.78rem;
   font-weight: 700;
   color: #166534;
-  letter-spacing: -0.01em;
 }
 
 .subs-gcard__date-value {
@@ -1169,10 +1384,8 @@ ion-button.auth-btn--register {
   font-weight: 800;
   color: #15803d;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
 }
 
-/* ── Promo box ── */
 .subs-gcard__promo {
   display: flex;
   flex-direction: column;
@@ -1196,7 +1409,6 @@ ion-button.auth-btn--register {
   font-size: 0.82rem;
   font-weight: 900;
   color: #dc2626;
-  letter-spacing: -0.02em;
 }
 
 .subs-gcard__promo-body {
@@ -1207,7 +1419,6 @@ ion-button.auth-btn--register {
   white-space: pre-line;
 }
 
-/* ── Section headings ── */
 .subs-section-heading {
   margin: 22px 0 12px;
   font-size: 1rem;
@@ -1233,6 +1444,13 @@ ion-button.auth-btn--register {
   margin-top: 8px;
 }
 
-@keyframes rotate-ring { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes morph-logo { 0%, 100% { border-radius: 35% 65% 70% 30% / 30% 40% 60% 70%; } 50% { border-radius: 50% 50% 30% 70% / 50% 60% 40% 40%; } }
-@keyframes float-logo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .subs-gcard,
+  .subs-gcard--highlight {
+    animation: none !important;
+  }
+
+  .subs-gcard__expiry-dot {
+    animation: none !important;
+  }
+}

@@ -226,11 +226,14 @@
       <ion-icon name="bag-outline" aria-hidden="true"></ion-icon>
       <p class="cart-empty-title">العربة فارغة</p>
       <p class="cart-empty-hint">
-        أضف منتجات من الأسعار المتاحة، ثم ارجع هنا لمتابعة الطلب.
+        عربة التسوق لسه فاضية, إختار منتجاتك وكمّل طلبك بسهولة
       </p>
-      <ion-button expand="block" fill="outline" type="button" (click)="goToHome()">
-        تصفّح الرئيسية
-      </ion-button>
+      <button type="button" class="cart-browse-products-btn" (click)="goToProducts()">
+        <span class="cart-browse-products-btn__halo" aria-hidden="true"></span>
+        <span class="cart-browse-products-btn__shine" aria-hidden="true"></span>
+        <ion-icon name="bag-outline" class="cart-browse-products-btn__icon" aria-hidden="true"></ion-icon>
+        <span class="cart-browse-products-btn__label">تصفّح المنتجات</span>
+      </button>
     </div>
   } @else if (!hasItems() && hasOrders()) {
     <div class="basket-muted-hint" role="note">
@@ -238,9 +241,12 @@
       <p>
         العربة فارغة حالياً. يمكنك إضافة منتجات جديدة من الرئيسية، أو متابعة حالة الطلبات في قسم «طلباتي».
       </p>
-      <ion-button expand="block" fill="outline" size="small" type="button" (click)="goToHome()">
-        تصفّح وإضافة منتجات
-      </ion-button>
+      <button type="button" class="cart-browse-products-btn cart-browse-products-btn--compact" (click)="goToProducts()">
+        <span class="cart-browse-products-btn__halo" aria-hidden="true"></span>
+        <span class="cart-browse-products-btn__shine" aria-hidden="true"></span>
+        <ion-icon name="bag-outline" class="cart-browse-products-btn__icon" aria-hidden="true"></ion-icon>
+        <span class="cart-browse-products-btn__label">تصفّح المنتجات</span>
+      </button>
     </div>
   }
 </ion-content>

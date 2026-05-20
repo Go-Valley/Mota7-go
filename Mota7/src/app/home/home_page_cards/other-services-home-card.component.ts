@@ -1,4 +1,5 @@
 import { Component, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, Input, inject, EnvironmentInjector, DestroyRef } from '@angular/core';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
@@ -158,7 +159,7 @@ export class OtherServicesHomeCardComponent implements OnInit, OnChanges {
       window.open(`tel:${phone}`, '_system');
     } else if (type === 'whatsapp') {
       const serviceName = this.getCategoryName();
-      const msg = encodeURIComponent(`السلام عليكم .. محتاج اطلب خدمة (${serviceName})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. محتاج اطلب خدمة (${serviceName})`);
       const waPhone = this.ad.details?.whatsapp_phone || phone;
       window.open(`whatsapp://send?phone=${waPhone}&text=${msg}`, '_system');
     }

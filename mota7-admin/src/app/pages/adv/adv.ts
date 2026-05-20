@@ -662,10 +662,19 @@ export class AdvPage implements OnInit, OnDestroy {
             void this.expireAdFromActionSheet(ad);
           }
         },
-        { 
-          text: 'مجاني', 
+        {
+          text: 'بدون اشتراك',
           icon: 'remove-circle-outline',
-          handler: () => { void this.promptAdVerificationDates(ad, 'none'); }
+          handler: () => {
+            void this.promptAdVerificationDates(ad, 'empty');
+          },
+        },
+        {
+          text: 'مجاني',
+          icon: 'remove-circle-outline',
+          handler: () => {
+            void this.promptAdVerificationDates(ad, 'free');
+          },
         },
         { 
           text: 'برونزي', 
@@ -934,18 +943,14 @@ export class AdvPage implements OnInit, OnDestroy {
 
   /**
    * توثيق الإعلان بشارة + نافذة صلاحية من/إلى (تقويم باللمس).
-   * «مجاني» يعيد المستوى المجاني ويزيل تواريخ التوثيق من الإعلان.
+   * بدون اشتراك (empty) | مجاني (free + free.jpg) | برونزي وما فوق — كلها بمدة من/إلى.
    */
   async promptAdVerificationDates(ad: any, level: string): Promise<void> {
     const adId = ad?.id || ad?.ad_id;
     if (!adId) {
       return;
     }
-    const tier = canonicalTierForFirestore(level === 'none' ? null : level);
-    if (level === 'none') {
-      await this.persistAdVerification(adId, tier, null, null, true);
-      return;
-    }
+    const tier = canonicalTierForFirestore(level);
 
     const initFrom = this.initialAdDateYyyyMmDd(ad?.verification_valid_from);
     const initUntil = this.initialAdDateYyyyMmDd(ad?.verification_valid_until);
@@ -1022,8 +1027,14 @@ export class AdvPage implements OnInit, OnDestroy {
       await runInInjectionContext(this.injector, () =>
         updateDoc(doc(this.firestore, 'ads', adId), payload)
       );
+      const tierLabel =
+        tier === 'free'
+          ? 'توثيق مجاني'
+          : tier === 'empty'
+            ? 'بدون اشتراك'
+            : tier;
       const ok = await this.toastCtrl.create({
-        message: 'تم تحديث التوثيق',
+        message: `تم تحديث التوثيق (${tierLabel})`,
         duration: 1800,
         color: 'success',
         position: 'bottom',

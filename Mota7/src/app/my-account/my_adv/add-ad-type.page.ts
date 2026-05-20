@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { Component, EnvironmentInjector, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonicModule,
@@ -9,6 +9,8 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import type { Subscription } from 'rxjs';
+import { Auth } from '@angular/fire/auth';
+import { Firestore } from '@angular/fire/firestore';
 import { HARDWARE_BACK_TO_MY_ACCOUNT_PRIORITY } from '../../core/utils/hardware-back-my-account.util';
 import { getDeliveryAdCurrentLocation } from '../../core/utils/delivery-ad-geolocation.util';
 import { addIcons } from 'ionicons';
@@ -25,7 +27,6 @@ import {
 } from 'ionicons/icons';
 import { AppTutorialModalComponent } from '../../shared/app-tutorial-modal/app-tutorial-modal.component';
 
-// استيراد المكونات
 import { StoreFormComponent } from './components/store-form/store-form.component';
 import { ProductFormComponent } from './components/product-form/product-form.component';
 import { OtherServicesFormComponent } from './components/other-services-form/other-services-form.component';
@@ -34,6 +35,12 @@ import { DeliveryFormComponent } from './components/delivery-form/delivery-form.
 import { Mota7HeaderComponent } from '../../top_header/header';
 import { UserAccountStatusService } from '../user-account-status.service';
 import { AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE } from '../../core/utils/user-ad-quota.util';
+import {
+  loadOwnerAdQuotaGateState,
+  type OwnerAdQuotaGateState,
+} from '../../core/utils/user-ad-quota.util';
+import { presentAddAdQuotaGateModal } from './components/add-ad-quota-gate-modal/add-ad-quota-gate.presenter';
+import { SubscriptionsModalBridgeService } from '../../core/services/subscriptions-modal-bridge.service';
 
 @Component({
   selector: 'app-add-ad-type',
@@ -49,23 +56,29 @@ import { AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE } from '../../core/utils/us
 })
 export class AddAdTypePage implements ViewWillEnter, OnDestroy {
   isProviderTutorialOpen = false;
+  gateState: OwnerAdQuotaGateState | null = null;
+
   private acct = inject(UserAccountStatusService);
   private platform = inject(Platform);
+  private auth = inject(Auth);
+  private firestore = inject(Firestore);
+  private injector = inject(EnvironmentInjector);
+  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private hardwareBackSub?: Subscription;
+  private gateModalOpen = false;
 
   constructor(
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
     private navCtrl: NavController
   ) {
-    // تسجيل الأيقونات المطلوبة بشكل صحيح
-    addIcons({ 
-      'storefront-outline': storefrontOutline, 
-      'cart-outline': cartOutline, 
-      'car-outline': carOutline, 
-      'school-outline': schoolOutline, 
-      'construct-outline': constructOutline, 
-      'chevron-back-outline': chevronBackOutline, 
+    addIcons({
+      'storefront-outline': storefrontOutline,
+      'cart-outline': cartOutline,
+      'car-outline': carOutline,
+      'school-outline': schoolOutline,
+      'construct-outline': constructOutline,
+      'chevron-back-outline': chevronBackOutline,
       'chevron-forward-outline': chevronForwardOutline,
       'book-outline': bookOutline,
       'location-outline': locationOutline,
@@ -91,17 +104,46 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
   ionViewWillEnter(): void {
     if (!this.acct.accountUsable()) {
       void this.navCtrl.navigateRoot('/login');
+      return;
     }
+    void this.refreshQuotaGateAndShow(true);
   }
 
   goBack(): void {
     void this.handlePageBack();
   }
 
-  /**
-   * زر الرجوع بالجهاز / الهيدر: يغلق مودال النوع إن وُجد، وإلا يفرّغ من المكدس (مثلاً من «إدارة إعلاناتي»)،
-   * وإن لم يوجد مكدس ننتقل لتبويب «حسابي» (مسار مودال «نشر إعلان» من الطلب).
-   */
+  private async refreshQuotaGateAndShow(presentModal: boolean): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user?.email) {
+      return;
+    }
+    const userKey = user.email.split('@')[0];
+    const gate = await loadOwnerAdQuotaGateState(
+      this.firestore,
+      this.injector,
+      userKey,
+      userKey,
+      user.uid
+    );
+    this.gateState = gate;
+    if (presentModal && gate && !this.gateModalOpen) {
+      this.gateModalOpen = true;
+      try {
+        await presentAddAdQuotaGateModal(this.modalCtrl, gate, {
+          onOpenSubscriptionPlans: () => this.openSubscriptionPlans(),
+        });
+      } finally {
+        this.gateModalOpen = false;
+      }
+    }
+  }
+
+  private openSubscriptionPlans(): void {
+    void this.navCtrl.navigateRoot('/tabs/my-account', { animated: true });
+    this.subsModalBridge.requestOpen();
+  }
+
   private async handlePageBack(): Promise<void> {
     try {
       const top = await this.modalCtrl.getTop();
@@ -123,18 +165,41 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
       void this.navCtrl.navigateRoot('/login');
       return;
     }
+
+    if (!this.gateState) {
+      await this.refreshQuotaGateAndShow(true);
+    }
+
+    if (!this.gateState?.canAddNewAd) {
+      if (this.gateState) {
+        await presentAddAdQuotaGateModal(this.modalCtrl, this.gateState, {
+          onOpenSubscriptionPlans: () => this.openSubscriptionPlans(),
+        });
+      }
+      return;
+    }
+
     let component: any;
 
     switch (type) {
-      case 'store': component = StoreFormComponent; break;
-      case 'product': component = ProductFormComponent; break;
-      case 'other': component = OtherServicesFormComponent; break;
-      case 'education': component = EducationFormComponent; break;
-      case 'delivery': component = DeliveryFormComponent; break;
+      case 'store':
+        component = StoreFormComponent;
+        break;
+      case 'product':
+        component = ProductFormComponent;
+        break;
+      case 'other':
+        component = OtherServicesFormComponent;
+        break;
+      case 'education':
+        component = EducationFormComponent;
+        break;
+      case 'delivery':
+        component = DeliveryFormComponent;
+        break;
     }
 
     if (component) {
-      /** يمنع تكديس عدة تنبيهات عند عدة استدعاءات متزامنة لـ dismiss (زر الرجوع بالجهاز) */
       let exitConfirmPending: Promise<boolean> | null = null;
 
       const modal = await this.modalCtrl.create({
@@ -142,7 +207,6 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
         initialBreakpoint: 0.95,
         breakpoints: [0, 0.95],
         handle: true,
-        // طلب صلاحية/قراءة الموقع فقط لإعلان التوصيل — عند الضغط على زر تحديد الموقع داخل النموذج
         componentProps:
           type === 'delivery'
             ? { locationFunc: () => getDeliveryAdCurrentLocation() }
@@ -151,8 +215,9 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
           if (
             role === 'confirm' ||
             role === AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
-          )
+          ) {
             return true;
+          }
           if (exitConfirmPending) {
             return exitConfirmPending;
           }
@@ -164,8 +229,8 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
                 mode: 'ios',
                 buttons: [
                   { text: 'بقاء', role: 'cancel' },
-                  { text: 'خروج', role: 'confirm' }
-                ]
+                  { text: 'خروج', role: 'confirm' },
+                ],
               });
               await alert.present();
               const { role: alertRole } = await alert.onDidDismiss();
@@ -175,9 +240,11 @@ export class AddAdTypePage implements ViewWillEnter, OnDestroy {
             }
           })();
           return exitConfirmPending;
-        }
+        },
       });
-      return await modal.present();
+      await modal.present();
+      await modal.onDidDismiss();
+      await this.refreshQuotaGateAndShow(false);
     }
   }
 }

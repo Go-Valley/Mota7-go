@@ -29,9 +29,13 @@ export function buildOrderPreviewForNtfy(order: Record<string, unknown>): string
 }
 
 /** جسم رسالة ntfy لطلب جديد (نفس موضوع الإعلانات أو موضوع منفصل حسب الإعدادات) */
-export function buildOrderNtfyMessageBody(order: Record<string, unknown>): string {
+export function buildOrderNtfyMessageBody(
+  order: Record<string, unknown>,
+  orderId?: string
+): string {
   const preview = buildOrderPreviewForNtfy(order);
   const st = String(order['serviceType'] || '');
+  const oid = String(orderId ?? '').trim();
 
   if (st === 'delivery' && order['delivery_match_key']) {
     const k = normalizeMatchKeyForOrders(String(order['delivery_match_key']));
@@ -43,6 +47,7 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
           .join(',')
       : '';
     const lines = ['KIND:order', 'SVC:delivery', `DKEY:${k}`, `PREVIEW:${preview}`];
+    if (oid) lines.push(`OID:${oid}`);
     if (dst) {
       lines.push(`DST:${dst}`);
     }
@@ -61,6 +66,7 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
           .join(',')
       : '';
     const lines = ['KIND:order', 'SVC:education', `EKEY:${k}`, `PREVIEW:${preview}`];
+    if (oid) lines.push(`OID:${oid}`);
     if (es) {
       lines.push(`EDU:${es}`);
     }
@@ -79,6 +85,7 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
           .join(',')
       : '';
     const lines = ['KIND:order', 'SVC:other', `OKEY:${k}`, `PREVIEW:${preview}`];
+    if (oid) lines.push(`OID:${oid}`);
     if (os) {
       lines.push(`OST:${os}`);
     }
@@ -87,7 +94,9 @@ export function buildOrderNtfyMessageBody(order: Record<string, unknown>): strin
     }
     return lines.join('\n');
   }
-  return ['KIND:order', `SVC:${st}`, `PREVIEW:${preview}`].join('\n');
+  const fallback = ['KIND:order', `SVC:${st}`, `PREVIEW:${preview}`];
+  if (oid) fallback.push(`OID:${oid}`);
+  return fallback.join('\n');
 }
 
 /** نظام رسائل لوحة الأدمن (محللاً كنوع طلب) — بدون أسطر تعرِّف بحروف مختلفة لتفادي كسر المعالجين */
@@ -116,6 +125,7 @@ export function buildShoppingOrderNtfyMessageBody(order: Record<string, unknown>
 
 export interface ParsedOrderNtfy {
   svc: string;
+  orderId: string;
   dKey: string;
   eKey: string;
   oKey: string;
@@ -141,6 +151,7 @@ export function parseOrderNtfyMessage(raw: string): ParsedOrderNtfy | null {
   }
   return {
     svc: (map['SVC'] || '').trim(),
+    orderId: map['OID'] || '',
     dKey: map['DKEY'] || '',
     eKey: map['EKEY'] || '',
     oKey: map['OKEY'] || '',

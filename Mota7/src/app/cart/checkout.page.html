@@ -101,9 +101,12 @@
         <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
         <ion-input
           #inputPhone
+          mota7DigitsOnly="phone"
+          [mota7DigitsOnlyOnWarn]="onPhoneDigitsOnlyWarn"
           type="tel"
           maxlength="11"
           inputmode="numeric"
+          pattern="[0-9]*"
           autocomplete="tel-national"
           placeholder="01xxxxxxxxx"
           class="ion-text-right dark-text"

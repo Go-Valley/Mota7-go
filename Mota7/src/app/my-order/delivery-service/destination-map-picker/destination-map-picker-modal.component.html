@@ -50,9 +50,11 @@
 
     <div class="tracking-role-pill" *ngIf="mode === 'tracking'" role="status">
       <span class="tracking-role-pill__you">
-        {{ directionsRole === 'provider' ? 'عرضك الحالي: المندوب' : 'عرضك الحالي: طالب الخدمة' }}
+        {{ directionsRole === 'provider' ? 'عرضك الحالي: كابتن التوصيل' : 'عرضك الحالي: العميل' }}
       </span>
-      <span class="tracking-role-pill__hint">مسار على الشوارع</span>
+      <span class="tracking-role-pill__hint">
+        {{ trackingLiveActive ? 'تحديث لحظي · مسار الشوارع' : 'مسار على الشوارع' }}
+      </span>
     </div>
 
     <div class="tracking-map-chrome" *ngIf="mode === 'tracking'">
@@ -82,19 +84,25 @@
 
     <nav class="tracking-legend" *ngIf="mode === 'tracking'" aria-label="مواضع التوصيل">
       <div class="tracking-legend__row">
-        <span class="tracking-legend__item" *ngIf="providerPoint">
-          <i class="tracking-legend__dot tracking-legend__dot--provider" aria-hidden="true"></i>
-          مندوب
-        </span>
-        <span class="tracking-legend__item" *ngIf="customerPoint">
-          <i class="tracking-legend__dot tracking-legend__dot--customer" aria-hidden="true"></i>
-          استلام
-        </span>
-        <span class="tracking-legend__item" *ngIf="destinationPoint">
+        <span class="tracking-legend__item" [class.tracking-legend__item--off]="!destinationPoint">
           <i class="tracking-legend__dot tracking-legend__dot--dest" aria-hidden="true"></i>
-          تسليم
+          جهة الوصول
+        </span>
+        <span class="tracking-legend__item" [class.tracking-legend__item--off]="!customerPoint">
+          <i class="tracking-legend__dot tracking-legend__dot--customer" aria-hidden="true"></i>
+          العميل
+        </span>
+        <span class="tracking-legend__item" [class.tracking-legend__item--off]="!providerPoint">
+          <i class="tracking-legend__dot tracking-legend__dot--provider" aria-hidden="true"></i>
+          كابتن التوصيل
         </span>
       </div>
+      <p class="tracking-legend__hint" *ngIf="!providerPoint || !customerPoint || !destinationPoint">
+        النقاط الرمادية بانتظار التحديث من الطرف الآخر أو «تفعيل موقعي»
+      </p>
+      <p class="tracking-legend__hint tracking-legend__hint--view" *ngIf="mode === 'tracking'">
+        عرض المسار فقط — لا يمكن تعديل النقاط من هذه الشاشة
+      </p>
     </nav>
 
     <p class="picker-map-hint" *ngIf="mode === 'destination'" role="status">

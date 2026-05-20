@@ -26,6 +26,12 @@ export interface SubscriptionPlan {
   order: number;
   highlight: boolean;
   badge?: string;
+  badge_image_src?: string;
+  badge_offset_x?: number;
+  badge_offset_y?: number;
+  badgeImageSrc?: string;
+  badgeOffsetX?: number;
+  badgeOffsetY?: number;
   tier?: SubscriptionPlanTier;
   max_allowed_ads?: number;
   promo_text?: string;
@@ -86,6 +92,17 @@ function coerceMaxAllowedAds(v: unknown): number | undefined {
   }
   const n = parseInt(String(v ?? '').trim(), 10);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+function coerceBadgeOffset(v: unknown): number | undefined {
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    return Math.min(100, Math.max(0, v));
+  }
+  const n = parseFloat(String(v ?? '').replace(/,/g, ''));
+  if (!Number.isFinite(n)) {
+    return undefined;
+  }
+  return Math.min(100, Math.max(0, n));
 }
 
 function coerceTier(v: unknown): SubscriptionPlanTier | undefined {
@@ -165,6 +182,15 @@ export function coerceSubscriptionPlan(raw: unknown): SubscriptionPlan | null {
     order,
     highlight,
     badge: String(o['badge'] ?? '').trim() || undefined,
+    badge_image_src:
+      String(o['badge_image_src'] ?? o['badgeImageSrc'] ?? '').trim() ||
+      undefined,
+    badge_offset_x: coerceBadgeOffset(
+      o['badge_offset_x'] ?? o['badgeOffsetX']
+    ),
+    badge_offset_y: coerceBadgeOffset(
+      o['badge_offset_y'] ?? o['badgeOffsetY']
+    ),
     tier: coerceTier(o['tier']),
     max_allowed_ads: coerceMaxAllowedAds(
       o['max_allowed_ads'] ?? o['maxAllowedAds']

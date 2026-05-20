@@ -11,8 +11,8 @@ module.exports = {
    * قبل الإنتاج: enabled: false
    */
   testOverride: {
-    /** true = يرسل فقط لـ providerPhones (للاختبار). قبل المتجر: false */
-    enabled: process.env.FCM_TEST_OVERRIDE === '0' ? false : true,
+    /** true = يرسل فقط لـ providerPhones. للاختبار: FCM_TEST_OVERRIDE=1 على Render */
+    enabled: process.env.FCM_TEST_OVERRIDE === '1',
     providerPhones: ['01019661891', '01220883999', '01147773365'],
   },
 
@@ -47,7 +47,7 @@ module.exports = {
 
   notification: {
     adminTopic: 'admin_all',
-    providerBodySuffix: 'افتح «طلبات العملاء» في الحساب للاطلاع والقبول.',
+    providerBodySuffix: 'اضغط للاطلاع والقبول من «طلبات العملاء».',
     androidChannelId: 'mota7-orders',
     androidSound: 'talap',
   },

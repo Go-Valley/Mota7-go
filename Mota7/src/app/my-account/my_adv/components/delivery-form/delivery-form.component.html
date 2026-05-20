@@ -72,9 +72,24 @@
         <ion-label class="bold-label">رقم الواتساب للتواصل:</ion-label>
         <ion-item lines="none" class="input-item">
           <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
-          <ion-input [(ngModel)]="deliveryData.whatsappPhone" type="tel" placeholder="01xxxxxxxxx" class="center-input"
-                     (ionInput)="onWhatsappPhoneInput($event)"></ion-input>
+          <ion-input
+            mota7DigitsOnly="phone"
+            [mota7DigitsOnlyOnWarn]="onWhatsappDigitsOnlyWarn"
+            [(ngModel)]="deliveryData.whatsappPhone"
+            type="tel"
+            maxlength="11"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="tel-national"
+            placeholder="01xxxxxxxxx"
+            class="center-input"
+            (ionInput)="onWhatsappPhoneInput($event)"
+            (keydown)="onWhatsappPhoneKeyDown($event)"
+            (beforeinput)="onWhatsappPhoneBeforeInput($event)"
+            (paste)="onWhatsappPhonePaste($event)"
+          ></ion-input>
         </ion-item>
+        <p class="phone-live-warning" *ngIf="whatsappPhoneLiveWarning" role="alert">{{ whatsappPhoneLiveWarning }}</p>
       </div>
     </div>
 

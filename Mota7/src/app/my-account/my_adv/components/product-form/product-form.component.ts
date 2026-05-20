@@ -22,14 +22,13 @@ import {
 } from '../../../../core/utils/order-form-fields.util';
 import { applyOrderPhoneInputState } from '../../../../core/utils/egyptian-phone-order.util';
 import {
-  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
-  checkOwnerAdQuota,
-  presentOwnerAdQuotaExceeded,
-  tierFromUserDoc,
-} from '../../../../core/utils/user-ad-quota.util';
+  blockDigitsOnlyBeforeInput,
+  blockDigitsOnlyKeyDown,
+  blockDigitsOnlyPaste,
+  DIGITS_ONLY_BLOCKED_MSG,
+} from '../../../../core/utils/mota7-digits-only-input.util';
+import { tierFromUserDoc } from '../../../../core/utils/user-ad-quota.util';
 import { canonicalTierForFirestore } from '../../../../core/utils/verification-tiers.util';
-import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
-
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
@@ -40,13 +39,20 @@ import {
   loadUserGovernorateContextForAdForm,
 } from 'src/app/core/utils/ad-form-user-city.util';
 import { GovernorateService } from 'src/app/core/services/governorate.service';
+import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 
 @Component({
   selector: 'app-product-form',
   templateUrl: './product-form.component.html',
   styleUrls: ['./product-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, GovernorateCitySelectorComponent],
+  imports: [
+    IonicModule,
+    CommonModule,
+    FormsModule,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class ProductFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -66,6 +72,16 @@ export class ProductFormComponent implements OnInit {
   priceInputStr = '';
   /** تحذير فوري عند كتابة حرف أو رمز غير رقمي في السعر */
   priceLiveWarning: string | null = null;
+  whatsappPhoneLiveWarning: string | null = null;
+
+  readonly onPriceDigitsOnlyWarn = (msg: string): void => {
+    this.priceLiveWarning = msg;
+  };
+
+  readonly onWhatsappDigitsOnlyWarn = (msg: string): void => {
+    this.whatsappPhoneLiveWarning = msg;
+  };
+
   private static readonly PRICE_LETTERS_MSG = 'لايمكن قبول حروف - ارقام فقط';
   private static readonly PRICE_INVALID_START_MSG = 'مبلغ غير صحيح';
   private static readonly SHORT_DESC_MAX_LEN = 30;
@@ -94,7 +110,6 @@ export class ProductFormComponent implements OnInit {
   private actionSheetCtrl = inject(ActionSheetController);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
-  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private sparkFcm = inject(SparkAdFcmJobService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private cdr = inject(ChangeDetectorRef);
@@ -105,14 +120,17 @@ export class ProductFormComponent implements OnInit {
   userGovernorateId: string | null = null;
   userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
+  coverageGovernorateWholeIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
     const applied = applyCoverageMultiEmitToAdForm(
       ev,
       this.coverageCityIdsForAd,
-      this.productData.city
+      this.productData.city,
+      this.coverageGovernorateWholeIdsForAd
     );
     this.coverageCityIdsForAd = applied.coverageCityIds;
+    this.coverageGovernorateWholeIdsForAd = applied.coverageGovernorateWholeIds;
     this.productData.city = applied.cityDisplay;
   }
 
@@ -198,6 +216,7 @@ export class ProductFormComponent implements OnInit {
       city: d.city || ''
     };
     this.coverageCityIdsForAd = uniqSortedCityIds(d.coverage_city_ids);
+    this.coverageGovernorateWholeIdsForAd = uniqSortedCityIds(d.coverage_governorate_whole_ids);
     this.imagePublicIds = imgs.map((_, i) => existingIds[i] || null);
     this.onMainCategoryChange(false); 
   }
@@ -266,25 +285,16 @@ export class ProductFormComponent implements OnInit {
     return out;
   }
 
-  /** اعتراض مفتاح غير رقمي — تحذير فوري (مثل سلوك الرقم 0). */
   onProductPriceKeyDown(ev: KeyboardEvent): void {
-    if (ev.ctrlKey || ev.metaKey || ev.altKey) {
-      return;
-    }
-    if (ev.isComposing) {
-      return;
-    }
-    const key = ev.key;
-    if (key.length !== 1) {
-      return;
-    }
-    const asDigit = this.toEnglishDigits(key);
-    if (/^[0-9]$/.test(asDigit)) {
-      return;
-    }
-    ev.preventDefault();
-    ev.stopPropagation();
-    this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
+    blockDigitsOnlyKeyDown(ev, () => {
+      this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
+    });
+  }
+
+  onProductPriceBeforeInput(ev: InputEvent): void {
+    blockDigitsOnlyBeforeInput(ev, () => {
+      this.priceLiveWarning = ProductFormComponent.PRICE_LETTERS_MSG;
+    });
   }
 
   /**
@@ -380,11 +390,36 @@ export class ProductFormComponent implements OnInit {
     this.productData.full_details = readIonTextInputValueFromEvent(ev);
   }
 
+  onWhatsappPhoneKeyDown(ev: KeyboardEvent): void {
+    blockDigitsOnlyKeyDown(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhoneBeforeInput(ev: InputEvent): void {
+    blockDigitsOnlyBeforeInput(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onWhatsappPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.applyWhatsappPhoneRaw(digits),
+      () => {
+        this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+      }
+    );
+  }
+
   onWhatsappPhoneChange(val: string): void {
-    const raw = val || '';
+    this.applyWhatsappPhoneRaw(val || '');
+  }
+
+  private applyWhatsappPhoneRaw(raw: string): void {
     const st = applyOrderPhoneInputState(raw);
     this.productData.whatsappPhone = st.cleaned;
-    
+    this.whatsappPhoneLiveWarning = st.warning;
     if (this.inputWhatsappPhone) {
       this.inputWhatsappPhone.value = st.cleaned;
     }
@@ -570,6 +605,7 @@ async saveProduct(isStoreProduct: boolean = false) {
         sort_order: 999,
         city: this.productData.city,
         coverage_city_ids: [...this.coverageCityIdsForAd],
+        coverage_governorate_whole_ids: [...this.coverageGovernorateWholeIdsForAd],
         location: { lat: this.productData.lat, lng: this.productData.lng },
         isStoreProduct: isStoreProduct,
         updated_at: serverTimestamp(),
@@ -613,35 +649,6 @@ async saveProduct(isStoreProduct: boolean = false) {
         await updateDoc(doc(this.firestore, 'ads', adId), adPayload);
         await this.sparkFcm.enqueueSparkAdFcmSavedJob(adId);
       } else {
-        const userKey = user.email!.split('@')[0];
-        const quota = await checkOwnerAdQuota(
-          this.firestore,
-          this.injector,
-          this.productData.contactPhone,
-          userKey,
-          user.uid
-        );
-        if (!quota.ok) {
-          await loader.dismiss();
-          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
-            isEmptyTier: quota.isEmptyTier,
-            onOpenSubscriptionPlans: async () => {
-              await this.modalCtrl.dismiss(
-                undefined,
-                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
-              );
-              await this.navCtrl.navigateRoot('/tabs/my-account');
-              this.subsModalBridge.requestOpen();
-            },
-            quotaAdminContact: {
-              firestore: this.firestore,
-              injector: this.injector,
-              userDocId: userKey,
-              contactPhoneFallback: this.productData.contactPhone,
-            },
-          });
-          return;
-        }
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + 30);
         adPayload.status = 'pending';

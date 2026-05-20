@@ -8,25 +8,27 @@ import {
   mapMota7AdNtfyTitle,
   parseNtfyIncomingMessage,
 } from '../utils/ad-notification-preview';
-import {
-  parseOrderNtfyMessage,
-  type ParsedOrderNtfy,
-} from '../utils/order-ntfy.util';
-import { ORDER_NOTIFY_ACTION_LINE_AR, isNtfyOrdersPipelineActive } from '../utils/ntfy-orders-policy.util';
+import { parseOrderNtfyMessage } from '../utils/order-ntfy.util';
+import { isNtfyOrdersPipelineActive } from '../utils/ntfy-orders-policy.util';
 import { NewAdNtfyService } from './new-ad-ntfy.service';
 import { ProviderMatchService } from './provider-match.service';
+import { ProviderOrderLocalNotificationService } from './provider-order-local-notification.service';
 
 /**
  * SSE على موضوع/مواضيع ntfy: إعلانات جديدة + طلبات خدمة (مع فلترة لمقدم الخدمة).
+ * طلبات الخدمة: إشعار محلي كامل في المقدّمة والخلفية طالما العملية تعمل وSSE متصل.
  */
 @Injectable({ providedIn: 'root' })
 export class NtfyListenerService {
   private readonly auth = inject(Auth);
   private readonly newAdNtfy = inject(NewAdNtfyService);
   private readonly providerMatch = inject(ProviderMatchService);
+  private readonly providerOrderLocal = inject(ProviderOrderLocalNotificationService);
 
   private readonly sources: EventSource[] = [];
   private readonly seenIds = new Set<string>();
+  private lifecycleHooked = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   start(): void {
     const cfg = environment.ntfy;
@@ -40,8 +42,15 @@ export class NtfyListenerService {
       return;
     }
 
+    this.ensureAppLifecycleHooks();
+    this.openSseConnections();
+  }
+
+  /** إعادة فتح SSE بعد العودة من الخلفية أو إن انقطع الاتصال */
+  private openSseConnections(): void {
     this.closeAll();
 
+    const cfg = environment.ntfy;
     const base = cfg.baseUrl.replace(/\/$/, '');
     const topics = new Set<string>();
     const mainTopic = (cfg.topic || '').trim();
@@ -64,10 +73,39 @@ export class NtfyListenerService {
         void this.newAdNtfy.prepareLocalNotifications();
       });
 
+      es.addEventListener('error', () => {
+        this.scheduleSseReconnect();
+      });
+
       es.addEventListener('message', (ev: MessageEvent) => {
         void this.handleSseData(String(ev.data ?? ''));
       });
     }
+  }
+
+  private scheduleSseReconnect(): void {
+    if (this.reconnectTimer != null) {
+      return;
+    }
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      this.start();
+    }, 12_000);
+  }
+
+  private ensureAppLifecycleHooks(): void {
+    if (this.lifecycleHooked || Capacitor.getPlatform() === 'web') {
+      return;
+    }
+    this.lifecycleHooked = true;
+    void App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        this.start();
+      }
+    }).catch(() => {});
+    void App.addListener('resume', () => {
+      this.start();
+    }).catch(() => {});
   }
 
   private closeAll(): void {
@@ -146,53 +184,24 @@ export class NtfyListenerService {
   }
 
   private async handleOrderNtfyMessage(
-    parsed: ParsedOrderNtfy,
-    titleFromServer: string
+    parsed: ReturnType<typeof parseOrderNtfyMessage>,
+    _titleFromServer: string
   ): Promise<void> {
+    if (!parsed) {
+      return;
+    }
     if (environment.ntfy.ordersEnabled === false) {
       return;
     }
+    if (!isNtfyOrdersPipelineActive()) {
+      return;
+    }
+
     await this.providerMatch.ensureLoaded();
     if (!this.providerMatch.matchesParsedOrderNtfy(parsed)) {
       return;
     }
 
-    await this.newAdNtfy.prepareLocalNotifications();
-
-    /**
-     * في الخلفية يصل FCM من الخادم على قناة mota7-orders (talap).
-     * إن جدولنا إشعاراً محلياً من ntfy لنفس الحدث نحصل على صوتين — نكتفي بـ FCM.
-     * في المقدّمة لا يُعرض FCM تلقائياً غالباً، فيكفي الإشعار المحلي من SSE.
-     */
-    if (isNtfyOrdersPipelineActive() && Capacitor.isNativePlatform()) {
-      try {
-        const st = await App.getState();
-        if (!st?.isActive) {
-          return;
-        }
-      } catch {
-        /* إن فشل التحقق نُكمل الجدولة حتى لا يُفقد الإشعار */
-      }
-    }
-
-    const title = titleFromServer.trim() || 'Mota7: new order';
-    const body = `${parsed.preview.trim()}\n${ORDER_NOTIFY_ACTION_LINE_AR}`;
-
-    try {
-      const nid = Math.floor(Date.now() % 2147483640) + 1;
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: nid,
-            title,
-            body,
-            channelId: 'mota7-orders',
-            schedule: { at: new Date(Date.now() + 450) },
-          },
-        ],
-      });
-    } catch (e) {
-      console.warn('[ntfy listener] order schedule', e);
-    }
+    await this.providerOrderLocal.scheduleFromParsedNtfy(parsed);
   }
 }

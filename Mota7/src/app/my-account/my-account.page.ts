@@ -23,6 +23,7 @@ import {
   inject,
   EnvironmentInjector,
   runInInjectionContext,
+  DOCUMENT,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Auth, authState, signOut } from '@angular/fire/auth';
@@ -58,6 +59,10 @@ import {
   effectiveTierFromUserFields,
   parseFirestoreMillis,
 } from '../core/utils/verification-tiers.util';
+import {
+  subscriptionPlanBadgeImageStyle,
+  subscriptionPlanBadgeSrc,
+} from '../core/utils/subscription-plan-badge.util';
 
 @Component({
   selector: 'app-my-account',
@@ -433,6 +438,19 @@ export class MyAccountPage implements OnInit, OnDestroy {
     };
   }
 
+  private readonly documentRef = inject(DOCUMENT);
+
+  planTierBadgeSrc(plan: SubscriptionPlan): string {
+    return subscriptionPlanBadgeSrc(
+      plan,
+      this.documentRef.baseURI || '/'
+    );
+  }
+
+  planTierBadgeImageStyle(plan: SubscriptionPlan): Record<string, string> {
+    return subscriptionPlanBadgeImageStyle(plan);
+  }
+
   isTrialPlan(plan: SubscriptionPlan): boolean {
     return plan.tier === 'trial' || plan.price === 0;
   }
@@ -526,8 +544,7 @@ export class MyAccountPage implements OnInit, OnDestroy {
       return;
     }
     const phone = (this.userPhone || '').trim() || 'غير متوفر';
-    const msg = `السلام عليكم، أرغب بالاشتراك في باقة «${plan.name}» — السعر المعروض: ${plan.priceLabel}. رقم حسابي للتواصل: ${phone}`;
-    openWhatsappNative(biz, msg);
+    const msg = `السلام عليكم .. محتاج أشترك في «${plan.name}» — سعر الباقة: ${plan.priceLabel} .. رقم حسابي: ${phone}`;    openWhatsappNative(biz, msg);
   }
 
   private async handleTrialSubscription(): Promise<void> {

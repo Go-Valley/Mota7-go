@@ -1,5 +1,13 @@
 import { Capacitor } from '@capacitor/core';
 import { AppLauncher } from '@capacitor/app-launcher';
+import { formatWhatsappMessageWithGreeting } from './whatsapp-message-format.util';
+
+export {
+  WHATSAPP_GREETING_LINE,
+  WHATSAPP_GREETING_PREFIX,
+  formatWhatsappMessageWithGreeting,
+  encodeWhatsappText,
+} from './whatsapp-message-format.util';
 
 /**
  * رقم دولي بأرقام فقط (بدون +) — مناسب لـ whatsapp:// و wa.me
@@ -23,8 +31,11 @@ export function openWhatsappNative(phone: string, message: string = ''): void {
   if (!digits || typeof window === 'undefined') {
     return;
   }
-  const appUrl = message.trim()
-    ? `whatsapp://send?phone=${digits}&text=${encodeURIComponent(message)}`
+  const formatted = message.trim()
+    ? formatWhatsappMessageWithGreeting(message)
+    : '';
+  const appUrl = formatted
+    ? `whatsapp://send?phone=${digits}&text=${encodeURIComponent(formatted)}`
     : `whatsapp://send?phone=${digits}`;
 
   if (Capacitor.isNativePlatform()) {
@@ -34,8 +45,8 @@ export function openWhatsappNative(phone: string, message: string = ''): void {
     return;
   }
 
-  const webUrl = message.trim()
-    ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+  const webUrl = formatted
+    ? `https://wa.me/${digits}?text=${encodeURIComponent(formatted)}`
     : `https://wa.me/${digits}`;
   window.open(webUrl, '_blank', 'noopener,noreferrer');
 }

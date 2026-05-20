@@ -19,7 +19,7 @@ export class ServiceOrderPushService {
     if (!oid || !isServiceOrderType(serviceType)) {
       return;
     }
-    void this.ntfy.publishPendingOrder(order);
-    void this.fcmJobs.enqueueOrderCreatedPush(oid, serviceType);
+    void this.ntfy.publishPendingOrder(oid, order);
+    void this.fcmJobs.enqueueOrderCreatedPush(oid, serviceType, order);
   }
 }

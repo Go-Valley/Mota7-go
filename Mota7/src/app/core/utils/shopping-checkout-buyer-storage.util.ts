@@ -90,7 +90,12 @@ export function writeStoredShoppingBuyer(
   }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    writeGuestOrderContact(n, p, c);
+    writeGuestOrderContact(
+      n,
+      p,
+      c,
+      gid && cid ? { governorateId: gid, cityId: cid } : null
+    );
     if (p) {
       localStorage.setItem(LAST_CUSTOMER_PHONE_STORAGE_KEY, p);
     }

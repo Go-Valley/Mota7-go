@@ -1,4 +1,17 @@
 /** فلترة إعلانات الرئيسية حسب قائمة دوكيومنت المدن أو أسماء عربية (للإعلانات القديمة). */
+import {
+  adCityDisplayIsWholeGovernorate,
+  adCoversWholeGovernorate,
+  adCoverageCityIds,
+  adCoverageGovernorateWholeIds,
+  expandFilterCityIdsFromArabicTokens,
+  filterCoversWholeGovernorate,
+  normalizeForMatchArabic,
+  type HomeGeoCoverageIndex,
+} from './home-geo-coverage-index.util';
+
+export { normalizeForMatchArabic };
+
 export function normalizedHaystackPieces(ad: {
   city?: unknown;
   details?: Record<string, unknown>;
@@ -10,54 +23,101 @@ export function normalizedHaystackPieces(ad: {
   return chunks;
 }
 
-export function normalizeForMatchArabic(raw: unknown): string {
-  return String(raw ?? '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u064B-\u065F]/g, '')
-    .replace(/[إأآا]/g, 'ا')
-    .replace(/ى/g, 'ي')
-    .replace(/ؤ/g, 'و')
-    .replace(/ئ/g, 'ي')
-    .replace(/ة/g, 'ه')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+function arabicHaystackMatch(hayNorm: string, tokens: Set<string>): boolean {
+  if (!hayNorm) return false;
+  for (const t of tokens) {
+    const nt = normalizeForMatchArabic(t);
+    if (!nt) continue;
+    if (hayNorm.includes(nt) || nt.includes(hayNorm)) return true;
+  }
+  return false;
 }
 
 /**
- * إن وُجدت مصفوفة دوكّية على الإعلان تُعتبر المصدر الموثوق.
- * بدون مصفوفة: المطابقة النصّية العربية لمسميات المُختار.
+ * مطابقة جغرافية للإعلان مع فلتر الرئيسية:
+ * - مدينة / عدة مدن / محافظة كاملة في الفلتر
+ * - إعلان بمدينة / عدة مدن / محافظة كاملة في التغطية
+ * - إعلان محافظة كاملة يظهر عند فلترة أي مدينة منها، والعكس
  */
 export function adMatchesHomeGeoFilter(opts: {
   ad: Record<string, unknown>;
   isAll: boolean;
   flatCityIds: Set<string>;
   arabicTokens: Set<string>;
+  geoIndex?: HomeGeoCoverageIndex | null;
 }): boolean {
   if (opts.isAll) return true;
-  const cov = Array.isArray(opts.ad['coverage_city_ids'])
-    ? (opts.ad['coverage_city_ids'] as unknown[]).map((x) => String(x || '').trim()).filter(Boolean)
-    : [];
 
-  if (cov.length > 0) {
-    if (!opts.flatCityIds.size) {
-      /** ليس له IDs في الفلتر — احتياط لا يحدث عملياً */
-      return true;
+  const index = opts.geoIndex ?? null;
+  const adCov = adCoverageCityIds(opts.ad);
+  const adWholeGovIds = adCoverageGovernorateWholeIds(opts.ad);
+
+  const filterIds = expandFilterCityIdsFromArabicTokens(
+    opts.flatCityIds,
+    opts.arabicTokens,
+    index
+  );
+
+  if (index && filterIds.size) {
+    for (const fid of filterIds) {
+      const govId = index.cityToGov.get(fid);
+      if (!govId) continue;
+      if (adWholeGovIds.includes(govId)) return true;
     }
-    return cov.some((id) => opts.flatCityIds.has(id));
+  }
+
+  if (adCov.length && filterIds.size) {
+    if (adCov.some((id) => filterIds.has(id))) return true;
+
+    if (index) {
+      for (const fid of filterIds) {
+        const govId = index.cityToGov.get(fid);
+        if (!govId) continue;
+        if (adCoversWholeGovernorate(adCov, govId, index)) return true;
+        if (adCityDisplayIsWholeGovernorate(opts.ad, govId, index)) return true;
+      }
+
+      for (const gov of index.govById.values()) {
+        if (!filterCoversWholeGovernorate(filterIds, gov.id, index)) continue;
+        if (adCoversWholeGovernorate(adCov, gov.id, index)) return true;
+        if (adCityDisplayIsWholeGovernorate(opts.ad, gov.id, index)) return true;
+        if (adCov.some((id) => index.cityToGov.get(id) === gov.id)) return true;
+      }
+    }
+  }
+
+  if (index && filterIds.size && !adCov.length) {
+    for (const fid of filterIds) {
+      const govId = index.cityToGov.get(fid);
+      if (!govId) continue;
+      if (adCityDisplayIsWholeGovernorate(opts.ad, govId, index)) return true;
+    }
   }
 
   const hay = normalizedHaystackPieces(opts.ad as { city?: unknown; details?: Record<string, unknown> })
     .map(normalizeForMatchArabic)
     .join(' ')
     .trim();
-  if (!hay) return opts.flatCityIds.size === 0 && opts.arabicTokens.size === 0;
 
-  for (const t of opts.arabicTokens) {
-    const nt = normalizeForMatchArabic(t);
-    if (!nt) continue;
-    if (hay.includes(nt) || nt.includes(hay)) return true;
+  if (!hay) return filterIds.size === 0 && opts.arabicTokens.size === 0;
+
+  if (arabicHaystackMatch(hay, opts.arabicTokens)) return true;
+
+  if (index) {
+    for (const raw of opts.arabicTokens) {
+      const nt = normalizeForMatchArabic(raw);
+      if (!nt) continue;
+      for (const gov of index.govById.values()) {
+        if (!gov.shortNorm) continue;
+        if (nt !== gov.shortNorm && !nt.includes(gov.shortNorm) && !gov.shortNorm.includes(nt)) {
+          continue;
+        }
+        if (adCityDisplayIsWholeGovernorate(opts.ad, gov.id, index)) return true;
+        if (adCoversWholeGovernorate(adCov, gov.id, index)) return true;
+        if (adWholeGovIds.includes(gov.id)) return true;
+      }
+    }
   }
+
   return false;
 }

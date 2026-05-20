@@ -66,11 +66,11 @@
         expand="block"
         fill="outline"
         mode="ios"
-        class="migrate-free-btn"
-        (click)="confirmMigrateLegacyFreeDefaults()"
+        class="sync-max-ads-btn"
+        (click)="confirmSyncMaxAdsFromPlans()"
       >
         <ion-icon slot="start" name="refresh-outline"></ion-icon>
-        تهيئة الحسابات القديمة إلى empty (بدون اشتراك)
+        مزامنة حدود الإعلانات من الباقات
       </ion-button>
 
     <div class="user-card-luxury"
@@ -126,6 +126,35 @@
         </div>
 
         <div class="user-card-metrics">
+          <button
+            type="button"
+            class="metric-chip metric-chip--limit"
+            *ngIf="!selectionMode"
+            [class.metric-chip--limit-full]="isUserAtMaxActiveAds(user)"
+            (click)="promptEditMaxActiveAds(user, $event)"
+            [attr.aria-label]="'حد الإعلانات: ' + userMaxActiveAdsLimit(user)"
+          >
+            <ion-icon name="grid-outline" aria-hidden="true"></ion-icon>
+            <div class="metric-chip__text">
+              <span class="metric-chip__label">حد الإعلانات</span>
+              <span class="metric-chip__value">{{ userMaxActiveAdsLimit(user) }}</span>
+              <span class="metric-chip__hint">الحد الأقصى للإعلانات النشطة</span>
+            </div>
+            <span class="metric-chip__usage">
+              {{ userActiveAdsCount(user) }} / {{ userMaxActiveAdsLimit(user) }}
+            </span>
+            <span
+              class="metric-chip__badge"
+              *ngIf="hasExplicitMaxActiveAds(user)"
+            >مخصّص</span>
+            <ion-icon name="create-outline" class="metric-chip__edit" aria-hidden="true"></ion-icon>
+            <span
+              class="metric-chip__progress"
+              [style.width.%]="maxAdsUsageRatio(user) * 100"
+              aria-hidden="true"
+            ></span>
+          </button>
+
           <div class="metric-chip metric-chip--ads">
             <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
             <div class="metric-chip__text">

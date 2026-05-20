@@ -21,7 +21,15 @@ function expandPhonesForTokenLookup(phones) {
     if (!raw) continue;
     out.add(raw);
     const n = normalizeProviderPhoneForLookup(raw);
-    if (n && n !== raw) out.add(n);
+    if (!n) continue;
+    out.add(n);
+    if (n.startsWith('0') && n.length === 11) {
+      out.add('2' + n);
+      out.add(n.slice(1));
+    }
+    if (n.startsWith('20') && n.length >= 12) {
+      out.add('0' + n.slice(2));
+    }
   }
   return [...out];
 }

@@ -22,7 +22,8 @@ import {
   layersOutline,
   chevronDownCircleOutline,
   bagHandleOutline,
-  carOutline
+  carOutline,
+  cashOutline,
 } from 'ionicons/icons';
 import {
   SHOPPING_COLLECTION,
@@ -77,7 +78,8 @@ export class DashboardPage implements OnInit, ViewWillLeave {
       layersOutline,
       'chevron-down-circle-outline': chevronDownCircleOutline,
       'bag-handle-outline': bagHandleOutline,
-      'car-outline': carOutline
+      'car-outline': carOutline,
+      cashOutline,
     });
   }
 

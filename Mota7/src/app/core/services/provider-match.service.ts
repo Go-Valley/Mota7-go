@@ -11,6 +11,8 @@ import {
 } from '@angular/fire/firestore';
 import { normalizeMatchKeyForOrders } from '../utils/match-key-normalize';
 import type { ParsedOrderNtfy } from '../utils/order-ntfy.util';
+import { resolveProviderPhoneFromAuth } from '../utils/provider-auth-phone.util';
+import { normalizeProviderPhoneForLookup } from '../utils/provider-phone-normalize.util';
 import { normalizeAdTypeValue } from '../utils/duplicate-ad.util';
 import {
   deliveryOrderMatches,
@@ -71,14 +73,18 @@ export class ProviderMatchService {
     this.adsOther = [];
 
     try {
-      const userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'users', userId))
-      );
-      if (!userDoc.exists()) {
+      let phone = resolveProviderPhoneFromAuth(user, userId);
+      if (!phone) {
+        const userDoc = await runInInjectionContext(this.injector, () =>
+          getDoc(doc(this.firestore, 'users', userId))
+        );
+        if (userDoc.exists()) {
+          phone = normalizeProviderPhoneForLookup(String(userDoc.data()['phone'] || ''));
+        }
+      }
+      if (!phone) {
         return;
       }
-      const phone = String(userDoc.data()['phone'] || '').trim();
-      if (!phone) return;
 
       const adsSnap = await runInInjectionContext(this.injector, () =>
         getDocs(

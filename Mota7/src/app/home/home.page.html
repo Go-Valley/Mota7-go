@@ -58,9 +58,10 @@
       </ion-toolbar>
     </ion-header>
     <ion-content class="home-city-sheet-body gcs-sheet-ion-content">
-      <p class="home-city-sheet-hint">وسّع محافظة ثم حدّد المدن</p>
+      <p class="home-city-sheet-hint">اختر «الكل» لعرض كل المحافظات، أو وسّع محافظة وحدّد المدن</p>
       <app-governorate-city-selector
         variant="hubMulti"
+        [hubIsAll]="homeGeoIsAll"
         [maxScrollHeight]="'min(420px, 58vh)'"
         (hubSelectionChange)="onHubGeoSelection($event)">
       </app-governorate-city-selector>

@@ -23,13 +23,15 @@ import {
   finalizeOrderRemovedFromUi,
   purgeFirestoreOrdersPastExpiresAt,
 } from '../utils/order-lifecycle.firestore';
+import { buildOrderPreviewForNtfy } from '../utils/order-ntfy.util';
+import { resolveProviderPhoneFromAuth } from '../utils/provider-auth-phone.util';
 import { isNtfyOrdersPipelineActive } from '../utils/ntfy-orders-policy.util';
 import {
   isOrderVisibleInProviderInbox,
   type ProviderInboxMatchContext,
   type ProviderInboxOrder,
 } from '../utils/provider-inbox-match.util';
-import { normalizeProviderPhoneForLookup } from '../utils/provider-phone-normalize.util';
+import { ProviderOrderLocalNotificationService } from './provider-order-local-notification.service';
 
 /**
  * طلبات العملاء: يقرأ من orders ويعرض فقط ما يطابق معايير fcm-push-server.
@@ -41,10 +43,13 @@ export class ProviderOrdersInboxService {
   private readonly injector = inject(EnvironmentInjector);
   private readonly zone = inject(NgZone);
   private readonly toastCtrl = inject(ToastController);
+  private readonly providerOrderLocal = inject(ProviderOrderLocalNotificationService);
 
   readonly orders = signal<ProviderInboxOrder[]>([]);
   readonly isTracking = signal(false);
   readonly inboxBannerText = signal('');
+  /** يُضبط عند فتح الصفحة من إشعار طلب جديد */
+  readonly highlightOrderId = signal('');
   readonly userId = signal('');
 
   private started = false;
@@ -95,6 +100,14 @@ export class ProviderOrdersInboxService {
     this.orders.update((xs) => xs.filter((o) => o.id !== id));
   }
 
+  setHighlightOrderId(orderId: string): void {
+    this.highlightOrderId.set(String(orderId || '').trim());
+  }
+
+  clearHighlightOrderId(): void {
+    this.highlightOrderId.set('');
+  }
+
   async acceptAndStartTracking(id: string): Promise<void> {
     const uid = this.userId();
     if (!uid) {
@@ -127,13 +140,7 @@ export class ProviderOrdersInboxService {
   }
 
   private phoneFromAuthUser(user: User, uid: string): string {
-    if (user.email?.endsWith('@mota7.com')) {
-      const fromEmail = normalizeProviderPhoneForLookup(user.email.replace('@mota7.com', ''));
-      if (fromEmail) {
-        return fromEmail;
-      }
-    }
-    return normalizeProviderPhoneForLookup(uid);
+    return resolveProviderPhoneFromAuth(user, uid);
   }
 
   private detachOrdersListener(): void {
@@ -156,17 +163,18 @@ export class ProviderOrdersInboxService {
     }
 
     try {
-      const constraints = [where('owner_phone', '==', this.providerPhone)];
-      if (PROVIDER_INBOX_CRITERIA.providerAdQuery.requireIsAvailable) {
-        constraints.push(where('is_available', '==', true));
-      }
-      const requiredStatus = PROVIDER_INBOX_CRITERIA.providerAdQuery.requireAdStatus;
-      if (typeof requiredStatus === 'string' && requiredStatus.trim()) {
-        constraints.push(where('status', '==', requiredStatus.trim()));
-      }
-
-      const adsQuery = query(collection(this.firestore, 'ads'), ...constraints);
-      const snap = await runInInjectionContext(this.injector, () => getDocs(adsQuery));
+      const snap = await runInInjectionContext(this.injector, () => {
+        const constraints = [where('owner_phone', '==', this.providerPhone)];
+        if (PROVIDER_INBOX_CRITERIA.providerAdQuery.requireIsAvailable) {
+          constraints.push(where('is_available', '==', true));
+        }
+        const requiredStatus = PROVIDER_INBOX_CRITERIA.providerAdQuery.requireAdStatus;
+        if (typeof requiredStatus === 'string' && requiredStatus.trim()) {
+          constraints.push(where('status', '==', requiredStatus.trim()));
+        }
+        const adsQuery = query(collection(this.firestore, 'ads'), ...constraints);
+        return getDocs(adsQuery);
+      });
       this.providerAds = snap.docs.map((d) => d.data() as Record<string, unknown>);
     } catch (e) {
       console.error('[ProviderOrdersInbox] loadProviderAds', e);
@@ -212,7 +220,7 @@ export class ProviderOrdersInboxService {
                 continue;
               }
               if (c.type === 'added' || c.type === 'modified') {
-                void this.onProviderInboxNewOrderSignal();
+                void this.onProviderInboxNewOrderSignal(ord);
               }
             }
           }
@@ -224,7 +232,19 @@ export class ProviderOrdersInboxService {
     });
   }
 
-  private async onProviderInboxNewOrderSignal(): Promise<void> {
+  private async onProviderInboxNewOrderSignal(ord: ProviderInboxOrder): Promise<void> {
+    const serviceType = String(ord['serviceType'] ?? 'other').trim().toLowerCase() || 'other';
+    const preview = buildOrderPreviewForNtfy(ord);
+
+    if (Capacitor.isNativePlatform()) {
+      await this.providerOrderLocal.schedule({
+        serviceType,
+        preview,
+        orderId: ord.id,
+        scheduleDelayMs: 350,
+      });
+    }
+
     if (!isNtfyOrdersPipelineActive()) {
       this.playAlert();
       void this.showInboxNewOrderNotice();
@@ -232,6 +252,7 @@ export class ProviderOrdersInboxService {
     }
 
     this.setInboxNewOrderBanner();
+    this.playAlert();
 
     if (!Capacitor.isNativePlatform()) {
       return;
@@ -248,7 +269,7 @@ export class ProviderOrdersInboxService {
   }
 
   private setInboxNewOrderBanner(): void {
-    this.inboxBannerText.set('طلب جديد يطابق تخصصك — اطلع على التفاصيل في «طلبات العملاء»');
+    this.inboxBannerText.set('طلب جديد يطابق تخصصك — اضغط على البطاقة للاطلاع والقبول');
     window.setTimeout(() => {
       this.inboxBannerText.set('');
     }, 8000);
@@ -262,7 +283,7 @@ export class ProviderOrdersInboxService {
   private async presentNewOrderToast(): Promise<void> {
     try {
       const t = await this.toastCtrl.create({
-        message: 'طلب جديد يطابق خدماتك — «طلبات العملاء»',
+        message: 'طلب جديد يطابق خدماتك — اطلع من «طلبات العملاء»',
         duration: 4000,
         position: 'top',
         color: 'primary',

@@ -10,6 +10,10 @@ const {
   notifyAdminTopic,
   adUpdateIsNonStatsOnly,
 } = require('./fcm-notify-shared.cjs');
+const {
+  providerOrderFcmTitle,
+  providerOrderNotificationBody,
+} = require('../../fcm-push-server/lib/order-notification-copy.cjs');
 
 /** @param {Record<string,unknown>} o */
 function shortOrderPreview(o) {
@@ -61,8 +65,7 @@ async function notifyOrderCreated(orderId, order) {
   if (String(order.status || '') !== 'pending') return;
   const db = admin.firestore();
   const preview = shortOrderPreview(order);
-  const orderBodySuffix =
-    'افتح «طلبات العملاء» في الحساب للاطلاع والقبول.';
+  const serviceType = String(order.serviceType || '').trim().toLowerCase();
 
   await notifyAdminTopic(
     'طلب خدمة جديد (معلق)',
@@ -84,13 +87,13 @@ async function notifyOrderCreated(orderId, order) {
   await messagingSendMulticastChunked(
     tokens,
     {
-      title: 'Mota7: new order',
-      body: `${preview}\n${orderBodySuffix}`,
+      title: providerOrderFcmTitle(serviceType),
+      body: providerOrderNotificationBody(preview, serviceType),
     },
     {
       kind: 'order_new',
       order_id: orderId,
-      service_type: String(order.serviceType || ''),
+      service_type: serviceType,
     }
   );
 }

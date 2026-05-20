@@ -4,6 +4,7 @@ import {
   inject,
   Injector,
   NgZone,
+  OnDestroy,
   OnInit,
   runInInjectionContext,
 } from '@angular/core';
@@ -25,7 +26,8 @@ import {
   chevronBackOutline,
   logoWhatsapp,
 } from 'ionicons/icons';
-import { ModalController, NavController } from '@ionic/angular';
+import { ModalController, NavController, Platform } from '@ionic/angular';
+import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 import { Auth, authState } from '@angular/fire/auth';
 import { ServiceSelectionComponent } from '../my-order/service-selection.component';
@@ -55,16 +57,19 @@ const QUICK_OTHER_TILES: ReadonlyArray<{ img: string; label: string; presetId: s
   { img: 'assets/order/Washing.png', label: 'صيانة غسالات', presetId: 'washing-machine-maintenance' },
 ];
 
+const MY_ORDERS_MODAL_BACK_PRIORITY = 120;
+
 @Component({
   selector: 'app-tabs',
   templateUrl: 'tabs.page.html',
   styleUrls: ['tabs.page.scss'],
   standalone: false,
 })
-export class TabsPage implements OnInit {
+export class TabsPage implements OnInit, OnDestroy {
   private navCtrl = inject(NavController);
   private router = inject(Router);
   private modalCtrl = inject(ModalController);
+  private platform = inject(Platform);
   private auth = inject(Auth);
   private injector = inject(Injector);
   private ngZone = inject(NgZone);
@@ -72,9 +77,11 @@ export class TabsPage implements OnInit {
   private wtsappGroupLink = inject(WtsappGroupLinkService);
 
   isServiceModalOpen: boolean = false;
+  isMyOrdersModalOpen = false;
   isAppTutorialOpen = false;
   isRequestTutorialOpen = false;
   isLoggedIn: boolean = false;
+  private myOrdersModalBackSub?: Subscription;
   /** تنقل بعد اكتمال إغلاق المودال (يمنع بقاء الطبقة فوق الصفحة الجديدة) */
   private pendingNavigation: string | null = null;
   /** بعد إغلاق مودال «طلب / نشر» يُفتح مودال اختيار نوع الخدمة */
@@ -115,6 +122,10 @@ export class TabsPage implements OnInit {
         this.isLoggedIn = !!user;
       })
     );
+  }
+
+  ngOnDestroy(): void {
+    this.detachMyOrdersModalBackHandler();
   }
 
   /**
@@ -208,7 +219,7 @@ export class TabsPage implements OnInit {
   }
 
   onQuickTransportMore(): void {
-    this.closeIntroAndOpenOrder('delivery', { allowUnspecifiedVehicle: true });
+    this.closeIntroAndOpenOrder('delivery');
   }
 
   onQuickOtherPreset(presetId: string): void {
@@ -222,7 +233,7 @@ export class TabsPage implements OnInit {
   }
 
   onQuickOtherMore(): void {
-    this.closeIntroAndOpenOrder('other', { allowUnspecifiedService: true });
+    this.closeIntroAndOpenOrder('other');
   }
 
   /** دروس خصوصية: نفس نموذج الطلب التعليمي الكامل (مرحلة + مادة + بقية الحقول). */
@@ -231,13 +242,43 @@ export class TabsPage implements OnInit {
   }
 
 
-  /** الانتقال إلى صفحة طلباتي (بعد إغلاق المودال). */
-  goToMyOrdersPage() {
-    this.pendingNavigation = '/tabs/my-order';
-    this.openServiceSelectionAfterIntroDismiss = false;
-    this.pendingQuickServiceModal = null;
-    this.isServiceModalOpen = false;
+  openMyOrdersModal(ev?: Event): void {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    this.isMyOrdersModalOpen = true;
+    this.attachMyOrdersModalBackHandler();
     this.cdr.markForCheck();
+  }
+
+  closeMyOrdersModal(ev?: Event): void {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    this.isMyOrdersModalOpen = false;
+    this.detachMyOrdersModalBackHandler();
+    this.cdr.markForCheck();
+  }
+
+  onMyOrdersModalDidDismiss(): void {
+    this.isMyOrdersModalOpen = false;
+    this.detachMyOrdersModalBackHandler();
+    this.cdr.markForCheck();
+  }
+
+  private attachMyOrdersModalBackHandler(): void {
+    this.detachMyOrdersModalBackHandler();
+    this.myOrdersModalBackSub = this.platform.backButton.subscribeWithPriority(
+      MY_ORDERS_MODAL_BACK_PRIORITY,
+      () => {
+        if (this.isMyOrdersModalOpen) {
+          this.closeMyOrdersModal();
+        }
+      }
+    );
+  }
+
+  private detachMyOrdersModalBackHandler(): void {
+    this.myOrdersModalBackSub?.unsubscribe();
+    this.myOrdersModalBackSub = undefined;
   }
 
   /** من شريط التبويب «إضافة إعلان» — نفس مسار «نشر إعلان» السابق. */

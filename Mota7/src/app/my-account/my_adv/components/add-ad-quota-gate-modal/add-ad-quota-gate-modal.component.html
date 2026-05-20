@@ -1,0 +1,132 @@
+<ion-header class="quota-gate-header ion-no-border" dir="rtl">
+  <ion-toolbar class="quota-gate-toolbar" mode="md">
+    <ion-buttons slot="start">
+      <button
+        type="button"
+        class="quota-gate-close"
+        (click)="close()"
+        aria-label="إغلاق"
+      >
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </ion-buttons>
+    <ion-title class="quota-gate-title">
+      @if (isAtLimit) {
+        تعذر إضافة إعلان جديد
+      } @else {
+        إضافة إعلان جديد
+      }
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="quota-gate-content" dir="rtl">
+  <div class="quota-gate-body">
+    <div
+      class="quota-gate-hero"
+      [class.quota-gate-hero--warn]="isAtLimit"
+      [class.quota-gate-hero--info]="isWithinLimit || isNoSubscription"
+      [class.quota-gate-hero--diamond]="isTopTier && !isNoSubscription"
+    >
+      <span class="quota-gate-hero__icon" aria-hidden="true">
+        @if (isAtLimit) {
+          <ion-icon name="alert-circle-outline"></ion-icon>
+        } @else {
+          <ion-icon name="information-circle-outline"></ion-icon>
+        }
+      </span>
+    </div>
+
+    @if (isNoSubscription) {
+      <div class="quota-gate-copy">
+        <p class="quota-gate-line quota-gate-line--danger-bold">
+          أنت غير مشترك حالياً بأي باقة
+        </p>
+        <p class="quota-gate-line quota-gate-line--ink">
+          لا يمكنك إضافة إعلان جديد
+        </p>
+        <p class="quota-gate-line">
+          قم بالإشتراك في
+          <span class="quota-txt-red">"الباقة المجانية"</span>
+        </p>
+        <p class="quota-gate-line">لكي تتمكن من إضافة اعلانك</p>
+      </div>
+    } @else if (isAtLimit) {
+      <p class="quota-gate-lead quota-gate-lead--strong">
+        عفواً .. لقد وصلت للحد الأقصى المسموح به للإعلانات
+      </p>
+      <div class="quota-gate-copy">
+        <p class="quota-gate-line">
+          أنت الآن مشترك بالباقة
+          <span class="quota-txt-red">"{{ packageHighlightAr }}"</span>
+        </p>
+        @if (isTopTier) {
+          <p class="quota-gate-line quota-gate-line--premium">{{ topTierMessageAr }}</p>
+        } @else {
+          <p class="quota-gate-line quota-gate-line--ink">
+            قم بترقية الباقة الحالية للإستفادة من مزايا الباقات الأعلى
+          </p>
+        }
+      </div>
+    } @else {
+      <div class="quota-gate-copy">
+        <p class="quota-gate-line">
+          أنت الآن مشترك بالباقة
+          <span class="quota-txt-red">"{{ packageHighlightAr }}"</span>
+        </p>
+        @if (isTopTier) {
+          <p class="quota-gate-line quota-gate-line--premium">{{ topTierMessageAr }}</p>
+        } @else {
+          <p class="quota-gate-line quota-gate-line--ink">
+            قم بترقية الباقة الحالية للإستفادة من مزايا الباقات الأعلى
+          </p>
+        }
+      </div>
+    }
+
+    @if (!isNoSubscription) {
+      <div class="quota-stats-card">
+        @if (isAtLimit) {
+          <div class="quota-stat-row">
+            <span class="quota-stat-label">الباقة الحالية</span>
+            <strong class="quota-pkg quota-pkg--danger">{{ gate.packageNameShortAr }}</strong>
+          </div>
+        }
+        <div class="quota-stat-row">
+          <span class="quota-stat-label">عدد إعلانات الباقة</span>
+          <span class="quota-stat-value quota-stat-value--blue">{{ gate.maxAllowedAds }}</span>
+        </div>
+        <div class="quota-stat-row">
+          <span class="quota-stat-label">عدد إعلاناتك النشطة</span>
+          <span class="quota-stat-value quota-stat-value--red">{{ gate.activeAdsCount }}</span>
+        </div>
+        @if (showRemainingAds) {
+          <div class="quota-stat-row quota-stat-row--remaining">
+            <span class="quota-stat-label">عدد الإعلانات المتبقية لك</span>
+            <span class="quota-stat-value quota-stat-value--green">{{ remainingAdsCount }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="quota-gate-actions">
+      <button type="button" class="quota-btn quota-btn--primary" (click)="openSubscriptions()">
+        <ion-icon name="diamond-outline" aria-hidden="true"></ion-icon>
+        باقات الاشتراكات المتاحة
+      </button>
+
+      @if (isNoSubscription || isAtLimit) {
+        <button type="button" class="quota-btn quota-btn--whatsapp" (click)="contactAdmin()">
+          <ion-icon name="logo-whatsapp" aria-hidden="true"></ion-icon>
+          للمزيد — تواصل مع الإدارة
+        </button>
+      }
+
+      @if (!isNoSubscription) {
+        <button type="button" class="quota-btn quota-btn--ghost" (click)="close()">
+          إغلاق
+        </button>
+      }
+    </div>
+  </div>
+</ion-content>

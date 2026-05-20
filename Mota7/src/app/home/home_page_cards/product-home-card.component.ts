@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, EnvironmentInjector, runInInjectionContext, signal, computed } from '@angular/core';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
@@ -260,7 +261,7 @@ export class ProductHomeCardComponent implements OnInit, OnChanges {
     
     if (type === 'whatsapp') {
       const productDesc = this.ad.details?.short_desc || this.ad.details?.title || '';
-      const msg = encodeURIComponent(`السلام عليكم .. عايز استفسر عن منتج : (${productDesc})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. عايز استفسر عن منتج : (${productDesc})`);
       window.open(`whatsapp://send?phone=${phone}&text=${msg}`, '_system');
     } else {
       window.open(`tel:${phone}`, '_system');

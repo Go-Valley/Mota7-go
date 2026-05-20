@@ -54,21 +54,35 @@
       </div>
 
       <div class="service-modal-body">
-        <button
-          type="button"
-          class="service-how-to-request-btn"
-          (click)="openRequestServiceTutorial($event)"
-          aria-label="ازاي تطلب خدمة — دليل خطوة بخطوة"
-        >
-          <span class="service-how-to-request-btn__glow" aria-hidden="true"></span>
-          <span class="service-how-to-request-btn__shine" aria-hidden="true"></span>
-          <ion-icon name="book-outline" class="service-how-to-request-btn__icon" aria-hidden="true"></ion-icon>
-          <span class="service-how-to-request-btn__text">
-            <span class="service-how-to-request-btn__label">ازاي تطلب خدمة</span>
-            <span class="service-how-to-request-btn__hint">دليل سريع خطوة بخطوة</span>
-          </span>
-          <ion-icon name="chevron-back-outline" class="service-how-to-request-btn__chev" aria-hidden="true"></ion-icon>
-        </button>
+        <div class="service-modal-orbs" aria-label="إرشاد ومتابعة الطلبات">
+          <button
+            type="button"
+            class="service-orb service-orb--how"
+            (click)="openRequestServiceTutorial($event)"
+            aria-label="إزاي تطلب خدمة — دليل خطوة بخطوة"
+          >
+            <span class="service-orb__halo" aria-hidden="true"></span>
+            <span class="service-orb__shine" aria-hidden="true"></span>
+            <span class="service-orb__icon-wrap" aria-hidden="true">
+              <ion-icon name="book-outline"></ion-icon>
+            </span>
+            <span class="service-orb__label">إزاي تطلب<br />خدمة</span>
+          </button>
+
+          <button
+            type="button"
+            class="service-orb service-orb--orders"
+            (click)="openMyOrdersModal($event)"
+            aria-label="عرض طلباتي"
+          >
+            <span class="service-orb__halo" aria-hidden="true"></span>
+            <span class="service-orb__shine" aria-hidden="true"></span>
+            <span class="service-orb__icon-wrap" aria-hidden="true">
+              <ion-icon name="list-outline"></ion-icon>
+            </span>
+            <span class="service-orb__label">عرض<br />طلباتي</span>
+          </button>
+        </div>
 
         <h2 class="service-modal-hero-question">محتاج تطلب ايه ؟</h2>
 
@@ -128,26 +142,33 @@
             <span class="service-picker-label service-picker-label--wide">دروس خصوصية</span>
           </button>
         </section>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
 
-        <div class="service-glow-divider" aria-hidden="true"></div>
-
-        <section class="service-section" aria-label="طلباتي">
-          <ion-button
-            expand="block"
-            class="service-cta service-cta--my-orders"
-            (click)="goToMyOrdersPage()"
-          >
-            <div class="service-cta__row">
-              <div class="service-cta__icon" aria-hidden="true">
-                <ion-icon name="list-outline"></ion-icon>
-              </div>
-              <div class="service-cta__copy">
-                <span class="service-cta__title">عرض طلباتي</span>
-                <span class="service-cta__sub">متابعة طلباتك النشطة</span>
-              </div>
-            </div>
-          </ion-button>
-        </section>
+<ion-modal
+  [isOpen]="isMyOrdersModalOpen"
+  [backdropDismiss]="true"
+  [keepContentsMounted]="false"
+  cssClass="my-orders-sheet-modal"
+  (didDismiss)="onMyOrdersModalDidDismiss()"
+>
+  <ng-template>
+    <div class="my-orders-sheet">
+      <div class="my-orders-sheet__header">
+        <h2 class="my-orders-sheet__title">عرض طلباتي</h2>
+        <button
+          type="button"
+          class="my-orders-sheet__close"
+          (click)="closeMyOrdersModal($event)"
+          aria-label="إغلاق"
+        >
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="my-orders-sheet__body">
+        <app-my-orders-panel *ngIf="isMyOrdersModalOpen" mode="sheet"></app-my-orders-panel>
       </div>
     </div>
   </ng-template>

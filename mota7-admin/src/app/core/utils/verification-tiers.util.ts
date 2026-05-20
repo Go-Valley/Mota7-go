@@ -36,6 +36,7 @@ const BADGE_FILE: Record<CanonicalVerificationTier, string | null> = {
   vip: 'vip.jpg',
 };
 
+/** احتياط عند غياب subscriptions/config — يطابق الباقات الافتراضية الحالية */
 export function defaultMaxAdsForTier(tier: CanonicalVerificationTier): number {
   switch (tier) {
     case 'empty':
@@ -43,15 +44,15 @@ export function defaultMaxAdsForTier(tier: CanonicalVerificationTier): number {
     case 'free':
       return 1;
     case 'bronze':
-      return 1;
-    case 'silver':
       return 5;
-    case 'golden':
+    case 'silver':
       return 10;
-    case 'Diamonds':
+    case 'golden':
       return 15;
+    case 'Diamonds':
+      return 20;
     case 'vip':
-      return 999;
+      return 20;
     default:
       return 999;
   }
@@ -170,6 +171,21 @@ export function isVerificationDateWindowActive(
     return false;
   }
   return true;
+}
+
+/** طبقة التوثيق المحفوظة على المستند (دون التحقق من صلاحية التاريخ). */
+export function storedVerificationTierFromUserFields(
+  data: Record<string, unknown> | undefined
+): Exclude<CanonicalVerificationTier, 'none'> {
+  if (!data) {
+    return 'empty';
+  }
+  const raw =
+    data['verification_level'] ??
+    data['verifiedStatus'] ??
+    data['verification_status'] ??
+    data['verificationStatus'];
+  return canonicalTierForFirestore(raw);
 }
 
 export function effectiveTierFromUserFields(

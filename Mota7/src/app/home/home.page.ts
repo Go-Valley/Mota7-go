@@ -19,10 +19,12 @@ import {
 import { Auth } from '@angular/fire/auth';
 import type { QueryConstraint, QueryDocumentSnapshot, QuerySnapshot } from 'firebase/firestore';
 import { documentId, Timestamp } from 'firebase/firestore';
-import { Observable, of, Subscription } from 'rxjs';
+import { Observable, of, Subscription, combineLatest } from 'rxjs';
+import { switchMap, map as rxMap } from 'rxjs/operators';
 import { addIcons } from 'ionicons';
 import { map, catchError, filter, startWith } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms'; // تم إضافة FormsModule لدعم البحث
+import { takePendingHomeCategory } from '../core/utils/mota7-home-navigation.util';
 
 // استيراد الأيقونات الأصلية + أيقونات زر المدينة + أيقونات البحث الجديدة
 import {
@@ -62,6 +64,11 @@ import { computeHighWaterMsFromAds, createdAtMsForSort } from '../core/utils/ad-
 import { CartService } from '../core/services/cart.service';
 import { GovernorateCitySelectorComponent, HubGeoSelectionEmit } from '../shared/governorate-city-selector/governorate-city-selector.component';
 import { adMatchesHomeGeoFilter } from '../core/utils/home-ad-city-filter.util';
+import {
+  buildHomeGeoCoverageIndex,
+  type HomeGeoCoverageIndex,
+} from '../core/utils/home-geo-coverage-index.util';
+import { GovernorateService } from '../core/services/governorate.service';
 import { governorateDisplayShort } from '../core/utils/governorate-display-name.util';
 import {
   buildHomeSearchTokens,
@@ -100,6 +107,9 @@ export class HomePage implements OnInit, OnDestroy {
   private auth = inject(Auth);
   private navCtrl = inject(NavController);
   private cart = inject(CartService);
+  private govService = inject(GovernorateService);
+  private homeGeoIndex: HomeGeoCoverageIndex | null = null;
+  private geoIndexSub?: Subscription;
   readonly cartCount = this.cart.itemCount;
   readonly cartBadgeText = computed(() => {
     const n = this.cart.itemCount();
@@ -125,6 +135,11 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.preserveNextViewEnter) {
       this.preserveNextViewEnter = false;
       this.ensureRealtimeIfSectionOpen();
+      return;
+    }
+    const pendingCategory = takePendingHomeCategory();
+    if (pendingCategory) {
+      this.openService(pendingCategory);
       return;
     }
     this.backToHome(); // سيقوم بتصفير الحالة كلما دخلت الصفحة من التابس
@@ -180,7 +195,7 @@ export class HomePage implements OnInit, OnDestroy {
   showCityPopover: boolean = false;
   selectedCityLabel: string = 'الكل';
   /** فلتر جغرافي للشبكة — يعتمد Firebase بالكامل */
-  private homeGeoIsAll = true;
+  homeGeoIsAll = true;
   private readonly homeFlatCityIds = new Set<string>();
   private readonly homeArabicTokens = new Set<string>();
   /** إذا اختار المستخدم المدينة من الزر لا نفرض مدينة الحساب مرة ثانية قبل الرجوع للواجهة الرئيسية. */
@@ -249,6 +264,7 @@ export class HomePage implements OnInit, OnDestroy {
     }
     this.taxonomySub?.unsubscribe();
     this.routerEventsSub?.unsubscribe();
+    this.geoIndexSub?.unsubscribe();
     this.homeAdsRt.stop();
   }
 
@@ -283,6 +299,7 @@ export class HomePage implements OnInit, OnDestroy {
     });
 
     window.addEventListener('reset-mota7-home', () => this.backToHome());
+    this.loadHomeGeoIndex();
 
     // عند العودة من صفحة تفاصيل المتجر نحافظ على حالة قسم المتاجر (التصنيف المختار، القائمة، المدينة...)
     this.previousTrackedUrl = this.router.url.split('?')[0];
@@ -756,12 +773,39 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
 
+  private loadHomeGeoIndex(): void {
+    this.geoIndexSub?.unsubscribe();
+    this.geoIndexSub = this.govService
+      .getActiveGovernorates()
+      .pipe(
+        switchMap((governorates) => {
+          const list = governorates ?? [];
+          if (!list.length) return of(null);
+          return combineLatest(
+            list.map((gov) =>
+              this.govService.getCitiesByGovernorate(gov.id).pipe(
+                rxMap((cities) => ({
+                  id: gov.id,
+                  name: gov.name,
+                  cities: cities ?? [],
+                }))
+              )
+            )
+          ).pipe(rxMap((rows) => buildHomeGeoCoverageIndex(rows)));
+        })
+      )
+      .subscribe((idx) => {
+        this.homeGeoIndex = idx;
+      });
+  }
+
   private isCityMatchAd(ad: any): boolean {
     return adMatchesHomeGeoFilter({
       ad,
       isAll: this.homeGeoIsAll,
       flatCityIds: this.homeFlatCityIds,
       arabicTokens: this.homeArabicTokens,
+      geoIndex: this.homeGeoIndex,
     });
   }
 

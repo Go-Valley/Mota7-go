@@ -17,7 +17,8 @@
         <label class="main-label">الخدمة المطلوبة : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.subService" 
                     interface="action-sheet" 
-                    mode="ios" 
+                    mode="ios"
+                    required
                     placeholder="اختر نوع الخدمة من القائمة"
                     cancelText="إلغاء">
           <ion-select-option *ngFor="let item of otherItems" [value]="item.nameAr">
@@ -55,14 +56,18 @@
         <label class="main-label">رقم الهاتف : <span>*</span></label>
         <ion-input
           #inputCustomerPhone
+          mota7DigitsOnly="phone"
+          [mota7DigitsOnlyOnWarn]="onPhoneDigitsOnlyWarn"
           type="tel"
           maxlength="11"
           inputmode="numeric"
+          pattern="[0-9]*"
           autocomplete="tel-national"
           [ngModel]="orderData.customerPhone"
           (ngModelChange)="onCustomerPhoneChange($event)"
           (keydown)="onCustomerPhoneKeyDown($event)"
           (beforeinput)="onCustomerPhoneBeforeInput($event)"
+          (paste)="onCustomerPhonePaste($event)"
           placeholder="01xxxxxxxxx">
         </ion-input>
         <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>

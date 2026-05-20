@@ -132,7 +132,9 @@
   bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 900;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   pointer-events: none;
 }
 
@@ -159,6 +161,32 @@
   font-weight: 600;
   color: #e2e8f0;
   letter-spacing: -0.02em;
+
+  &--off {
+    color: rgba(148, 163, 184, 0.65);
+
+    .tracking-legend__dot {
+      opacity: 0.35;
+      filter: grayscale(0.6);
+    }
+  }
+}
+
+.tracking-legend__hint {
+  margin: 0;
+  max-width: min(320px, 92vw);
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(226, 232, 240, 0.85);
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+
+  &--view {
+    color: rgba(148, 163, 184, 0.95);
+    font-size: 9px;
+  }
 }
 
 .tracking-legend__dot {

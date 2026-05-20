@@ -82,4 +82,11 @@ export const routes: Routes = [
         (m) => m.SubscriptionsAdminPage
       ),
   },
+  {
+    path: 'payment-ledger',
+    loadComponent: () =>
+      import('./pages/payment-ledger/payment-ledger.page').then(
+        (m) => m.PaymentLedgerPage
+      ),
+  },
 ];

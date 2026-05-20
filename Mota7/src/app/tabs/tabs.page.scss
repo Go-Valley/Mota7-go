@@ -268,7 +268,159 @@ ion-modal.service-request-modal {
   padding-bottom: 40px;
 }
 
-/* زر «ازاي تطلب خدمة» — فوق سؤال الاختيار */
+/* أزرار دائرية: إزاي تطلب خدمة + عرض طلباتي */
+.service-modal-orbs {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 22px;
+  margin: 4px auto 18px;
+  padding: 0 8px;
+  direction: rtl;
+}
+
+.service-orb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 7.75rem;
+  height: 7.75rem;
+  padding: 10px 8px 8px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.22s ease;
+  animation: service-orb-float 3.1s ease-in-out infinite;
+
+  &__halo {
+    position: absolute;
+    inset: -25%;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.75;
+    animation: service-orb-halo 2.6s ease-in-out infinite;
+  }
+
+  &__shine {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 42%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(255, 255, 255, 0.15) 58%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    animation: service-orb-shine 2.4s ease-in-out infinite;
+  }
+
+  &__icon-wrap {
+    position: relative;
+    z-index: 1;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+
+    ion-icon {
+      font-size: 1.35rem;
+      color: #ffffff;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    }
+  }
+
+  &__label {
+    position: relative;
+    z-index: 1;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  }
+
+  &--how {
+    background: linear-gradient(145deg, #ff9a3e 0%, #ff6b00 48%, #c2410c 100%);
+    box-shadow:
+      0 12px 32px rgba(234, 88, 12, 0.42),
+      0 4px 12px rgba(15, 23, 42, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.28) inset;
+
+    .service-orb__halo {
+      background: radial-gradient(circle, rgba(255, 200, 120, 0.55) 0%, transparent 68%);
+    }
+  }
+
+  &--orders {
+    animation-delay: 0.35s;
+    background: linear-gradient(145deg, #fda4af 0%, #f43f5e 45%, #be123c 100%);
+    box-shadow:
+      0 12px 32px rgba(190, 18, 60, 0.35),
+      0 4px 12px rgba(15, 23, 42, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+
+    .service-orb__halo {
+      background: radial-gradient(circle, rgba(255, 180, 190, 0.55) 0%, transparent 68%);
+    }
+  }
+
+  &:active {
+    transform: scale(0.94);
+    animation: none;
+  }
+}
+
+@keyframes service-orb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes service-orb-halo {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes service-orb-shine {
+  0% {
+    background-position: 130% 50%;
+  }
+  100% {
+    background-position: -70% 50%;
+  }
+}
+
+/* legacy — kept for reference; replaced by .service-orb */
 .service-how-to-request-btn {
   position: relative;
   display: flex;
@@ -945,4 +1097,80 @@ ion-modal.service-request-modal ion-button.service-cta--mota7-service-group {
     color: rgba(255, 255, 255, 0.92);
     font-weight: 600;
   }
+}
+
+/* مودال «عرض طلباتي» — 90% من الشاشة */
+ion-modal.my-orders-sheet-modal {
+  --height: 90%;
+  --width: 100%;
+  --max-width: 100%;
+  --border-radius: 28px 28px 0 0;
+  --backdrop-opacity: 0.52;
+  --background: rgba(255, 255, 255, 0.98);
+  align-items: flex-end;
+
+  &::part(content) {
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 -16px 48px rgba(15, 23, 42, 0.14);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+}
+
+.my-orders-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  direction: rtl;
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+}
+
+.my-orders-sheet__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.my-orders-sheet__title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  padding-left: 36px;
+}
+
+.my-orders-sheet__close {
+  order: -1;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+
+  &:active {
+    transform: scale(0.88);
+    background: #fecaca;
+  }
+}
+
+.my-orders-sheet__body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
 }

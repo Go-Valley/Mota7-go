@@ -134,6 +134,20 @@
         { "fieldPath": "ad_type", "order": "ASCENDING" },
         { "fieldPath": "other_match_key", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "admin_payment_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paid_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "admin_payment_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paid_at", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

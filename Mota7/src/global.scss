@@ -580,3 +580,21 @@ ion-alert.mota7-duplicate-ad-alert {
     letter-spacing: 0.3px;
   }
 }
+
+/* بوابة «إضافة إعلان جديد» — ملخص الباقة والحدود */
+ion-modal.add-ad-quota-gate-sheet {
+  --border-radius: 22px 22px 0 0;
+  --box-shadow: 0 -12px 40px rgba(21, 101, 192, 0.18);
+  --backdrop-opacity: 0.45;
+
+  &::part(backdrop) {
+    cursor: pointer;
+  }
+
+  &::part(handle) {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(21, 101, 192, 0.25);
+  }
+}

@@ -7,3 +7,15 @@ services:
     buildCommand: npm install
     startCommand: npm start
     plan: free
+    envVars:
+      - key: FCM_JOBS_POLL_MS
+        value: "30000"
+      - key: NTFY_BASE_URL
+        value: "https://ntfy.sh"
+      - key: NTFY_ORDERS_TOPIC
+        value: "mota7-go-ads-change-this-secret-topic"
+      - key: NTFY_ORDERS_ENABLED
+        value: "1"
+      # للاختبار على 3 أرقام في recipient-criteria.cjs — فعّل يدوياً في لوحة Render:
+      # - key: FCM_TEST_OVERRIDE
+      #   value: "1"

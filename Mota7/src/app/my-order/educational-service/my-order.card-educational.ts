@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   Input,
@@ -398,7 +399,7 @@ export class MyOrderCardEducationalComponent implements OnInit, OnDestroy, OnCha
         cleanedPhone = '2' + cleanedPhone;
       }
       const message = `السلام عليكم.. بتواصل مع حضرتك بخصوص طلب خدمة تعليمية : مادة ${subject} - ${stage}`;
-      const url = `whatsapp://send?phone=${cleanedPhone}&text=${encodeURIComponent(message)}`;
+      const url = `whatsapp://send?phone=${cleanedPhone}&text=${encodeWhatsappText(message)}`;
       window.open(url, '_system');
     }
   }

@@ -1,3 +1,5 @@
+import type { AlertController } from '@ionic/angular';
+
 /**
  * قراءة نص من حدث ionInput على ion-input / ion-textarea.
  * على WebView (أندرويد) مع IME عربي: `detail.value` قد يتأخر أو يبقى قديماً أثناء الحذف،
@@ -143,6 +145,20 @@ export function findMatchingSubject(
   return subjects.find(
     (s) => normalizeOrderSelectValue(s).replace(/\s+/g, '') === collapsed
   );
+}
+
+/** تنبيه عند محاولة إرسال طلب خدمة دون تعبئة حقل إلزامي */
+export async function presentOrderRequiredFieldAlert(
+  alertCtrl: AlertController,
+  fieldLabelAr: string
+): Promise<void> {
+  const alert = await alertCtrl.create({
+    header: 'بيان مطلوب',
+    message: `يرجى ملء البيان: ${fieldLabelAr}`,
+    buttons: ['موافق'],
+    mode: 'ios',
+  });
+  await alert.present();
 }
 
 /**

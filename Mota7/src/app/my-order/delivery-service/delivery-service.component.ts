@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   DestroyRef,
@@ -37,17 +38,16 @@ import {
   ORDER_PHONE_INVALID_MSG,
   orderPhoneToEnglishDigits,
 } from '../../core/utils/egyptian-phone-order.util';
+import { blockDigitsOnlyPaste } from '../../core/utils/mota7-digits-only-input.util';
 import {
   findMatchingNameArItem,
   findMatchingStringInList,
   hasOrderLocationCoordinates,
   normalizeUserFreeText,
+  presentOrderRequiredFieldAlert,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
-import {
-  mergeGuestStoredContactIntoOrderData,
-  writeGuestOrderContact,
-} from '../../core/utils/guest-order-contact-storage.util';
+import { mergeGuestStoredContactIntoOrderData } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import { presentDestinationMapPickerModal } from './destination-map-picker/destination-map-picker.presenter';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
@@ -58,8 +58,11 @@ import {
 import { GovernorateService } from '../../core/services/governorate.service';
 import {
   applyServiceRequestCoverageFromUserDoc,
+  assignServiceRequestCoverageToComponent,
   finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromGuestStorage,
   hydrateServiceRequestCoverageFromUserDoc,
+  persistGuestOrderContactAfterServiceSubmit,
 } from '../../core/utils/service-request-user-city.util';
 
 @Component({
@@ -72,11 +75,9 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
 
   /** يُمرَّر من مودال التبويب عند اختيار نوع مركبة من الشبكة السريعة */
   initialVehicleNameAr?: string;
-  /** عند true: قبول الطلب دون اختيار نوع مركبة (زر «المزيد») */
-  allowUnspecifiedVehicle = false;
-
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('inputCustomerPhone', { read: IonInput }) private inputCustomerPhone?: IonInput;
+  @ViewChild('inputPrice', { read: IonInput }) private inputPrice?: IonInput;
   @ViewChild('inputToLocation', { read: IonInput }) private inputToLocation?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
@@ -115,6 +116,14 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
   phoneLiveWarning: string | null = null;
   /** تحذير تحت حقل المبلغ عند كتابة غير رقمية */
   priceLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
+
+  readonly onPriceDigitsOnlyWarn = (msg: string): void => {
+    this.priceLiveWarning = msg;
+  };
 
   /** تحذير عند إدخال حرف أو رمز غير رقمي في المبلغ */
   private static readonly PRICE_NON_DIGIT_MSG = 'لايمكن قبول حروف - ارقام فقط';
@@ -162,10 +171,19 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
       });
 
     await this.loadUserProfile();
-    mergeGuestStoredContactIntoOrderData(
-      this.orderData,
-      !!this.auth.currentUser?.email
-    );
+    const loggedIn = !!this.auth.currentUser?.email;
+    mergeGuestStoredContactIntoOrderData(this.orderData, loggedIn);
+    if (!loggedIn) {
+      const guestApplied = await hydrateServiceRequestCoverageFromGuestStorage(
+        this.govService,
+        {
+          requestCoverageCityIds: this.requestCoverageCityIds,
+          requestCoverageArabic: this.requestCoverageArabic,
+          orderCity: this.orderData.city,
+        }
+      );
+      assignServiceRequestCoverageToComponent(this, guestApplied);
+    }
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
@@ -252,10 +270,20 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
-    
+
     if (this.inputCustomerPhone) {
       this.inputCustomerPhone.value = st.cleaned;
     }
+  }
+
+  onCustomerPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.onCustomerPhoneChange(digits),
+      () => {
+        this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
+      }
+    );
   }
 
   /** مزامنة فورية مع ion-input — دمج detail + قيمة العنصر لدعم IME العربي على الموبايل */
@@ -370,6 +398,27 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
 
     this.orderData.price = normalized;
+    if (this.inputPrice) {
+      this.inputPrice.value = normalized;
+    }
+  }
+
+  onPricePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => {
+        const english = this.toEnglishDigits(digits).replace(/\D/g, '');
+        const normalized = english.replace(/^0+/, '') || '';
+        this.orderData.price = normalized;
+        this.priceLiveWarning = normalized ? null : english.length > 0 ? 'مبلغ غير صحيح' : null;
+        if (this.inputPrice) {
+          this.inputPrice.value = normalized;
+        }
+      },
+      () => {
+        this.priceLiveWarning = DeliveryServiceComponent.PRICE_NON_DIGIT_MSG;
+      }
+    );
   }
 
   ngOnDestroy(): void {
@@ -392,11 +441,12 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
             this.govService,
             data
           );
-          applyServiceRequestCoverageFromUserDoc(hydration, {
+          const applied = applyServiceRequestCoverageFromUserDoc(hydration, {
             requestCoverageCityIds: this.requestCoverageCityIds,
             requestCoverageArabic: this.requestCoverageArabic,
             orderCity: this.orderData.city,
           });
+          assignServiceRequestCoverageToComponent(this, applied);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -1009,8 +1059,11 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
 
     const subMatch = findMatchingNameArItem(this.deliveryItems, this.orderData.subService);
-    const canonicalSub = subMatch?.nameAr ?? (this.allowUnspecifiedVehicle ? 'غير محدد' : '');
-    const subOk = !!subMatch || this.allowUnspecifiedVehicle;
+    if (!subMatch) {
+      await presentOrderRequiredFieldAlert(this.alertCtrl, 'نوع المركبة');
+      return;
+    }
+    const canonicalSub = subMatch.nameAr;
 
     const fromOk = hasOrderLocationCoordinates(lat, lng);
 
@@ -1023,9 +1076,6 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     }
     if (!covIds.length && !prefilledCity) {
       missingParts.push('المدينة (من القائمة)');
-    }
-    if (!subOk) {
-      missingParts.push('نوع المركبة');
     }
     if (!toLocation) {
       missingParts.push('جهة الوصول');
@@ -1059,7 +1109,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
     const subService = canonicalSub;
 
     const city = coverage.cityDisplay;
-    const delivery_service_token = subService === 'غير محدد' ? '' : subService;
+    const delivery_service_token = subService;
     const scopeSig = covIds.join('__');
     const delivery_match_key =
       scopeSig.length > 0 ? `${subService}__SCOPE__${scopeSig}` : `${subService}_${city}`;
@@ -1093,7 +1143,7 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
             {
               text: 'تواصل مع الإدارة',
               handler: () => {
-                const msg = encodeURIComponent("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
+                const msg = encodeWhatsappText("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
                 window.open(`whatsapp://send?phone=201002288812&text=${msg}`, '_system');
               }
             }
@@ -1159,7 +1209,13 @@ export class DeliveryServiceComponent implements OnInit, OnDestroy {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone, city);
+      await persistGuestOrderContactAfterServiceSubmit(
+        this.govService,
+        customerName,
+        customerPhone,
+        city,
+        covIds
+      );
       this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
 
       await loader.dismiss();

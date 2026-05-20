@@ -11,13 +11,7 @@ import { ImageService } from 'src/app/image.service';
 import { NewAdNtfyService } from 'src/app/core/services/new-ad-ntfy.service';
 import { CloudinaryCleanupService } from 'src/app/core/services/cloudinary-cleanup.service';
 import { findDuplicateAd, presentDuplicateAdAlert } from 'src/app/core/utils/duplicate-ad.util';
-import { SubscriptionsModalBridgeService } from 'src/app/core/services/subscriptions-modal-bridge.service';
-import {
-  AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE,
-  checkOwnerAdQuota,
-  presentOwnerAdQuotaExceeded,
-  tierFromUserDoc,
-} from 'src/app/core/utils/user-ad-quota.util';
+import { tierFromUserDoc } from 'src/app/core/utils/user-ad-quota.util';
 import { canonicalTierForFirestore } from 'src/app/core/utils/verification-tiers.util';
 import {
   normalizeUserFreeText,
@@ -28,10 +22,17 @@ import {
   ORDER_PHONE_DIGITS_ONLY_MSG,
   orderPhoneToEnglishDigits,
 } from '../../../../core/utils/egyptian-phone-order.util';
+import {
+  blockDigitsOnlyBeforeInput,
+  blockDigitsOnlyKeyDown,
+  blockDigitsOnlyPaste,
+  DIGITS_ONLY_BLOCKED_MSG,
+} from '../../../../core/utils/mota7-digits-only-input.util';
 
 import type { CoverageMultiEmit } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateCitySelectorComponent } from 'src/app/shared/governorate-city-selector/governorate-city-selector.component';
 import { uniqSortedCityIds } from 'src/app/core/utils/service-order-coverage-match.util';
+import { Mota7DigitsOnlyIonInputDirective } from 'src/app/shared/directives/mota7-digits-only-ion-input.directive';
 import {
   applyCoverageMultiEmitToAdForm,
   ensureCoverageCityIdsForAdSubmit,
@@ -49,7 +50,14 @@ import { VerificationBadgeComponent } from '../../../../shared/verification-badg
   templateUrl: './store-form.component.html',
   styleUrls: ['./store-form.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, VerificationBadgeComponent, GovernorateCitySelectorComponent],
+  imports: [
+    IonicModule,
+    CommonModule,
+    FormsModule,
+    VerificationBadgeComponent,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class StoreFormComponent implements OnInit {
   @Input() editAdData: any; 
@@ -57,6 +65,10 @@ export class StoreFormComponent implements OnInit {
   @ViewChild('inputWhatsappPhone', { read: IonInput }) private inputWhatsappPhone?: IonInput;
   isEditMode = false;
   whatsappPhoneLiveWarning: string | null = null;
+
+  readonly onWhatsappDigitsOnlyWarn = (msg: string): void => {
+    this.whatsappPhoneLiveWarning = msg;
+  };
 
   storeCategories: any[] = [...STORES_CATEGORIES_DATA.items];
   isSubmitting = false; 
@@ -82,14 +94,21 @@ export class StoreFormComponent implements OnInit {
   userGovernorateId: string | null = null;
   userCityId: string | null = null;
   coverageCityIdsForAd: string[] = [];
+  coverageGovernorateWholeIdsForAd: string[] = [];
 
   onCoverageAreas(ev: CoverageMultiEmit): void {
     if (!this.isEditMode) {
       return;
     }
-    const applied = applyCoverageMultiEmitToAdForm(ev, this.coverageCityIdsForAd, this.storeData.city);
+    const applied = applyCoverageMultiEmitToAdForm(
+      ev,
+      this.coverageCityIdsForAd,
+      this.storeData.city,
+      this.coverageGovernorateWholeIdsForAd
+    );
     const ids = applied.coverageCityIds;
     this.coverageCityIdsForAd = ids.length > 1 ? [ids[0]!] : ids;
+    this.coverageGovernorateWholeIdsForAd = applied.coverageGovernorateWholeIds;
     const disp = String(applied.cityDisplay ?? '').trim();
     this.storeData.city =
       this.coverageCityIdsForAd.length === 1 && disp.includes('،')
@@ -102,7 +121,6 @@ export class StoreFormComponent implements OnInit {
   private imageService = inject(ImageService);
   private injector = inject(EnvironmentInjector);
   private newAdNtfy = inject(NewAdNtfyService);
-  private subsModalBridge = inject(SubscriptionsModalBridgeService);
   private cloudinaryCleanup = inject(CloudinaryCleanupService);
   private taxonomy = inject(AppTaxonomyService);
   private destroyRef = inject(DestroyRef);
@@ -158,6 +176,7 @@ export class StoreFormComponent implements OnInit {
     };
     const coverageIds = uniqSortedCityIds(d.coverage_city_ids);
     this.coverageCityIdsForAd = coverageIds.length ? [coverageIds[0]!] : [];
+    this.coverageGovernorateWholeIdsForAd = uniqSortedCityIds(d.coverage_governorate_whole_ids);
     const lid = d.logo_cloudinary_public_id;
     this.logoCloudinaryPublicId = typeof lid === 'string' && lid ? lid : null;
   }
@@ -267,20 +286,25 @@ export class StoreFormComponent implements OnInit {
   }
 
   onStoreWhatsappPhoneKeyDown(ev: KeyboardEvent): void {
-    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) {
-      return;
-    }
-    const key = ev.key;
-    if (key.length !== 1) {
-      return;
-    }
-    const asDigit = key.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 1776));
-    if (/^[0-9]$/.test(asDigit)) {
-      return;
-    }
-    ev.preventDefault();
-    ev.stopPropagation();
-    this.whatsappPhoneLiveWarning = 'لايمكن قبول حروف - ارقام فقط';
+    blockDigitsOnlyKeyDown(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onStoreWhatsappPhoneBeforeInput(ev: InputEvent): void {
+    blockDigitsOnlyBeforeInput(ev, () => {
+      this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+    });
+  }
+
+  onStoreWhatsappPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => this.onStoreWhatsappPhoneChange(digits),
+      () => {
+        this.whatsappPhoneLiveWarning = DIGITS_ONLY_BLOCKED_MSG;
+      }
+    );
   }
 
   onStoreWhatsappPhoneChange(val: string): void {
@@ -288,7 +312,7 @@ export class StoreFormComponent implements OnInit {
     const st = applyOrderPhoneInputState(raw);
     this.storeData.whatsappPhone = st.cleaned;
     this.whatsappPhoneLiveWarning = st.warning;
-    
+
     if (this.inputWhatsappPhone) {
       this.inputWhatsappPhone.value = st.cleaned;
     }
@@ -378,38 +402,6 @@ export class StoreFormComponent implements OnInit {
         }
       }
 
-      if (!this.isEditMode) {
-        const userKey = user.email!.split('@')[0];
-        const quota = await checkOwnerAdQuota(
-          this.firestore,
-          this.injector,
-          this.storeData.contactPhone,
-          userKey,
-          user.uid
-        );
-        if (!quota.ok) {
-          await loader.dismiss();
-          await presentOwnerAdQuotaExceeded(this.alertCtrl, {
-            isEmptyTier: quota.isEmptyTier,
-            onOpenSubscriptionPlans: async () => {
-              await this.modalCtrl.dismiss(
-                undefined,
-                AD_FORM_DISMISS_FOR_SUBSCRIPTION_PLANS_ROLE
-              );
-              await this.navCtrl.navigateRoot('/tabs/my-account');
-              this.subsModalBridge.requestOpen();
-            },
-            quotaAdminContact: {
-              firestore: this.firestore,
-              injector: this.injector,
-              userDocId: userKey,
-              contactPhoneFallback: this.storeData.contactPhone,
-            },
-          });
-          return;
-        }
-      }
-
       const adId = this.isEditMode ? (this.editAdData.ad_id || this.editAdData.id) : `store_${this.storeData.contactPhone}_${Date.now()}`;
       const finalStatus = 'pending';
       const logoUrl = this.storeData.logo || 'assets/mota7.png';
@@ -430,6 +422,7 @@ export class StoreFormComponent implements OnInit {
         location: { lat: this.storeData.lat, lng: this.storeData.lng },
         city: this.storeData.city,
         coverage_city_ids: [...this.coverageCityIdsForAd],
+        coverage_governorate_whole_ids: [...this.coverageGovernorateWholeIdsForAd],
         ad_type: 'store',
         isStore: true,
         status: finalStatus,

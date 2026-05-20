@@ -29,6 +29,7 @@ import {
   ShoppingOrderView,
 } from '../core/services/my-shopping-orders.service';
 import { SHOPPING_COLLECTION } from '../core/services/shopping-firestore-seed.service';
+import { encodeWhatsappText } from '../core/utils/whatsapp-open.util';
 import { Mota7HeaderComponent } from '../top_header/header';
 import {
   shoppingOrderStatusDescription,
@@ -36,6 +37,7 @@ import {
 } from '../core/utils/shopping-order-status.util';
 import { shoppingPaymentMethodLabel } from '../core/utils/shopping-payment-label.util';
 import { HARDWARE_BACK_CART_CHECKOUT_PRIORITY } from '../core/utils/hardware-back-my-account.util';
+import { setPendingHomeCategory } from '../core/utils/mota7-home-navigation.util';
 import type { Subscription } from 'rxjs';
 
 @Component({
@@ -162,7 +164,9 @@ export class CartPage implements ViewWillEnter, ViewWillLeave {
     await a.present();
   }
 
-  goToHome(): void {
+  /** فتح قسم «المنتجات» في الرئيسية مباشرة */
+  goToProducts(): void {
+    setPendingHomeCategory('products');
     void this.navCtrl.navigateRoot('/tabs/home', { animated: true });
   }
 
@@ -266,7 +270,7 @@ export class CartPage implements ViewWillEnter, ViewWillLeave {
     const phone = ADMIN_SUPPORT_WHATSAPP_E164_LOCAL;
     const totalFmt = `${o.grandTotal.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const txt = `السلام عليكم .. بتواصل مع حضرتك بخصوص طلب شراء منتجات برقم (${o.buyerPhone}) - باجمالي مبلغ (${totalFmt})`;
-    const url = `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(txt)}`;
+    const url = `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${encodeWhatsappText(txt)}`;
     window.open(url, '_system');
   }
 

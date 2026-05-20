@@ -6,23 +6,46 @@ const GUEST_ORDER_CONTACT_KEY = 'mota7_guest_order_contact';
 /** مفتاح قديم — يُحدَّث مع JSON ليبقى السلوك السابق */
 export const LAST_CUSTOMER_PHONE_STORAGE_KEY = 'last_customer_phone';
 
+export interface GuestOrderContactGeo {
+  governorateId: string;
+  cityId: string;
+}
+
 export interface GuestOrderContact {
   name: string;
   phone: string;
-  /** نص المدينة المعروض (مثل اختيار المحافظة/المدن أو المدينة المعبأة يدوياً) */
+  /** نص المدينة المعروض (مثل اختيار المحافظة/المدن) */
   city: string;
+  governorateId?: string;
+  cityId?: string;
+}
+
+function parseGuestGeo(o: Record<string, unknown>): GuestOrderContactGeo | undefined {
+  const governorateId = typeof o['governorateId'] === 'string' ? o['governorateId'].trim() : '';
+  const cityId = typeof o['cityId'] === 'string' ? o['cityId'].trim() : '';
+  if (governorateId && cityId) {
+    return { governorateId, cityId };
+  }
+  return undefined;
 }
 
 export function readGuestOrderContact(): GuestOrderContact {
   try {
     const raw = localStorage.getItem(GUEST_ORDER_CONTACT_KEY);
     if (raw) {
-      const o = JSON.parse(raw) as { name?: unknown; phone?: unknown; city?: unknown };
-      const name = typeof o.name === 'string' ? o.name : '';
-      const phone = typeof o.phone === 'string' ? o.phone : '';
-      const city = typeof o.city === 'string' ? o.city.trim() : '';
-      if (name.trim() || phone.trim() || city) {
-        return { name: name.trim(), phone: phone.trim(), city };
+      const o = JSON.parse(raw) as Record<string, unknown>;
+      const name = typeof o['name'] === 'string' ? o['name'] : '';
+      const phone = typeof o['phone'] === 'string' ? o['phone'] : '';
+      const city = typeof o['city'] === 'string' ? o['city'].trim() : '';
+      const geo = parseGuestGeo(o);
+      if (name.trim() || phone.trim() || city || geo) {
+        return {
+          name: name.trim(),
+          phone: phone.trim(),
+          city,
+          governorateId: geo?.governorateId,
+          cityId: geo?.cityId,
+        };
       }
     }
   } catch {
@@ -36,15 +59,28 @@ export function readGuestOrderContact(): GuestOrderContact {
   }
 }
 
-export function writeGuestOrderContact(name: string, phone: string, city?: string): void {
+export function writeGuestOrderContact(
+  name: string,
+  phone: string,
+  city?: string,
+  geo?: GuestOrderContactGeo | null
+): void {
   const trimmedName = (name ?? '').trim();
   const trimmedPhone = (phone ?? '').trim();
   const trimmedCity = (city ?? '').trim();
+  const gid = geo?.governorateId?.trim() ?? '';
+  const cid = geo?.cityId?.trim() ?? '';
   try {
-    localStorage.setItem(
-      GUEST_ORDER_CONTACT_KEY,
-      JSON.stringify({ name: trimmedName, phone: trimmedPhone, city: trimmedCity })
-    );
+    const payload: Record<string, string> = {
+      name: trimmedName,
+      phone: trimmedPhone,
+      city: trimmedCity,
+    };
+    if (gid && cid) {
+      payload['governorateId'] = gid;
+      payload['cityId'] = cid;
+    }
+    localStorage.setItem(GUEST_ORDER_CONTACT_KEY, JSON.stringify(payload));
     if (trimmedPhone) {
       localStorage.setItem(LAST_CUSTOMER_PHONE_STORAGE_KEY, trimmedPhone);
     }

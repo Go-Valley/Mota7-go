@@ -64,6 +64,7 @@
   ion-input, ion-select {
     --background: #fdfdfd;
     --padding-start: 16px;
+    --padding-end: 16px;
     --border-radius: 16px;
     background: #fdfdfd;
     border-radius: 16px;
@@ -76,6 +77,21 @@
     &::placeholder {
       color: #a0a0a0;
       font-weight: 500;
+    }
+  }
+
+  .mota7-amount-input {
+    direction: rtl;
+    text-align: right;
+
+    &::part(native) {
+      direction: rtl;
+      text-align: right;
+    }
+
+    &::part(input) {
+      direction: rtl;
+      text-align: right;
     }
   }
 

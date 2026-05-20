@@ -56,6 +56,8 @@ export interface CoverageMultiEmit {
   cityIds: string[];
   arabicTokens: string[];
   primaryCityDisplay: string;
+  /** محافظات اختير لها «كل المدن» — للفلترة في الرئيسية */
+  governorateWholeIds?: string[];
 }
 
 type GovWithCities = Governorate & { cities: City[] };
@@ -80,6 +82,8 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
   @Input() seedCoverageCityIds: string[] | null = null;
   /** ارتفاع قائمة الداخل المنبثقة أو البطاقة */
   @Input() maxScrollHeight = '340px';
+  /** شبكة الرئيسية: «الكل» مفعّل (كل المحافظات) */
+  @Input() hubIsAll = true;
 
   /** نص الحقل كما يظهر على غلاف الاختيار (غير hub) */
   @Input() fieldLabel = 'المدينة';
@@ -116,7 +120,11 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
 
   /** آخر شبكة مختارة لمزامنة خارجية */
   private lastHubPayload: HubGeoSelectionEmit | null = null;
+  /** وضع «الكل» في شبكة الرئيسية */
+  private hubAllMode = true;
   private lastAppliedCoverageSeedKey = '';
+  /** إعادة emit بعد تحميل مدن المحافظة عند اختيار «كل المدن» قبل اكتمال القائمة */
+  private deferCoverageReemit = false;
   /** منع إعادة فرض seed بعد اختيار المستخدم يدوياً (تعديل الملف / التسجيل) */
   private lastAppliedSingleSeedKey = '';
   private singleSelectionUserPicked = false;
@@ -186,11 +194,65 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     ) {
       this.applySeedCoverageIfNeeded();
     }
+    if (ch['hubIsAll'] && this.isHubEmbed()) {
+      this.syncHubAllModeFromParent();
+    }
   }
 
   /** الشبكة الرئيسية فقط بدون غلاف حقل */
   isHubEmbed(): boolean {
     return this.variant === 'hubMulti';
+  }
+
+  isHubAllSelected(): boolean {
+    if (!this.isHubEmbed() || !this.hubAllMode) {
+      return false;
+    }
+    for (const g of this.governoratesSnap) {
+      if (this.governoratePickCount(g.id) > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  selectHubAll(ev?: Event): void {
+    if (this.disabled || !this.isHubEmbed()) {
+      return;
+    }
+    ev?.stopPropagation?.();
+    this.pickWhole.clear();
+    this.pickCities.clear();
+    this.expandedGovernorateIds = new Set();
+    this.hubAllMode = true;
+    const payload: HubGeoSelectionEmit = {
+      isAll: true,
+      flatCityIds: [],
+      arabicTokens: [],
+      summaryLabel: 'الكل',
+      hubButtonLabel: 'الكل',
+    };
+    this.lastHubPayload = payload;
+    this.hubSelectionChange.emit(payload);
+  }
+
+  private syncHubAllModeFromParent(): void {
+    if (!this.isHubEmbed()) {
+      return;
+    }
+    if (this.hubIsAll) {
+      this.hubAllMode = true;
+      this.pickWhole.clear();
+      this.pickCities.clear();
+    } else {
+      this.hubAllMode = false;
+    }
+  }
+
+  private clearHubAllMode(): void {
+    if (this.isHubEmbed()) {
+      this.hubAllMode = false;
+    }
   }
 
   isModalMultiVariant(): boolean {
@@ -347,13 +409,19 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     ev?.stopPropagation?.();
     if (!this.showWholeRow(gov)) return;
     const cur = this.pickWhole.get(gov.id);
+    const cities = gov.cities ?? [];
     if (cur) {
       this.pickWhole.delete(gov.id);
+      this.deferCoverageReemit = false;
     } else {
       this.pickWhole.set(gov.id, true);
       this.pickCities.delete(gov.id);
+      if (!cities.length) {
+        this.deferCoverageReemit = true;
+      }
     }
     if (this.variant === 'hubMulti') {
+      this.clearHubAllMode();
       this.emitHubIfApplicable();
     } else if (this.variant === 'coverageMultiRestricted' || this.variant === 'requestMultiNoWhole') {
       void this.emitCoverageAggregate();
@@ -414,6 +482,7 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     this.pickCities.set(gov.id, new Set(set));
 
     if (this.variant === 'hubMulti') {
+      this.clearHubAllMode();
       this.emitHubIfApplicable();
     } else if (this.variant === 'coverageMultiRestricted') {
       void this.emitCoverageAggregate();
@@ -457,6 +526,10 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     this.governoratesSnap = snapshot || [];
     this.applySeedSingleIfNeeded();
     this.applySeedCoverageIfNeeded();
+    if (this.deferCoverageReemit && this.isModalMultiVariant()) {
+      this.deferCoverageReemit = false;
+      void this.emitCoverageAggregate();
+    }
   }
 
   private applySeedSingleIfNeeded(): void {
@@ -566,6 +639,7 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
 
     if (!any) {
       /** لا شيء = الكل لتفادي فلتر فارغ خطير */
+      this.hubAllMode = true;
       return {
         isAll: true,
         flatCityIds: [],
@@ -575,6 +649,7 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
       };
     }
 
+    this.hubAllMode = false;
     const tok = [...arabic];
     const summaryLabel = this.buildSummaryLabel(tok);
     const hubButtonLabel = this.buildHubCapsuleButtonLabel(governors);
@@ -625,13 +700,75 @@ export class GovernorateCitySelectorComponent implements OnInit, OnChanges {
     return `${names.slice(0, 2).join(' · ')} +${names.length - 2}`;
   }
 
+  /**
+   * نص حقل «مناطق الخدمة / العرض»:
+   * محافظة كاملة أو كل مدنها → اسم المحافظة فقط؛ مدينة واحدة → اسم المدينة؛ عدة مدن → أسماء أو «المحافظة (عدد)».
+   */
+  private buildCoveragePrimaryCityDisplay(pool: GovWithCities[]): string {
+    const segments: string[] = [];
+    const scope = pool.length ? pool : this.governoratesSnap;
+
+    for (const g of scope) {
+      const whole = this.pickWhole.get(g.id);
+      const pick = this.pickCities.get(g.id);
+      const cities = g.cities ?? [];
+      const allCitiesInGovSelected =
+        cities.length > 0 &&
+        (whole ||
+          (!!pick?.size &&
+            pick.size === cities.length &&
+            cities.every((c) => pick!.has(c.id))));
+
+      if (allCitiesInGovSelected) {
+        segments.push(this.governorateShort(g));
+        continue;
+      }
+      if (!pick?.size) continue;
+      if (pick.size === 1) {
+        const cid = [...pick][0];
+        const city = cities.find((c) => c.id === cid);
+        const cn = (city?.name ?? '').trim();
+        segments.push(cn || this.governorateShort(g));
+      } else {
+        const pickedNames: string[] = [];
+        for (const c of cities) {
+          if (!pick.has(c.id)) continue;
+          const n = String(c.name ?? '').trim();
+          if (n) pickedNames.push(n);
+        }
+        if (pickedNames.length <= 4) {
+          segments.push(pickedNames.join('، '));
+        } else {
+          segments.push(`${this.governorateShort(g)} (${pickedNames.length})`);
+        }
+      }
+    }
+
+    const filtered = segments.map((s) => s.trim()).filter(Boolean);
+    if (!filtered.length) return '';
+    if (filtered.length === 1) return filtered[0]!;
+    return this.buildSummaryLabel(filtered);
+  }
+
   /** طلب أو تغطية إعلان: اجمع كل المحافظات المعروضة */
   async emitCoverageAggregate(): Promise<void> {
-    const cov = await this.flatCoverageFromState(this.governoratesSnap);
+    const pool = this.governoratesSnap;
+    const cov = await this.flatCoverageFromState(pool);
     this.coverageMultiChange.emit({
-      ...cov,
-      primaryCityDisplay: cov.arabicTokens.join('، ') || '',
+      cityIds: cov.cityIds,
+      arabicTokens: cov.arabicTokens,
+      governorateWholeIds: this.governorateWholeIdsFromState(pool),
+      primaryCityDisplay: this.buildCoveragePrimaryCityDisplay(pool),
     });
+  }
+
+  private governorateWholeIdsFromState(scope: GovWithCities[]): string[] {
+    const pool = scope.length ? scope : this.governoratesSnap;
+    const ids: string[] = [];
+    for (const g of pool) {
+      if (this.pickWhole.get(g.id)) ids.push(g.id);
+    }
+    return ids;
   }
 
   /** نطوي كل محافظات الحالة المرئية */

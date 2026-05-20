@@ -35,6 +35,7 @@ import {
   GovernorateCitySelectorComponent,
   type SingleCityEmit,
 } from '../shared/governorate-city-selector/governorate-city-selector.component';
+import { Mota7DigitsOnlyIonInputDirective } from '../shared/directives/mota7-digits-only-ion-input.directive';
 
 import {
   personAddOutline,
@@ -53,7 +54,14 @@ import {
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, Mota7HeaderComponent, FormsModule, GovernorateCitySelectorComponent],
+  imports: [
+    IonicModule,
+    CommonModule,
+    Mota7HeaderComponent,
+    FormsModule,
+    GovernorateCitySelectorComponent,
+    Mota7DigitsOnlyIonInputDirective,
+  ],
 })
 export class RegisterPage implements OnInit, OnDestroy {
   @ViewChild('inputFullName', { read: IonInput }) private inputFullName?: IonInput;
@@ -64,6 +72,11 @@ export class RegisterPage implements OnInit, OnDestroy {
   private hardwareBackSub?: Subscription;
 
   phoneLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
+
   private readonly fullNameMaxLen = 25;
   selectedCityGeo: SingleCityEmit | null = null;
 

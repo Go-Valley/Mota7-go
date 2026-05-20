@@ -2,6 +2,20 @@
   <!-- شبكة الرئيسية: قائمة داخل مودال الصفحة -->
   <ng-container *ngIf="isHubEmbed()">
     <div class="gcs-scroll gcs-hub-embed" [style.max-height]="maxScrollHeight">
+      <button
+        type="button"
+        class="gcs-row gcs-all-row"
+        (click)="selectHubAll($event)"
+      >
+        <ion-icon
+          [name]="isHubAllSelected() ? 'checkmark-circle' : 'ellipse-outline'"
+          class="gcs-mark gcs-mark--all"
+          aria-hidden="true">
+        </ion-icon>
+        <span class="gcs-label strong">الكل</span>
+        <span class="gcs-label muted gcs-all-sub">كل المحافظات</span>
+      </button>
+
       <div class="gcs-gov" *ngFor="let g of governorates$ | async">
         <button type="button" class="gcs-row gcs-gov-head" (click)="onGovHeaderClick(g, $event)">
           <ion-icon

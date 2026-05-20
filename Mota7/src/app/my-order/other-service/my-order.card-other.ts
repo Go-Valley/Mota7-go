@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   Input,
@@ -402,7 +403,7 @@ export class MyOrderCardOtherComponent implements OnInit, OnDestroy, OnChanges {
         cleanPhone = '2' + cleanPhone;
       }
 
-      const url = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(
+      const url = `whatsapp://send?phone=${cleanPhone}&text=${encodeWhatsappText(
         'السلام عليكم.. بتواصل مع حضرتك بخصوص طلب خدمة : ' + descriptor
       )}`;
       window.open(url, '_system');

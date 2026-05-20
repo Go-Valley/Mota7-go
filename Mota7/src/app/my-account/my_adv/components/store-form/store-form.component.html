@@ -94,15 +94,20 @@
           <ion-icon name="logo-whatsapp" slot="start" color="success" class="field-icon"></ion-icon>
           <ion-input
             #inputWhatsappPhone
+            mota7DigitsOnly="phone"
+            [mota7DigitsOnlyOnWarn]="onWhatsappDigitsOnlyWarn"
             type="tel"
             maxlength="11"
             inputmode="numeric"
+            pattern="[0-9]*"
             autocomplete="tel-national"
             placeholder="01xxxxxxxxx"
             class="center-input"
             [ngModel]="storeData.whatsappPhone"
             (ngModelChange)="onStoreWhatsappPhoneChange($event)"
-            (keydown)="onStoreWhatsappPhoneKeyDown($event)">
+            (keydown)="onStoreWhatsappPhoneKeyDown($event)"
+            (beforeinput)="onStoreWhatsappPhoneBeforeInput($event)"
+            (paste)="onStoreWhatsappPhonePaste($event)">
           </ion-input>
         </ion-item>
         <p class="phone-live-warning" *ngIf="whatsappPhoneLiveWarning" role="alert">{{ whatsappPhoneLiveWarning }}</p>

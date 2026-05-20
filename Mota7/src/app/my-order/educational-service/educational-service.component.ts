@@ -1,3 +1,4 @@
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import {
   Component,
   DestroyRef,
@@ -20,23 +21,25 @@ import {
   ORDER_PHONE_INVALID_MSG,
   orderPhoneToEnglishDigits,
 } from '../../core/utils/egyptian-phone-order.util';
+import { blockDigitsOnlyPaste } from '../../core/utils/mota7-digits-only-input.util';
 import {
   findMatchingNameArItem,
   findMatchingSubject,
   normalizeUserFreeText,
+  presentOrderRequiredFieldAlert,
   readIonTextInputValueFromEvent,
 } from '../../core/utils/order-form-fields.util';
-import {
-  mergeGuestStoredContactIntoOrderData,
-  writeGuestOrderContact,
-} from '../../core/utils/guest-order-contact-storage.util';
+import { mergeGuestStoredContactIntoOrderData } from '../../core/utils/guest-order-contact-storage.util';
 import { AppTaxonomyService } from '../../core/services/app-taxonomy.service';
 import type { CoverageMultiEmit } from '../../shared/governorate-city-selector/governorate-city-selector.component';
 import { GovernorateService } from '../../core/services/governorate.service';
 import {
   applyServiceRequestCoverageFromUserDoc,
+  assignServiceRequestCoverageToComponent,
   finalizeServiceRequestCoverageForSubmit,
+  hydrateServiceRequestCoverageFromGuestStorage,
   hydrateServiceRequestCoverageFromUserDoc,
+  persistGuestOrderContactAfterServiceSubmit,
 } from '../../core/utils/service-request-user-city.util';
 
 @Component({
@@ -47,9 +50,6 @@ import {
 })
 export class EducationalServiceComponent implements OnInit {
 
-  /** فتح من مودال الطلب: دروس خصوصية دون فرض مرحلة/مادة في النموذج */
-  hubQuickEntry = false;
-
   @ViewChild('inputCustomerName', { read: IonInput }) private inputCustomerName?: IonInput;
   @ViewChild('textareaShortNote', { read: IonTextarea }) private textareaShortNote?: IonTextarea;
 
@@ -58,6 +58,10 @@ export class EducationalServiceComponent implements OnInit {
   requestCoverageArabic: string[] = [];
   availableSubjects: string[] = [];
   phoneLiveWarning: string | null = null;
+
+  readonly onPhoneDigitsOnlyWarn = (msg: string): void => {
+    this.phoneLiveWarning = msg;
+  };
   
   private loadingCtrl = inject(LoadingController);
   private firestore = inject(Firestore);
@@ -112,10 +116,19 @@ export class EducationalServiceComponent implements OnInit {
       });
 
     await this.loadUserProfile();
-    mergeGuestStoredContactIntoOrderData(
-      this.orderData,
-      !!this.auth.currentUser?.email
-    );
+    const loggedIn = !!this.auth.currentUser?.email;
+    mergeGuestStoredContactIntoOrderData(this.orderData, loggedIn);
+    if (!loggedIn) {
+      const guestApplied = await hydrateServiceRequestCoverageFromGuestStorage(
+        this.govService,
+        {
+          requestCoverageCityIds: this.requestCoverageCityIds,
+          requestCoverageArabic: this.requestCoverageArabic,
+          orderCity: this.orderData.city,
+        }
+      );
+      assignServiceRequestCoverageToComponent(this, guestApplied);
+    }
     const st = applyOrderPhoneInputState(this.orderData.customerPhone);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
@@ -158,6 +171,20 @@ export class EducationalServiceComponent implements OnInit {
     const st = applyOrderPhoneInputState(raw);
     this.orderData.customerPhone = st.cleaned;
     this.phoneLiveWarning = st.warning;
+  }
+
+  onCustomerPhonePaste(ev: ClipboardEvent): void {
+    blockDigitsOnlyPaste(
+      ev,
+      (digits) => {
+        const st = applyOrderPhoneInputState(digits);
+        this.orderData.customerPhone = st.cleaned;
+        this.phoneLiveWarning = st.warning;
+      },
+      () => {
+        this.phoneLiveWarning = ORDER_PHONE_DIGITS_ONLY_MSG;
+      }
+    );
   }
 
   onEducationNameInput(ev: Event): void {
@@ -209,11 +236,12 @@ export class EducationalServiceComponent implements OnInit {
             this.govService,
             data
           );
-          applyServiceRequestCoverageFromUserDoc(hydration, {
+          const applied = applyServiceRequestCoverageFromUserDoc(hydration, {
             requestCoverageCityIds: this.requestCoverageCityIds,
             requestCoverageArabic: this.requestCoverageArabic,
             orderCity: this.orderData.city,
           });
+          assignServiceRequestCoverageToComponent(this, applied);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -245,10 +273,6 @@ export class EducationalServiceComponent implements OnInit {
   }
 
   async submitOrder() {
-    if (this.hubQuickEntry) {
-      await this.submitHubQuickEducationOrder();
-      return;
-    }
     await this.syncFreeTextFieldsFromNativeInputs();
     this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
     const phoneSt = applyOrderPhoneInputState(this.orderData.customerPhone);
@@ -276,12 +300,24 @@ export class EducationalServiceComponent implements OnInit {
       stageId = stageItem.id;
       this.orderData.stageId = stageItem.id;
     }
-    const stage = stageItem?.nameAr ?? (this.orderData.stage || '').trim();
-    const stageOk = !!stageItem && !!stageId;
+    if (!stageItem || !stageId) {
+      await presentOrderRequiredFieldAlert(
+        this.alertCtrl,
+        'المرحلة التعليمية'
+      );
+      return;
+    }
+    const stage = stageItem.nameAr;
 
-    const subjectMatch = findMatchingSubject(stageItem?.subjects, this.orderData.subject);
-    const subjectOk = !!stageItem && !!subjectMatch;
-    const canonicalSubject = subjectMatch ?? (this.orderData.subject || '').trim();
+    const subjectMatch = findMatchingSubject(stageItem.subjects, this.orderData.subject);
+    if (!subjectMatch) {
+      await presentOrderRequiredFieldAlert(
+        this.alertCtrl,
+        'المادة التعليمية'
+      );
+      return;
+    }
+    const canonicalSubject = subjectMatch;
 
     const missingParts: string[] = [];
     if (!customerName) {
@@ -292,12 +328,6 @@ export class EducationalServiceComponent implements OnInit {
     }
     if (!covIds.length && !prefilledCity) {
       missingParts.push('المدينة (من القائمة)');
-    }
-    if (!stageOk) {
-      missingParts.push('المرحلة التعليمية');
-    }
-    if (!subjectOk) {
-      missingParts.push('المادة التعليمية');
     }
 
     if (missingParts.length > 0) {
@@ -350,7 +380,7 @@ export class EducationalServiceComponent implements OnInit {
             {
               text: 'تواصل مع الإدارة',
               handler: () => {
-                const msg = encodeURIComponent("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
+                const msg = encodeWhatsappText("السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح");
                 window.open(`whatsapp://send?phone=201002288812&text=${msg}`, '_system');
               }
             }
@@ -412,7 +442,13 @@ export class EducationalServiceComponent implements OnInit {
         };
         return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
       });
-      writeGuestOrderContact(customerName, customerPhone, city);
+      await persistGuestOrderContactAfterServiceSubmit(
+        this.govService,
+        customerName,
+        customerPhone,
+        city,
+        covIds
+      );
       this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
 
       await loader.dismiss();
@@ -430,148 +466,5 @@ export class EducationalServiceComponent implements OnInit {
       header, message, buttons: ['موافق'], mode: 'ios'
     });
     await alert.present();
-  }
-
-  /** طلب «دروس خصوصية» من الشبكة السريعة: نفس بيانات الطلب دون اشتراط مرحلة/مادة */
-  private async submitHubQuickEducationOrder(): Promise<void> {
-    await this.syncFreeTextFieldsFromNativeInputs();
-    this.orderData.customerName = normalizeUserFreeText(this.orderData.customerName);
-    const phoneSt = applyOrderPhoneInputState(this.orderData.customerPhone);
-    this.orderData.customerPhone = phoneSt.cleaned;
-    this.phoneLiveWarning = phoneSt.warning;
-    this.orderData.shortNote = normalizeUserFreeText(this.orderData.shortNote);
-    this.orderData.city = (this.orderData.city || '').trim();
-    const coverage = finalizeServiceRequestCoverageForSubmit({
-      requestCoverageCityIds: this.requestCoverageCityIds,
-      requestCoverageArabic: this.requestCoverageArabic,
-      orderCityDisplay: this.orderData.city,
-    });
-    const covIds = coverage.covIds;
-    const prefilledCity = this.orderData.city;
-
-    const customerName = this.orderData.customerName;
-    const { customerPhone, shortNote } = this.orderData;
-
-    const missingParts: string[] = [];
-    if (!customerName) {
-      missingParts.push('الاسم');
-    }
-    if (!customerPhone) {
-      missingParts.push('رقم الهاتف');
-    }
-    if (!covIds.length && !prefilledCity) {
-      missingParts.push('المدينة (من القائمة)');
-    }
-
-    if (missingParts.length > 0) {
-      await this.showAlert('بيانات ناقصة', `يرجى تعبئة: ${missingParts.join('، ')}`);
-      return;
-    }
-
-    if (!isOrderPhoneValid(customerPhone)) {
-      await this.showAlert('رقم الهاتف غير صحيح', ORDER_PHONE_INVALID_MSG);
-      return;
-    }
-
-    const stage = 'دروس خصوصية';
-    const stageId = 'hub-general';
-    const subject = 'غير محدد';
-    const city = coverage.cityDisplay;
-    const scopeSig = covIds.join('__');
-    const education_subject_token = `${stage}+${subject}`;
-    const education_match_key =
-      scopeSig.length > 0
-        ? `${stage}+${subject}+SCOPE__${scopeSig}`
-        : `${stage}+${subject}+${city}`;
-    this.orderData.city = city;
-    const customDocId = `${customerPhone}_${education_match_key}`;
-    const now = Date.now();
-
-    const loader = await this.loadingCtrl.create({
-      message: 'جاري معالجة طلبك...',
-      mode: 'ios',
-    });
-    await loader.present();
-
-    try {
-      const blockedSnap = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'blocked_users', customerPhone))
-      );
-
-      if (blockedSnap.exists()) {
-        await loader.dismiss();
-        const alert = await this.alertCtrl.create({
-          header: 'تنبيه الحظر',
-          message:
-            'نأسف، تم حظر هذا الرقم ولا يمكن إجراء طلبات في الوقت الحالي. يرجى التواصل مع الإدارة لحل المشكلة.',
-          mode: 'ios',
-          buttons: [
-            { text: 'إلغاء', role: 'cancel' },
-            {
-              text: 'تواصل مع الإدارة',
-              handler: () => {
-                const msg = encodeURIComponent('السلام عليكم.. عندي مشكلة حظر لطلبات الخدمات على مُتاح');
-                window.open(`whatsapp://send?phone=201002288812&text=${msg}`, '_system');
-              },
-            },
-          ],
-        });
-        await alert.present();
-        return;
-      }
-
-      const orderSnap = await runInInjectionContext(this.injector, () =>
-        getDoc(doc(this.firestore, 'orders', customDocId))
-      );
-      if (orderSnap.exists()) {
-        const existingData = orderSnap.data();
-        const hold =
-          existingData['pendingHoldExpiresAt']?.toMillis?.() ||
-          existingData['expiresAt']?.toMillis?.() ||
-          0;
-
-        if (existingData['status'] === 'pending' && hold > now) {
-          await loader.dismiss();
-          await this.showAlert(
-            'طلب مكرر',
-            `لديك طلب نشط بالفعل لهذه الخدمة. يمكنك متابعته من صفحة "طلباتي".`
-          );
-          return;
-        }
-      }
-
-      const expiryDate = new Date();
-      expiryDate.setHours(expiryDate.getHours() + 1);
-
-      let finalOrder: Record<string, unknown>;
-      await runInInjectionContext(this.injector, () => {
-        finalOrder = {
-          customerName,
-          customerPhone,
-          stageName: stage,
-          stageId: stageId,
-          subjectName: subject,
-          shortNote: shortNote || '',
-          city: city,
-          order_coverage_city_ids: covIds,
-          education_subject_token: education_subject_token,
-          education_match_key: education_match_key,
-          serviceType: 'education',
-          status: 'pending',
-          createdAt: Timestamp.now(),
-          pendingHoldExpiresAt: Timestamp.fromDate(expiryDate),
-        };
-        return setDoc(doc(this.firestore, 'orders', customDocId), finalOrder);
-      });
-      writeGuestOrderContact(customerName, customerPhone, city);
-      this.orderPush.afterOrderCreated(customDocId, { ...finalOrder! });
-
-      await loader.dismiss();
-      await this.modalCtrl.dismiss({ confirmed: true }, 'confirm');
-      await this.navCtrl.navigateRoot('/tabs/my-order');
-    } catch {
-      await loader.dismiss();
-      await this.showAlert('خطأ', 'حدثت مشكلة أثناء إرسال الطلب، حاول مرة أخرى.');
-    }
   }
 }

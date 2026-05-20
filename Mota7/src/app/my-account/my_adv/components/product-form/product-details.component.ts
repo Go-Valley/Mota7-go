@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { encodeWhatsappText } from 'src/app/core/utils/whatsapp-open.util';
 import { sellerCityLabelForProductAd } from 'src/app/core/utils/product-seller-location.util';
 import { cloudinaryGalleryImageUrl } from 'src/app/core/utils/cloudinary-list-image.util';
 import { IonicModule, ModalController } from '@ionic/angular';
@@ -60,7 +61,7 @@ export class ProductDetailsComponent implements OnInit {
 
     if (type === 'whatsapp') {
       const productDesc = this.ad.details?.short_desc || this.ad.details?.title || '';
-      const msg = encodeURIComponent(`السلام عليكم .. عايز استفسر عن منتج (${productDesc})`);
+      const msg = encodeWhatsappText(`السلام عليكم .. عايز استفسر عن منتج (${productDesc})`);
       window.open(`whatsapp://send?phone=${phone}&text=${msg}`, '_system');
     } else {
       window.open(`tel:${phone}`, '_system');

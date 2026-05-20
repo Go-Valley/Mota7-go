@@ -1,18 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
-import { isNtfyOrdersPipelineActive, ORDER_NOTIFY_ACTION_LINE_AR } from '../utils/ntfy-orders-policy.util';
-import { NewAdNtfyService } from './new-ad-ntfy.service';
+import { ProviderOrderLocalNotificationService } from './provider-order-local-notification.service';
 
 /**
- * في المقدّمة: إن كان مسار ntfy للطلبات مفعّلاً، يكفي `NtfyListenerService` (SSE → إشعار محلي mota7-orders).
- * لا نُكرّر بجدولة من FCM. في الخلفية يعرض النظام FCM (نفس العنوان/الجسم بعد مواءمة الخادم).
- * إن عُطّل ntfy للطلبات يبقى الجسر احتياطاً لإظهار إشعار في المقدّمة.
+ * FCM وصل لمقدّم مطابق (الخادم يفلتر) — جدولة إشعار محلي كامل مع dedup.
+ * على iOS (`handleApplicationNotifications: false`) قد لا يعرض النظام الإشعار دون هذا الجسر.
  */
 @Injectable({ providedIn: 'root' })
 export class OrderPushNotificationBridgeService {
-  private readonly newAdNtfy = inject(NewAdNtfyService);
+  private readonly providerOrderLocal = inject(ProviderOrderLocalNotificationService);
   private started = false;
 
   start(): void {
@@ -31,33 +28,18 @@ export class OrderPushNotificationBridgeService {
       return;
     }
 
-    if (isNtfyOrdersPipelineActive()) {
-      return;
-    }
+    const serviceType = String(data['service_type'] ?? '').trim().toLowerCase() || 'other';
+    const previewLine = String(ev.notification?.body ?? '')
+      .split('\n')[0]
+      ?.trim();
+    const orderId = String(data['order_id'] ?? '').trim();
 
-    await this.newAdNtfy.prepareLocalNotifications();
-
-    const title = String(ev.notification?.title ?? '').trim() || 'Mota7: new order';
-    const body =
-      String(ev.notification?.body ?? '').trim() ||
-      ORDER_NOTIFY_ACTION_LINE_AR;
-
-    try {
-      const nid = Math.floor(Date.now() % 2147483640) + 1;
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: nid,
-            title,
-            body,
-            channelId: 'mota7-orders',
-            schedule: { at: new Date(Date.now() + 250) },
-          },
-        ],
-      });
-    } catch (e) {
-      console.warn('[order push bridge] schedule', e);
-    }
+    await this.providerOrderLocal.schedule({
+      serviceType,
+      preview: previewLine || '',
+      orderId: orderId || undefined,
+      scheduleDelayMs: 250,
+    });
   }
 
   private asDataRecord(data: unknown): Record<string, string> {

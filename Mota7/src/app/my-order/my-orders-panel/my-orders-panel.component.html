@@ -1,0 +1,72 @@
+<div class="orders-panel" [class.orders-panel--sheet]="isSheetMode" dir="rtl">
+  <div class="orders-panel__intro" *ngIf="isSheetMode">
+    <div class="orders-panel__intro-icon" aria-hidden="true">
+      <ion-icon name="list-outline"></ion-icon>
+    </div>
+    <p class="orders-panel__intro-copy">
+      هنا تقدر تتابع كل طلباتك اللي طلبتها على مُتاح، وتتواصل مع مقدّم الخدمة على طول من غير ما تلف وتدور.
+    </p>
+  </div>
+
+  <div class="orders-panel__intro orders-panel__intro--page" *ngIf="!isSheetMode">
+    <div class="orders-panel__intro-icon orders-panel__intro-icon--page" aria-hidden="true">
+      <ion-icon name="sparkles-outline"></ion-icon>
+    </div>
+    <h2>أهلاً بك في "مُتاح - Mota7"</h2>
+    <p>اطلب خدمتك الآن بضغطة زر، وسيتواصل معك أقرب مزود خدمة في منطقتك.</p>
+  </div>
+
+  <div class="orders-panel__action" *ngIf="!isSheetMode">
+    <ion-button
+      expand="block"
+      class="service-cta service-cta--order"
+      (click)="onRequestNewOrderClick()"
+    >
+      <div class="service-cta__row">
+        <div class="service-cta__icon" aria-hidden="true">
+          <ion-icon name="briefcase-outline"></ion-icon>
+        </div>
+        <div class="service-cta__copy">
+          <span class="service-cta__title">محتاج تطلب إيه؟</span>
+          <span class="service-cta__sub">ابدأ طلبك بخطوة واحدة</span>
+        </div>
+      </div>
+    </ion-button>
+  </div>
+
+  <div
+    class="orders-panel__empty"
+    *ngIf="customerPhone && ordersQuerySettled && !hasActiveRequest"
+    role="status"
+  >
+    <span class="orders-panel__empty-icon" aria-hidden="true">📋</span>
+    <p class="orders-panel__empty-text">لا توجد طلبات نشطة حالياً برقمك</p>
+  </div>
+
+  <div class="orders-panel__list" *ngIf="hasActiveRequest && activeOrders.length > 0">
+    <h3 class="orders-panel__list-title">طلباتك الحالية</h3>
+
+    <div *ngFor="let order of activeOrders">
+      <app-my-order-card-delivery
+        *ngIf="order.serviceType === 'delivery'"
+        [order]="order"
+        (orderDeleted)="onOrderDeleted()"
+        (archivingStarted)="order.isArchiving = true"
+      ></app-my-order-card-delivery>
+
+      <app-my-order-card-educational
+        *ngIf="order.serviceType === 'education'"
+        [order]="order"
+        (orderDeleted)="onOrderDeleted()"
+        (archivingStarted)="order.isArchiving = true"
+      ></app-my-order-card-educational>
+
+      <app-my-order-card-other
+        *ngIf="order.serviceType === 'other'"
+        [order]="order"
+        (orderDeleted)="onOrderDeleted()"
+        (archivingStarted)="order.isArchiving = true"
+      ></app-my-order-card-other>
+    </div>
+  </div>
+</div>

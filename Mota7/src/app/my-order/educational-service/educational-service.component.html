@@ -13,18 +13,13 @@
   <div class="mota7-wrapper" dir="rtl">
     <div class="form-card-container">
 
-      <div class="input-group hub-quick-hint" *ngIf="hubQuickEntry">
-        <p class="hub-quick-hint__text">
-          طلب <strong>دروس خصوصية</strong> — يمكنك إكمال بياناتك أدناه وإرسال الطلب مباشرة دون اختيار مرحلة أو مادة هنا.
-        </p>
-      </div>
-
-      <div class="input-group" *ngIf="!hubQuickEntry">
+      <div class="input-group">
         <label class="main-label">المرحلة التعليمية : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.stage" 
                     (ionChange)="onStageChange()" 
                     interface="action-sheet" 
                     mode="ios"
+                    required
                     placeholder="اختر المرحلة التعليمية"
                     cancelText="إلغاء">
           <ion-select-option *ngFor="let stage of educationItems" [value]="stage.nameAr">
@@ -33,11 +28,12 @@
         </ion-select>
       </div>
 
-      <div class="input-group" *ngIf="!hubQuickEntry && orderData.stage">
+      <div class="input-group" *ngIf="orderData.stage">
         <label class="main-label">المادة التعليمية : <span>*</span></label>
         <ion-select [(ngModel)]="orderData.subject" 
                     interface="action-sheet" 
                     mode="ios"
+                    required
                     placeholder="اختر المادة التعليمية"
                     cancelText="إلغاء">
           <ion-select-option *ngFor="let sub of availableSubjects" [value]="sub">
@@ -74,12 +70,18 @@
       <div class="input-group">
         <label class="main-label">رقم الهاتف : <span>*</span></label>
         <ion-input
+          mota7DigitsOnly="phone"
+          [mota7DigitsOnlyOnWarn]="onPhoneDigitsOnlyWarn"
           type="tel"
           maxlength="11"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          autocomplete="tel-national"
           [(ngModel)]="orderData.customerPhone"
           (ionInput)="onCustomerPhoneInput($event)"
           (keydown)="onCustomerPhoneKeyDown($event)"
           (beforeinput)="onCustomerPhoneBeforeInput($event)"
+          (paste)="onCustomerPhonePaste($event)"
           placeholder="01xxxxxxxxx">
         </ion-input>
         <p class="phone-live-warning" *ngIf="phoneLiveWarning" role="alert">{{ phoneLiveWarning }}</p>

@@ -50,6 +50,8 @@ export function slimAdForHomeFeed(ad: any, adType: string): any {
       ad_type: ad.ad_type,
       status: ad.status,
       city: ad.city,
+      coverage_city_ids: ad.coverage_city_ids,
+      coverage_governorate_whole_ids: ad.coverage_governorate_whole_ids,
       owner_phone: ad.owner_phone,
       owner_name: ad.owner_name,
       verification_level: ad.verification_level,
@@ -78,6 +80,9 @@ export function slimAdForHomeFeed(ad: any, adType: string): any {
       ad_type: ad.ad_type,
       status: ad.status,
       city: ad.city,
+      coverage_city_ids: ad.coverage_city_ids,
+      coverage_governorate_whole_ids: ad.coverage_governorate_whole_ids,
+      governorate_name_ar: ad.governorate_name_ar,
       /** مطلوب لأعداد تبويبات «المتاجر» وتصفية القائمة حسب التصنيف */
       category_id: ad.category_id,
       store_name: ad.store_name,
